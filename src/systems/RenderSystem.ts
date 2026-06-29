@@ -13,7 +13,8 @@ import type { Camera } from '@/core/Camera';
 import { depthKey, gridToScreen, type IsoConfig } from '@/core/math/iso';
 import type { Vec2 } from '@/core/math/Vec2';
 import { playerEntity, Res, type Settings } from '@/core/resources';
-import type { AssetBundle, SpriteDef } from '@/assets/types';
+import type { AssetBundle, ImageRef, PropDef, SpriteDef } from '@/assets/types';
+import type { ImageStore } from '@/assets/images';
 import type { TileDef } from '@/map/tiles';
 import type { TileMap } from '@/map/TileMap';
 
@@ -42,6 +43,8 @@ const STATE_COLOR: Record<string, string> = {
 export class RenderSystem implements System {
   readonly name = 'render';
   private readonly explored = new Set<string>();
+  /** Image-only prop definitions for the current frame (from the sprite atlas). */
+  private props: Record<string, PropDef> = {};
   /** Set by the InputSystem so the renderer can preview the planned path. */
   hoverTile: Vec2 | null = null;
   pathPreview: Vec2[] = [];
@@ -49,6 +52,7 @@ export class RenderSystem implements System {
   constructor(
     private readonly ctx: CanvasRenderingContext2D,
     private readonly canvas: HTMLCanvasElement,
+    private readonly images: ImageStore,
   ) {}
 
   update(world: World, frame: FrameContext): void {
@@ -57,6 +61,7 @@ export class RenderSystem implements System {
     const cam = world.resource<Camera>(Res.Camera);
     const settings = world.resource<Settings>(Res.Settings);
     const assets = world.resource<AssetBundle>(Res.Assets);
+    this.props = assets.sprites.props ?? {};
     const player = playerEntity(world);
     const playerVision = world.get(player, Vision);
     const visible = playerVision?.visible ?? new Set<string>();
@@ -168,7 +173,10 @@ export class RenderSystem implements System {
     this.ctx.stroke();
 
     if (tile.decor && tile.decor !== 'block') {
-      this.drawDecor(tile.decor, top, halfW, halfH, dim);
+      // Prefer a high-fidelity decoration image; fall back to procedural shapes.
+      const ref = this.props[`decor_${tile.decor}`];
+      const drawn = ref ? this.drawImageAt(ref, top.x, top.y, cam.zoom, dim, iso) : null;
+      if (drawn === null) this.drawDecor(tile.decor, top, halfW, halfH, dim);
     }
   }
 
@@ -217,6 +225,14 @@ export class RenderSystem implements System {
     frame: FrameContext,
     seen: boolean,
   ): void {
+    // Image-only props (buildings, crates) drawn purely from their picture.
+    const propDef = assets.sprites.props?.[render.sprite];
+    if (propDef) {
+      const ps = this.tileCenter(cam, iso, pos.fx, pos.fy, 0);
+      this.drawImageAt(propDef, ps.x, ps.y, cam.zoom, seen ? 1 : 0.55, iso);
+      return;
+    }
+
     const def = assets.sprites.sprites[render.sprite];
     if (!def) return;
     const elevation = world.resource<TileMap>(Res.Map).heightAt(
@@ -235,23 +251,81 @@ export class RenderSystem implements System {
 
     const mv = world.get(e, Movement);
     const bob = mv?.moving ? Math.sin(frame.elapsed * 10) * 1.5 * cam.zoom : 0;
-    this.drawCharacter(screen, cam.zoom, def, pos, render, bob, dim);
+    const cy = screen.y - bob;
+
+    // Prefer the supplied character image; fall back to the procedural figure.
+    let headTop: number;
+    const imgH = def.image ? this.drawImageCharacter(def.image, screen.x, cy, cam.zoom, dim, iso) : null;
+    if (imgH !== null && def.image) {
+      headTop = cy - def.image.anchorY * imgH;
+    } else {
+      this.drawCharacter(screen, cam.zoom, def, pos, render, bob, dim);
+      headTop = cy - (def.bodyHeight + def.radius * 1.4) * cam.zoom;
+    }
 
     // Enemy state indicator + suspicion bar.
     const ai = world.get(e, AIComp);
-    if (ai) this.drawAIIndicator(screen, cam.zoom, def, ai);
+    if (ai) this.drawAIIndicator(screen, cam.zoom, headTop, ai);
 
     // Player HP bar.
     if (e === playerEntity(world) && actor) {
-      this.drawHealthBar(screen, cam.zoom, def, actor.hp / actor.maxHp);
+      this.drawHealthBar(screen, cam.zoom, headTop, actor.hp / actor.maxHp);
       const skills = world.get(e, Skills);
       if (skills?.disguised) {
         this.ctx.fillStyle = '#d8c27a';
         this.ctx.font = `${10 * cam.zoom}px ui-monospace, monospace`;
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('🎭', screen.x, screen.y - def.bodyHeight * cam.zoom - 18 * cam.zoom);
+        this.ctx.fillText('🎭', screen.x, headTop - 12 * cam.zoom);
       }
     }
+  }
+
+  /**
+   * Draws an image sprite anchored on the tile point (x, y). Returns the drawn
+   * height in pixels, or null if the image has not loaded yet (caller falls
+   * back). Honours optional spritesheet slicing via `ref.rect`.
+   */
+  private drawImageAt(
+    ref: ImageRef,
+    x: number,
+    y: number,
+    zoom: number,
+    alpha: number,
+    iso: IsoConfig,
+  ): number | null {
+    const img = this.images.ready(ref.src);
+    if (!img) return null;
+    const sw = ref.rect ? ref.rect[2] : img.naturalWidth;
+    const sh = ref.rect ? ref.rect[3] : img.naturalHeight;
+    if (!sw || !sh) return null;
+    const w = ref.scale * iso.tileWidth * zoom;
+    const h = w * (sh / sw);
+    const dx = x - ref.anchorX * w;
+    const dy = y - ref.anchorY * h;
+    const prev = this.ctx.globalAlpha;
+    this.ctx.globalAlpha = alpha;
+    if (ref.rect) {
+      this.ctx.drawImage(img, ref.rect[0], ref.rect[1], sw, sh, dx, dy, w, h);
+    } else {
+      this.ctx.drawImage(img, dx, dy, w, h);
+    }
+    this.ctx.globalAlpha = prev;
+    return h;
+  }
+
+  /** Image-backed character: ground shadow + the figure. Null if not loaded. */
+  private drawImageCharacter(
+    ref: ImageRef,
+    x: number,
+    cy: number,
+    zoom: number,
+    dim: number,
+    iso: IsoConfig,
+  ): number | null {
+    if (!this.images.ready(ref.src)) return null;
+    this.ctx.fillStyle = 'rgba(0,0,0,0.32)';
+    this.blob(x, cy + 2 * zoom, 11 * zoom, 5 * zoom);
+    return this.drawImageAt(ref, x, cy, zoom, dim, iso);
   }
 
   private drawCharacter(
@@ -310,34 +384,34 @@ export class RenderSystem implements System {
     ctx.stroke();
   }
 
-  private drawAIIndicator(screen: Vec2, zoom: number, def: SpriteDef, ai: AIComp): void {
+  /** `topY` is the y just above the sprite's head (works for image or procedural). */
+  private drawAIIndicator(screen: Vec2, zoom: number, topY: number, ai: AIComp): void {
     const ctx = this.ctx;
-    const topY = screen.y - def.bodyHeight * zoom - 10 * zoom;
-    // Suspicion bar.
+    const barY = topY - 6 * zoom;
     const w = 22 * zoom;
     const frac = Math.min(1, ai.suspicion / 1.0);
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(screen.x - w / 2, topY, w, 3 * zoom);
+    ctx.fillRect(screen.x - w / 2, barY, w, 3 * zoom);
     ctx.fillStyle = STATE_COLOR[ai.state];
-    ctx.fillRect(screen.x - w / 2, topY, w * frac, 3 * zoom);
+    ctx.fillRect(screen.x - w / 2, barY, w * frac, 3 * zoom);
 
     const glyph = STATE_GLYPH[ai.state];
     if (glyph) {
       ctx.fillStyle = STATE_COLOR[ai.state];
       ctx.font = `bold ${13 * zoom}px ui-monospace, monospace`;
       ctx.textAlign = 'center';
-      ctx.fillText(glyph, screen.x, topY - 4 * zoom);
+      ctx.fillText(glyph, screen.x, barY - 4 * zoom);
     }
   }
 
-  private drawHealthBar(screen: Vec2, zoom: number, def: SpriteDef, frac: number): void {
+  private drawHealthBar(screen: Vec2, zoom: number, topY: number, frac: number): void {
     const ctx = this.ctx;
     const w = 26 * zoom;
-    const topY = screen.y - def.bodyHeight * zoom - 8 * zoom;
+    const barY = topY - 6 * zoom;
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(screen.x - w / 2, topY, w, 3 * zoom);
+    ctx.fillRect(screen.x - w / 2, barY, w, 3 * zoom);
     ctx.fillStyle = frac > 0.5 ? '#7bd88f' : frac > 0.25 ? '#f2c14e' : '#f25c5c';
-    ctx.fillRect(screen.x - w / 2, topY, w * Math.max(0, frac), 3 * zoom);
+    ctx.fillRect(screen.x - w / 2, barY, w * Math.max(0, frac), 3 * zoom);
   }
 
   private drawVisionOverlay(

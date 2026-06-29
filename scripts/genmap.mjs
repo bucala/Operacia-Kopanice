@@ -126,6 +126,13 @@ const entities = [
   },
 ];
 
+// Image-only props (rendered when the matching art is present; see docs/ASSETS.md).
+// The cottage prop sits over the tile-built objective; the crate is the goal cache.
+const props = [
+  { sprite: 'cottage', x: 17, y: 15 },
+  { sprite: 'tnt_crate', x: 17, y: 16 },
+];
+
 const map = {
   $schema: '../schema/map.schema.json',
   name: 'Kopanice — horská usadlosť',
@@ -138,6 +145,7 @@ const map = {
   terrain: terrain.map((row) => row.join('')),
   elevation: elevation.map((row) => row.map((n) => n.toString(36)).join('')),
   entities,
+  props,
 };
 
 const here = dirname(fileURLToPath(import.meta.url));

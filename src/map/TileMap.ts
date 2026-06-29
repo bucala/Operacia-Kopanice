@@ -14,6 +14,15 @@ export interface MapFile {
   /** One string per row of base-36 digits giving per-cell elevation. */
   elevation?: string[];
   entities: MapEntity[];
+  /** Image-only decorative placements (buildings, crates), drawn by the renderer. */
+  props?: MapProp[];
+}
+
+export interface MapProp {
+  /** Sprite id in the sprites atlas `props` section. */
+  sprite: string;
+  x: number;
+  y: number;
 }
 
 export interface MapEntity {
@@ -39,6 +48,7 @@ export class TileMap {
   readonly height: number;
   readonly name: string;
   readonly entities: MapEntity[];
+  readonly props: MapProp[];
   private readonly cells: Cell[];
 
   constructor(file: MapFile, palette: TilePalette) {
@@ -46,6 +56,7 @@ export class TileMap {
     this.height = file.height;
     this.name = file.name;
     this.entities = file.entities;
+    this.props = file.props ?? [];
     this.cells = new Array(file.width * file.height);
 
     for (let y = 0; y < file.height; y++) {

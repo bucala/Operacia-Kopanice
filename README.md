@@ -90,8 +90,13 @@ Everything visual and audible is a readable JSON file under `public/assets/`:
   vision-blocking, height, decoration, and colours.
 - `maps/kopanice.json` — the level as ASCII terrain rows + an elevation layer +
   entity placements. Authored by `scripts/genmap.mjs` (`node scripts/genmap.mjs`).
-- `sprites.json` — procedural character definitions (palette + proportions); the
-  renderer draws them as shaded isometric volumes, so no image files are needed.
+- `sprites.json` — character + prop definitions. Characters render as shaded
+  isometric volumes by default; each can reference an optional high-fidelity
+  `image` (player, guard) and `props` are image-only (buildings, crates,
+  decorations). When the PNG is present and listed in `sprites/manifest.json`
+  the renderer uses it, otherwise it falls back to the procedural look — so no
+  image files are required to run. See [`docs/ASSETS.md`](docs/ASSETS.md) to add
+  art (drop a PNG → `node scripts/genmanifest.mjs`).
 - `audio.json` — the synthesised sound bank and occlusion tuning.
 
 ### Extending

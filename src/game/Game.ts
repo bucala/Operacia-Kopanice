@@ -17,6 +17,7 @@ import { TileMap } from '@/map/TileMap';
 import { TilePalette } from '@/map/tiles';
 import { loadAssets } from '@/assets/loader';
 import type { AssetBundle } from '@/assets/types';
+import { ImageStore } from '@/assets/images';
 import { readConfig, type AppConfig } from '@/integrations/config';
 import { ClaudeAssistant } from '@/integrations/assistant/ClaudeAssistant';
 import { applySnapshot } from '@/integrations/sync/snapshot';
@@ -31,7 +32,7 @@ import { RenderSystem } from '@/systems/RenderSystem';
 import { SkillSystem } from '@/systems/SkillSystem';
 import { SyncSystem } from '@/systems/SyncSystem';
 import { VisionSystem } from '@/systems/VisionSystem';
-import { spawnGuard, spawnPlayer } from './spawn';
+import { spawnGuard, spawnPlayer, spawnProp } from './spawn';
 
 /** Snapshot of state the HUD needs each frame. */
 export interface HudModel {
@@ -60,6 +61,7 @@ export interface HudModel {
 export class Game {
   private readonly ctx2d: CanvasRenderingContext2D;
   private readonly input = new Input();
+  private readonly images = new ImageStore();
 
   private world!: World;
   private scheduler!: Scheduler;
@@ -88,6 +90,7 @@ export class Game {
   async start(): Promise<void> {
     this.config = readConfig();
     this.assets = await loadAssets();
+    this.preloadImages();
     this.sync = createSync(this.config);
     this.assistant = new ClaudeAssistant(this.config.assistantEndpoint);
     this.input.attach(this.canvas);
@@ -155,8 +158,13 @@ export class Game {
     const ws = gridToScreen(pos.gx, pos.gy, 0, iso);
     camera.target = { x: ws.x, y: ws.y };
 
+    // Visual props (buildings, crates) — rendered when their art is present.
+    for (const prop of map.props) {
+      spawnProp(world, prop.sprite, prop.x, prop.y);
+    }
+
     // Build the system schedule (fixed update order).
-    const renderSystem = new RenderSystem(this.ctx2d, this.canvas);
+    const renderSystem = new RenderSystem(this.ctx2d, this.canvas, this.images);
     const audio = new AudioSystem();
     const skillSystem = new SkillSystem();
     const inputSystem = new InputSystem({
@@ -187,6 +195,19 @@ export class Game {
 
     logTo(world, `Misia: ${map.name}`, 'info');
     logTo(world, 'Dostaň sa nepozorovane do kamennej chalupy.', 'info');
+  }
+
+  /** Kick off loading every referenced sprite/prop image (graceful if absent). */
+  private preloadImages(): void {
+    this.images.setAvailable(this.assets.images);
+    const srcs: string[] = [];
+    for (const def of Object.values(this.assets.sprites.sprites)) {
+      if (def.image) srcs.push(def.image.src);
+    }
+    for (const prop of Object.values(this.assets.sprites.props ?? {})) {
+      srcs.push(prop.src);
+    }
+    this.images.preload(srcs);
   }
 
   private async loadSave(): Promise<void> {

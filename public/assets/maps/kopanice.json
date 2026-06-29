@@ -155,5 +155,17 @@
         ]
       ]
     }
+  ],
+  "props": [
+    {
+      "sprite": "cottage",
+      "x": 17,
+      "y": 15
+    },
+    {
+      "sprite": "tnt_crate",
+      "x": 17,
+      "y": 16
+    }
   ]
 }

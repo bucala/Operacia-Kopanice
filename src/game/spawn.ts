@@ -33,6 +33,16 @@ export function spawnPlayer(world: World, x: number, y: number, facing: Facing):
   return e;
 }
 
+/** Creates a purely-visual prop entity (building, crate) from a map placement. */
+export function spawnProp(world: World, sprite: string, x: number, y: number): Entity {
+  const e = world.createEntity();
+  world.add(e, makePosition(x, y));
+  const render = makeRender(sprite, 'object');
+  render.fogged = true;
+  world.add(e, render);
+  return e;
+}
+
 /** Creates a patrolling guard from a map entity definition. */
 export function spawnGuard(world: World, def: MapEntity): Entity {
   const e = world.createEntity();

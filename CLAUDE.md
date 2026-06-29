@@ -59,6 +59,11 @@ keep all three green.
 - **Assets are data.** Don't hard-code tiles, sprites, or sounds — edit the JSON
   under `public/assets/`. The map is generated; edit `scripts/genmap.mjs` and
   re-run it rather than hand-editing `kopanice.json`.
+- **Images are optional, manifest-gated.** Characters/props can use real PNGs
+  (`sprites.json` `image`/`props`), but the renderer only loads files listed in
+  `public/assets/sprites/manifest.json` (rebuild via `node scripts/genmanifest.mjs`)
+  and otherwise falls back to procedural art. Keep that fallback intact — never
+  assume an image exists. See `docs/ASSETS.md`.
 - **Strict TypeScript** (`noUnusedLocals`, `noImplicitReturns`, etc.). `tsc` only
   type-checks `src/` and `test/`; the Vercel function in `api/` is checked by
   Vercel at deploy time.

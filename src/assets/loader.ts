@@ -16,11 +16,12 @@ async function fetchJson<T>(path: string): Promise<T> {
  * content; swapping in a different map is just a different filename.
  */
 export async function loadAssets(mapName = 'kopanice'): Promise<AssetBundle> {
-  const [tiles, sprites, audio, map] = await Promise.all([
+  const [tiles, sprites, audio, map, manifest] = await Promise.all([
     fetchJson<TilesFile>('tiles.json'),
     fetchJson<SpritesFile>('sprites.json'),
     fetchJson<AudioFile>('audio.json'),
     fetchJson<MapFile>(`maps/${mapName}.json`),
+    fetchJson<{ available: string[] }>('sprites/manifest.json').catch(() => ({ available: [] })),
   ]);
-  return { tiles, sprites, audio, map };
+  return { tiles, sprites, audio, map, images: manifest.available ?? [] };
 }

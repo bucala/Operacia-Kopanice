@@ -30,3 +30,6 @@ jobs:
 
       - name: Verify level map integrity
         run: node scripts/genmap.mjs
+
+      - name: Verify sprite manifest
+        run: node scripts/genmanifest.mjs
