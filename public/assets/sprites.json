@@ -1,0 +1,45 @@
+{
+  "$schema": "./schema/sprites.schema.json",
+  "description": "Procedural sprite definitions. The RenderSystem draws each as layered isometric shapes (shadow → body → head) with light/dark facets for a sense of volume, so no binary image assets are required.",
+  "sprites": {
+    "agent": {
+      "kind": "character",
+      "bodyHeight": 30,
+      "radius": 9,
+      "palette": {
+        "body": "#3b7dd8",
+        "bodyDark": "#27568f",
+        "head": "#e3b793",
+        "headDark": "#b98c6b",
+        "accent": "#9ae6b4",
+        "outline": "#0b1320"
+      }
+    },
+    "agent_disguised": {
+      "kind": "character",
+      "bodyHeight": 30,
+      "radius": 9,
+      "palette": {
+        "body": "#7a2f2f",
+        "bodyDark": "#511f1f",
+        "head": "#e3b793",
+        "headDark": "#b98c6b",
+        "accent": "#d8c27a",
+        "outline": "#0b1320"
+      }
+    },
+    "guard": {
+      "kind": "character",
+      "bodyHeight": 30,
+      "radius": 9,
+      "palette": {
+        "body": "#9b2c2c",
+        "bodyDark": "#6b1d1d",
+        "head": "#d9a77f",
+        "headDark": "#a87b58",
+        "accent": "#e2c044",
+        "outline": "#0b1320"
+      }
+    }
+  }
+}

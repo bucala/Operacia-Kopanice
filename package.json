@@ -1,0 +1,24 @@
+{
+  "name": "operacia-kopanice",
+  "version": "0.1.0",
+  "description": "Operácia Kopanice — 2D isometric grid-based tactical stealth game core (ECS).",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "playwright-core": "^1.61.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.1"
+  }
+}
