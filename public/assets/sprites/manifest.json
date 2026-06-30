@@ -1,0 +1,5 @@
+{
+  "$schema": "../schema/manifest.schema.json",
+  "description": "Allowlist of sprite/prop image files that actually exist under public/assets. The renderer only loads images listed here. Regenerate with `node scripts/genmanifest.mjs`. See docs/ASSETS.md.",
+  "available": []
+}

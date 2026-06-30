@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Operácia Kopanice</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #0c0f14;
+        color: #d7dde6;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        overflow: hidden;
+      }
+      #app { position: relative; width: 100vw; height: 100vh; }
+      canvas { display: block; image-rendering: pixelated; }
+      #hud {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        padding: 10px 14px;
+        background: rgba(12, 15, 20, 0.78);
+        border: 1px solid #2a3340;
+        border-radius: 8px;
+        font-size: 13px;
+        line-height: 1.5;
+        pointer-events: none;
+        max-width: 320px;
+      }
+      #hud b { color: #8fd0ff; }
+      .state-PATROL { color: #7bd88f; }
+      .state-SUSPICIOUS { color: #f2c14e; }
+      .state-ALERT { color: #f25c5c; }
+      #log {
+        position: absolute;
+        bottom: 12px;
+        left: 12px;
+        width: 360px;
+        max-height: 160px;
+        overflow: hidden;
+        padding: 8px 12px;
+        background: rgba(12, 15, 20, 0.78);
+        border: 1px solid #2a3340;
+        border-radius: 8px;
+        font-size: 12px;
+        line-height: 1.45;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      }
+      #help {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        padding: 10px 14px;
+        background: rgba(12, 15, 20, 0.78);
+        border: 1px solid #2a3340;
+        border-radius: 8px;
+        font-size: 12px;
+        line-height: 1.6;
+        pointer-events: none;
+        text-align: right;
+      }
+      kbd {
+        background: #1c232e;
+        border: 1px solid #36404d;
+        border-radius: 4px;
+        padding: 1px 6px;
+        font-family: ui-monospace, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game"></canvas>
+      <div id="hud">Načítavam Operáciu Kopanice…</div>
+      <div id="help">
+        <div><kbd>klik</kbd> presun / akcia</div>
+        <div><kbd>1</kbd> nôž · <kbd>2</kbd> prestrojenie</div>
+        <div><kbd>F</kbd> zorné pole · <kbd>G</kbd> mriežka</div>
+        <div><kbd>P</kbd> pauza · <kbd>R</kbd> reset</div>
+      </div>
+      <div id="log"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
