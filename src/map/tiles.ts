@@ -29,6 +29,7 @@ export class TilePalette {
 
   constructor(defs: TileDef[]) {
     for (const def of defs) {
+      if (this.byId.has(def.id)) throw new Error(`Duplicate tile id '${def.id}' in palette`);
       this.byId.set(def.id, def);
       this.order.push(def);
     }

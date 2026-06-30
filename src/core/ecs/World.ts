@@ -42,6 +42,9 @@ export class World {
   // --- Components ------------------------------------------------------------
 
   add<T extends Component>(e: Entity, component: T): T {
+    if (!this.living.has(e)) {
+      throw new Error(`Cannot add '${component.type}' to dead/unknown entity ${e}`);
+    }
     let store = this.stores.get(component.type);
     if (!store) {
       store = new Map();

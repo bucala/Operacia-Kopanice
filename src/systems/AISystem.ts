@@ -129,6 +129,8 @@ export class AISystem implements System {
 
       for (const snd of queue) {
         if (snd.source === e) continue;
+        if (snd.loudness <= 0) continue; // silent cues (e.g. UI "blocked") never alert
+
         // Only sounds made by a hostile (or the player) draw attention.
         const srcFaction = snd.source !== null ? world.get(snd.source, Faction) : null;
         const fromHostile =

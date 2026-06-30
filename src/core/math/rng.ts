@@ -18,12 +18,14 @@ export class Rng {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   }
 
-  /** Integer in [min, max]. */
+  /** Integer in [min, max] (swaps bounds if inverted). */
   int(min: number, max: number): number {
+    if (max < min) [min, max] = [max, min];
     return min + Math.floor(this.next() * (max - min + 1));
   }
 
   pick<T>(items: readonly T[]): T {
+    if (items.length === 0) throw new Error('Rng.pick on an empty array');
     return items[this.int(0, items.length - 1)];
   }
 

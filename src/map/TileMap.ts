@@ -59,9 +59,15 @@ export class TileMap {
     this.props = file.props ?? [];
     this.cells = new Array(file.width * file.height);
 
+    if (file.terrain.length !== file.height) {
+      throw new Error(`Map has ${file.terrain.length} terrain rows, expected ${file.height}`);
+    }
     for (let y = 0; y < file.height; y++) {
       const row = file.terrain[y] ?? '';
       const elevRow = file.elevation?.[y] ?? '';
+      if (row.length !== file.width) {
+        throw new Error(`Terrain row ${y} has width ${row.length}, expected ${file.width}`);
+      }
       for (let x = 0; x < file.width; x++) {
         const ch = row[x] ?? '.';
         const tileId = file.legend[ch];
@@ -94,7 +100,11 @@ export class TileMap {
   }
 
   isWalkable(x: number, y: number): boolean {
-    return this.inBounds(x, y) && this.cell(x, y).tile.walkable;
+    if (!this.inBounds(x, y)) return false;
+    const tile = this.cell(x, y).tile;
+    // A tile is passable only if flagged walkable AND its cost is below the
+    // impassable threshold, keeping walkability consistent with moveCost().
+    return tile.walkable && tile.moveCost < BLOCKED_COST;
   }
 
   blocksVision(x: number, y: number): boolean {

@@ -25,6 +25,7 @@ const SYSTEM_PROMPT =
 // Minimal structural request/response types (Vercel Node runtime).
 interface Req {
   method?: string;
+  headers?: Record<string, string | string[] | undefined>;
   body?: { context?: unknown; prompt?: string } | string;
 }
 interface Res {
@@ -32,9 +33,26 @@ interface Res {
   json(data: unknown): void;
 }
 
+/**
+ * Optional abuse guard: when ASSISTANT_ALLOWED_ORIGINS is set (comma-separated),
+ * only requests from those origins are served — otherwise this public endpoint
+ * could be used to proxy the API key's quota. Unset = no enforcement.
+ */
+function originAllowed(req: Req): boolean {
+  const allow = process.env.ASSISTANT_ALLOWED_ORIGINS;
+  if (!allow) return true;
+  const origin = req.headers?.origin;
+  const value = Array.isArray(origin) ? origin[0] : origin;
+  return !!value && allow.split(',').map((s) => s.trim()).includes(value);
+}
+
 export default async function handler(req: Req, res: Res): Promise<void> {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method not allowed' });
+    return;
+  }
+  if (!originAllowed(req)) {
+    res.status(403).json({ error: 'forbidden' });
     return;
   }
 

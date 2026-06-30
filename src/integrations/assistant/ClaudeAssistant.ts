@@ -28,19 +28,25 @@ export class ClaudeAssistant {
 
   async advise(ctx: TacticalContext): Promise<AssistantReply> {
     if (!this.endpoint) return { text: localAdvice(ctx), source: 'local' };
+    // Abort a slow endpoint so a hung request can't stall the in-game advisor.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
     try {
       const res = await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ context: ctx, prompt: buildPrompt(ctx) }),
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error(`assistant HTTP ${res.status}`);
       const data = (await res.json()) as { text?: string };
       if (!data.text) throw new Error('assistant returned no text');
       return { text: data.text, source: 'claude' };
     } catch {
-      // Network/endpoint failure → graceful offline advice.
+      // Timeout, network, or endpoint failure → graceful offline advice.
       return { text: localAdvice(ctx), source: 'local' };
+    } finally {
+      clearTimeout(timer);
     }
   }
 }

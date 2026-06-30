@@ -65,9 +65,12 @@ export class AudioSystem implements System {
 
     const dist = Math.hypot(snd.gx - listener.fx, snd.gy - listener.fy);
     const { maxDistance, minGain } = this.bank.occlusion;
-    if (dist > maxDistance) return;
+    // The sound's own loudness is its effective hearing radius (as used by AI);
+    // honour it here so quiet sounds don't carry to the global max distance.
+    const audible = Math.min(maxDistance, snd.loudness);
+    if (audible <= 0 || dist > audible) return;
 
-    const distanceGain = Math.max(0, 1 - dist / maxDistance);
+    const distanceGain = Math.max(0, 1 - dist / audible);
     const occlusion = this.occlusionFactor(map, listener.fx, listener.fy, snd.gx, snd.gy);
     const gain = Math.max(minGain, def.gain * distanceGain * occlusion);
     if (gain < minGain) return;

@@ -1,4 +1,5 @@
 import { Inventory, removeItem } from '@/components/Inventory';
+import { Position } from '@/components/Position';
 import type { Skill, SkillContext, SkillResult } from './types';
 
 /**
@@ -24,6 +25,11 @@ export const stoneAction: Skill = {
     if (!stones || stones.qty <= 0) return { ok: false, reason: 'Žiadne kamene' };
     if (!ctx.map.inBounds(ctx.target.gx, ctx.target.gy)) {
       return { ok: false, reason: 'Mimo mapy' };
+    }
+    const casterPos = ctx.world.get(ctx.caster, Position);
+    if (casterPos) {
+      const dist = Math.hypot(ctx.target.gx - casterPos.gx, ctx.target.gy - casterPos.gy);
+      if (dist > this.range) return { ok: false, reason: 'Príliš ďaleko' };
     }
     return { ok: true };
   },

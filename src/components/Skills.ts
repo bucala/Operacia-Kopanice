@@ -22,7 +22,7 @@ export const Skills = kind<Skills>('skills');
 export function makeSkills(equipped: string[]): Skills {
   return {
     type: 'skills',
-    equipped,
+    equipped: [...equipped],
     selected: equipped[0] ?? '',
     cooldowns: {},
     disguised: false,

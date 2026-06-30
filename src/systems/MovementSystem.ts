@@ -1,3 +1,4 @@
+import { Actor } from '@/components/Actor';
 import { AIComp } from '@/components/AIComp';
 import { Faction } from '@/components/Faction';
 import { Movement } from '@/components/Movement';
@@ -24,6 +25,14 @@ export class MovementSystem implements System {
       const mv = world.must(e, Movement);
       const pos = world.must(e, Position);
       mv.noise = 0;
+
+      // A dead actor stops where it fell; clear any remaining path.
+      const actor = world.get(e, Actor);
+      if (actor && !actor.alive) {
+        mv.path = [];
+        mv.moving = false;
+        continue;
+      }
 
       if (mv.path.length === 0) {
         mv.moving = false;

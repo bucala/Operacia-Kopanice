@@ -24,21 +24,27 @@ export class FirebaseSync implements SyncProvider {
 
   private async db(): Promise<FirebaseDb> {
     if (!this.dbPromise) {
-      this.dbPromise = (async () => {
-        // URLs held in variables so the bundler/TS treat these as runtime-only
-        // dynamic imports (no build-time resolution of the Firebase CDN SDK).
-        const appUrl = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-        const dbUrl = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-        const appMod = (await import(/* @vite-ignore */ appUrl)) as {
-          initializeApp(config: FirebaseConfig): unknown;
-        };
-        const dbMod = (await import(/* @vite-ignore */ dbUrl)) as FirebaseDbModule;
-        const app = appMod.initializeApp(this.config);
-        const database = dbMod.getDatabase(app);
-        return { dbMod, database };
-      })();
+      // Clear the cached promise if init fails so a later call can retry.
+      this.dbPromise = this.initDb().catch((err) => {
+        this.dbPromise = null;
+        throw err;
+      });
     }
     return this.dbPromise;
+  }
+
+  private async initDb(): Promise<FirebaseDb> {
+    // URLs held in variables so the bundler/TS treat these as runtime-only
+    // dynamic imports (no build-time resolution of the Firebase CDN SDK).
+    const appUrl = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    const dbUrl = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+    const appMod = (await import(/* @vite-ignore */ appUrl)) as {
+      initializeApp(config: FirebaseConfig): unknown;
+    };
+    const dbMod = (await import(/* @vite-ignore */ dbUrl)) as FirebaseDbModule;
+    const app = appMod.initializeApp(this.config);
+    const database = dbMod.getDatabase(app);
+    return { dbMod, database };
   }
 
   async save(slot: string, snapshot: GameSnapshot): Promise<void> {
@@ -53,13 +59,20 @@ export class FirebaseSync implements SyncProvider {
   }
 
   subscribe(slot: string, onChange: (snapshot: GameSnapshot) => void): () => void {
-    let unsub = () => {};
+    let unsub: (() => void) | null = null;
+    let cancelled = false;
     void this.db().then(({ dbMod, database }) => {
-      unsub = dbMod.onValue(dbMod.ref(database, `saves/${slot}`), (snap: FirebaseSnapshot) => {
+      const off = dbMod.onValue(dbMod.ref(database, `saves/${slot}`), (snap: FirebaseSnapshot) => {
         if (snap.exists()) onChange(snap.val() as GameSnapshot);
       });
+      // If the caller already unsubscribed before db() resolved, detach now.
+      if (cancelled) off();
+      else unsub = off;
     });
-    return () => unsub();
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }
 }
 

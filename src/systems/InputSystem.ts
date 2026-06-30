@@ -61,8 +61,9 @@ export class InputSystem implements System {
     for (const click of clicks) {
       const tile = this.pickTile2(click.x, click.y, cam, iso);
       if (click.button === 2) {
-        this.armedSkill = null;
-        this.commandMove(world, map, player, tile);
+        // Right-click cancels an armed skill; only moves when nothing was armed.
+        if (this.armedSkill) this.armedSkill = null;
+        else this.commandMove(world, map, player, tile);
       } else if (this.armedSkill) {
         this.castSkill(world, player, tile);
       } else {

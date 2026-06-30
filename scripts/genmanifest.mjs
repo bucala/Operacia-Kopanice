@@ -9,7 +9,7 @@
  * console free of 404s for art that hasn't been added yet. Paths are stored
  * relative to public/assets (e.g. "sprites/agent.png").
  */
-import { readdirSync, writeFileSync, statSync } from 'node:fs';
+import { readdirSync, writeFileSync, statSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join, relative } from 'node:path';
 
@@ -41,6 +41,7 @@ const available = files
   .sort();
 
 const out = join(spritesDir, 'manifest.json');
+mkdirSync(spritesDir, { recursive: true }); // ensure the folder exists on a fresh tree
 const json = {
   $schema: '../schema/manifest.schema.json',
   description:

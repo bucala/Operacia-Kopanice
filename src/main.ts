@@ -41,9 +41,17 @@ function renderHud(m: HudModel): void {
     <div style="color:#7a8290;font-size:11px">tip: stlač <b>H</b> pre radu asistenta</div>
   `;
 
-  logEl.innerHTML = m.log
-    .map((l) => `<div class="log-${l.level}" style="color:${logColor(l.level)}">› ${l.message}</div>`)
-    .join('');
+  // Build log lines as text nodes — log messages can include remote assistant
+  // text, so never route them through innerHTML.
+  logEl.replaceChildren(
+    ...m.log.map((l) => {
+      const div = document.createElement('div');
+      div.className = `log-${l.level}`;
+      div.style.color = logColor(l.level);
+      div.textContent = `› ${l.message}`;
+      return div;
+    }),
+  );
 }
 
 function hpBar(hp: number, max: number): string {

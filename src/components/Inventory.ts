@@ -18,7 +18,8 @@ export interface Inventory extends Component {
 export const Inventory = kind<Inventory>('inventory');
 
 export function makeInventory(maxWeight = 30, items: ItemStack[] = []): Inventory {
-  return { type: 'inventory', items, maxWeight };
+  // Clone seed items so callers can't mutate the component through their array.
+  return { type: 'inventory', items: items.map((s) => ({ ...s })), maxWeight };
 }
 
 export function totalWeight(inv: Inventory): number {
@@ -26,6 +27,7 @@ export function totalWeight(inv: Inventory): number {
 }
 
 export function addItem(inv: Inventory, stack: ItemStack): boolean {
+  if (stack.qty <= 0 || stack.weight < 0) return false;
   if (totalWeight(inv) + stack.weight * stack.qty > inv.maxWeight) return false;
   const existing = inv.items.find((s) => s.id === stack.id);
   if (existing) existing.qty += stack.qty;
