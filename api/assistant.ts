@@ -9,18 +9,35 @@ import Anthropic from '@anthropic-ai/sdk';
  * shipped to the browser. Point the game at this endpoint with
  * VITE_ASSISTANT_ENDPOINT=/api/assistant.
  *
- * Required env: ANTHROPIC_API_KEY. Optional: ANTHROPIC_MODEL (defaults to a
- * fast model well-suited to a single-sentence hint; set it to a more capable
- * model for richer advice).
+ * The task is a single, latency-sensitive one-sentence hint, so it's a plain
+ * `messages.create` — no thinking, no streaming, a tight `max_tokens`, and a
+ * fast default model. Set `ANTHROPIC_MODEL` to a more capable model for richer
+ * advice. Required env: ANTHROPIC_API_KEY.
  */
 
-const client = new Anthropic(); // reads ANTHROPIC_API_KEY from the environment
-
+// A fast, low-cost model is the right tool for a single-sentence hint; override
+// with ANTHROPIC_MODEL for higher-quality advice.
 const MODEL = process.env.ANTHROPIC_MODEL ?? 'claude-haiku-4-5';
 
 const SYSTEM_PROMPT =
   'Si taktický poradca v izometrickej stealth hre Operácia Kopanice. ' +
   'Na základe stavu hry daj jednu krátku, konkrétnu radu (max 1 veta) po slovensky.';
+
+// Lazily constructed and memoised across warm invocations.
+let cached: Anthropic | null = null;
+function getClient(): Anthropic {
+  if (!cached) {
+    // Bound latency for an interactive hint: at most one retry, 10s ceiling.
+    cached = new Anthropic({ maxRetries: 1, timeout: 10_000 });
+  }
+  return cached;
+}
+
+// The SDK resolves the key lazily (at request time), so pre-flight the realistic
+// serverless credentials to return a clean 503 rather than a generic 500.
+function isConfigured(): boolean {
+  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+}
 
 // Minimal structural request/response types (Vercel Node runtime).
 interface Req {
@@ -56,11 +73,17 @@ export default async function handler(req: Req, res: Res): Promise<void> {
     return;
   }
 
-  try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body ?? {});
-    const prompt: string = body.prompt ?? JSON.stringify(body.context ?? {});
+  if (!isConfigured()) {
+    // No credentials — the game falls back to its offline advisor.
+    res.status(503).json({ error: 'assistant not configured' });
+    return;
+  }
 
-    const message = await client.messages.create({
+  const body = parseBody(req.body);
+  const prompt = body.prompt ?? JSON.stringify(body.context ?? {});
+
+  try {
+    const message = await getClient().messages.create({
       model: MODEL,
       max_tokens: 256,
       system: SYSTEM_PROMPT,
@@ -75,6 +98,26 @@ export default async function handler(req: Req, res: Res): Promise<void> {
 
     res.status(200).json({ text });
   } catch (err) {
-    res.status(500).json({ error: (err as Error).message ?? 'assistant error' });
+    // Typed chain, most specific first. The client treats any non-200 as a
+    // signal to fall back locally, so exact codes are a nicety, not load-bearing.
+    if (err instanceof Anthropic.APIConnectionError) {
+      res.status(504).json({ error: 'assistant upstream timeout' });
+    } else if (err instanceof Anthropic.APIError) {
+      res.status(err.status ?? 502).json({ error: err.message });
+    } else {
+      console.error('assistant error', err);
+      res.status(500).json({ error: 'assistant error' });
+    }
   }
+}
+
+function parseBody(raw: Req['body']): { context?: unknown; prompt?: string } {
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as { context?: unknown; prompt?: string };
+    } catch {
+      return {};
+    }
+  }
+  return raw ?? {};
 }

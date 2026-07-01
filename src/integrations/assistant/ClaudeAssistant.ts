@@ -34,7 +34,7 @@ export class ClaudeAssistant {
     try {
       const res = await fetch(this.endpoint, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
         body: JSON.stringify({ context: ctx, prompt: buildPrompt(ctx) }),
         signal: controller.signal,
       });
