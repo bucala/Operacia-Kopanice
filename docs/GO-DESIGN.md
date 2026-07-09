@@ -119,11 +119,26 @@ src/go/
     logic.ts    PURE rules: sight, danger, legal moves, takedown, turn resolution, hacking  ← unit-tested
   levels/
     index.ts    hand-authored puzzles (Zácvik, Hliadka, Terminál)
+  progress.ts   level unlocking + best-turn persistence (localStorage)  ← unit-tested
   GoRenderer.ts iso board: platform nodes, danger tint, facing arrows, exit/gate/terminal, legal-move markers
-  GoGame.ts     controller: two-phase turn animation, input→move, undo/restart/next-level, HUD
-src/main.ts     bootstrap → GoGame
-test/go.test.ts rules + "every level is solvable"
+  GoGame.ts     controller: two-phase turn animation, input→move, undo/restart, pause, outcome events
+  GoApp.ts      UI/UX shell: title + level-select menu, in-game top bar, hint/legend bar, win/lose modals
+src/main.ts     bootstrap → GoApp
+test/go.test.ts        rules + "every level is solvable"
+test/progress.test.ts  unlocking + best-turn rules
 ```
+
+### UI / UX shell
+
+`GoApp` is a plain-DOM layer over the canvas (no framework): a title screen with
+a **level-select grid** (locked 🔒 / playable ▶ / cleared ✓ with a best-turn
+badge), an in-game **top bar** (level · turn · guards + Undo / Restart / Menu),
+a bottom **hint + legend** bar, and **win/lose modals** with the natural next
+actions (Next level / Undo / Retry / Menu). Progress and best turn counts persist
+via `localStorage` (`progress.ts`), so levels unlock as you clear them. While any
+modal is up, `GoGame` is paused and the board freezes as a blurred backdrop —
+`GoGame` reports terminal states through an `onOutcome` callback rather than
+driving the UI itself, keeping rules, rendering, and chrome cleanly separated.
 
 The `model/` layer has **zero** DOM/canvas/engine imports — it is pure data and
 functions, which is what makes it deterministic and testable. `GoGame` keeps the

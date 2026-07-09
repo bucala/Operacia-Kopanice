@@ -39,6 +39,13 @@ export interface GoHudModel {
   log: string[];
 }
 
+export interface GoGameCallbacks {
+  /** Called every frame with the current HUD snapshot. */
+  onHud?: (m: GoHudModel) => void;
+  /** Fired once, after the animation settles, when a level is won or lost. */
+  onOutcome?: (phase: 'won' | 'lost', info: { levelIndex: number; turns: number }) => void;
+}
+
 type GuardAnim = GuardView;
 
 const EASE = 0.3;
@@ -46,9 +53,12 @@ const EPS = 0.02;
 
 /**
  * Turn-based controller for the GO puzzle. The logical state advances instantly
- * through the pure rules in `model/logic.ts`; this class only animates the
- * board toward that state (player half, then guard half), routes input into
- * moves, and manages undo / restart / level progression.
+ * through the pure rules in `model/logic.ts`; this class only animates the board
+ * toward that state (player half, then guard half) and routes input into moves.
+ *
+ * Level selection, menu, and win/lose UI live in {@link GoApp}: this class is
+ * *paused* (`active = false`) whenever a modal is up, so the board freezes as a
+ * backdrop, and it reports outcomes via {@link GoGameCallbacks.onOutcome}.
  */
 export class GoGame {
   private readonly input = new Input();
@@ -72,10 +82,13 @@ export class GoGame {
   private anim: 'idle' | 'player' | 'guards' = 'idle';
 
   private running = false;
+  /** When false the board is frozen (a menu/overlay is showing over it). */
+  private active = false;
+  private outcomeReported = false;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    private readonly onHud?: (m: GoHudModel) => void,
+    private readonly cb: GoGameCallbacks = {},
   ) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('2D canvas context unavailable');
@@ -83,6 +96,7 @@ export class GoGame {
     this.renderer = new GoRenderer(ctx, canvas, this.cam, this.iso);
   }
 
+  /** Attach input and begin the render loop with level 0 as a frozen backdrop. */
   start(): void {
     this.input.attach(this.canvas);
     this.loadLevel(0);
@@ -98,6 +112,62 @@ export class GoGame {
     if (this.grid) this.renderer.frameBoard(this.grid);
   }
 
+  // --- Public controls (driven by GoApp) -------------------------------------
+
+  get index(): number {
+    return this.levelIndex;
+  }
+  get turns(): number {
+    return this.state.turn;
+  }
+  get isLast(): boolean {
+    return this.levelIndex + 1 >= LEVELS.length;
+  }
+  get canUndo(): boolean {
+    return this.undoStack.length > 0;
+  }
+
+  /** Load a level and start playing it. */
+  play(index: number): void {
+    this.loadLevel(index);
+    this.activate();
+  }
+
+  restart(): void {
+    this.loadLevel(this.levelIndex);
+    this.activate();
+  }
+
+  /** Advance to the next level; returns false if this was the last one. */
+  nextLevel(): boolean {
+    if (this.isLast) return false;
+    this.loadLevel(this.levelIndex + 1);
+    this.activate();
+    return true;
+  }
+
+  undo(): void {
+    const prev = this.undoStack.pop();
+    if (!prev) return;
+    this.state = prev;
+    this.anim = 'idle';
+    this.snapVisuals();
+    this.log('Ťah vrátený späť.');
+    this.activate();
+  }
+
+  /** Freeze the board (a menu/overlay is taking over). */
+  pause(): void {
+    this.active = false;
+  }
+
+  private activate(): void {
+    this.outcomeReported = false;
+    this.active = true;
+    this.input.takeKeys();
+    this.input.takeClicks(); // drop anything buffered while paused
+  }
+
   // --- Level lifecycle -------------------------------------------------------
 
   private loadLevel(index: number): void {
@@ -107,19 +177,12 @@ export class GoGame {
     this.state = initState(this.level);
     this.undoStack.length = 0;
     this.anim = 'idle';
+    this.outcomeReported = false;
     this.snapVisuals();
     this.renderer.frameBoard(this.grid);
     this.logLines.length = 0;
     this.log(`Úroveň ${index + 1}/${LEVELS.length}: ${this.level.name}`);
     if (this.level.intro) this.log(this.level.intro);
-  }
-
-  private restart(): void {
-    this.loadLevel(this.levelIndex);
-  }
-
-  private nextLevel(): void {
-    if (this.levelIndex + 1 < LEVELS.length) this.loadLevel(this.levelIndex + 1);
   }
 
   /** Snap all visual positions to the current logical state (no tween). */
@@ -157,7 +220,7 @@ export class GoGame {
     for (const g of killed) this.log(`Ticho zneškodnený strážca (${g.id}).`);
     if (this.togglesGate(before, after)) this.log('Terminál aktivovaný — brána sa mení.');
     if (after.phase === 'won') this.log('Východ dosiahnutý!');
-    if (after.phase === 'lost') this.log('Odhalený! Stlač U (späť) alebo R (reštart).');
+    if (after.phase === 'lost') this.log('Odhalený!');
   }
 
   private togglesGate(before: GoState, after: GoState): boolean {
@@ -176,10 +239,22 @@ export class GoGame {
       }
       this.state = resolve(this.grid, advanceGuards(this.grid, this.state));
       this.anim = 'guards';
-      if (this.state.phase === 'lost') this.log('Odhalený! Stlač U (späť) alebo R (reštart).');
+      if (this.state.phase === 'lost') this.log('Odhalený!');
     } else if (this.anim === 'guards') {
       this.anim = 'idle';
     }
+  }
+
+  /** After the animation settles on a terminal phase, report it once. */
+  private reportOutcome(): void {
+    if (this.outcomeReported || this.anim !== 'idle') return;
+    if (this.state.phase === 'await') return;
+    this.outcomeReported = true;
+    this.active = false; // freeze the board under the outcome overlay
+    this.cb.onOutcome?.(this.state.phase, {
+      levelIndex: this.levelIndex,
+      turns: this.state.turn,
+    });
   }
 
   /** True when every visual position/fade has reached its logical target. */
@@ -226,23 +301,12 @@ export class GoGame {
     }
   }
 
+  /** Only movement keys live here; shell keys (undo/restart/menu) are GoApp's. */
   private handleKey(k: string): void {
-    if (k === 'r') return this.restart();
-    if (k === 'n' && this.state.phase === 'won') return this.nextLevel();
-    if (k === 'u' || k === 'z') return this.undo();
     if (this.anim !== 'idle' || this.state.phase !== 'await') return;
     const dir = KEY_DIR[k];
     if (dir) this.tryMove({ kind: 'step', dir });
     else if (k === ' ' || k === '.') this.tryMove({ kind: 'wait' });
-  }
-
-  private undo(): void {
-    const prev = this.undoStack.pop();
-    if (!prev) return;
-    this.state = prev;
-    this.anim = 'idle';
-    this.snapVisuals();
-    this.log('Ťah vrátený späť.');
   }
 
   /** Screen pixel → grid cell on the z=0 plane. */
@@ -270,24 +334,27 @@ export class GoGame {
 
   private loop = (): void => {
     if (!this.running) return;
-    this.handleInput();
-    this.ease();
-    this.stepAnim();
-    this.renderer.render(this.buildRenderModel());
-    this.onHud?.(this.buildHud());
+    if (this.active) {
+      this.handleInput();
+      this.ease();
+      this.stepAnim();
+      this.reportOutcome();
+    }
+    if (this.grid) this.renderer.render(this.buildRenderModel());
+    this.cb.onHud?.(this.buildHud());
     requestAnimationFrame(this.loop);
   };
 
   private buildRenderModel() {
-    const legal =
-      this.anim === 'idle' && this.state.phase === 'await'
-        ? legalMoves(this.grid, this.state)
-            .filter((m) => m.kind === 'step')
-            .map((m) => {
-              const v = DIR_VEC[(m as { dir: Dir }).dir];
-              return { x: this.state.player.x + v.dx, y: this.state.player.y + v.dy };
-            })
-        : [];
+    const showLegal = this.active && this.anim === 'idle' && this.state.phase === 'await';
+    const legal = showLegal
+      ? legalMoves(this.grid, this.state)
+          .filter((m) => m.kind === 'step')
+          .map((m) => {
+            const v = DIR_VEC[(m as { dir: Dir }).dir];
+            return { x: this.state.player.x + v.dx, y: this.state.player.y + v.dy };
+          })
+      : [];
     const hover = this.pickCell(this.input.mouseScreen.x, this.input.mouseScreen.y);
     return {
       grid: this.grid,
@@ -296,7 +363,7 @@ export class GoGame {
       guards: [...this.guardViews.values()],
       danger: dangerCells(this.grid, this.state),
       legal,
-      hover: this.grid.inBounds(hover.x, hover.y) ? hover : null,
+      hover: this.active && this.grid.inBounds(hover.x, hover.y) ? hover : null,
     };
   }
 
@@ -313,7 +380,7 @@ export class GoGame {
       guardsAlive,
       guardsTotal: this.state.guards.length,
       canUndo: this.undoStack.length > 0,
-      isLast: this.levelIndex + 1 >= LEVELS.length,
+      isLast: this.isLast,
       log: [...this.logLines],
     };
   }

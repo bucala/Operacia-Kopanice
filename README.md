@@ -24,8 +24,14 @@ solvable puzzle, not a reflex test.
 | **Data model** (levels, guards, gates, state) | `src/go/model/types.ts`, `grid.ts` |
 | **Hand-authored, solvable levels** | `src/go/levels/` |
 | **Iso board renderer** (danger tiles, facing arrows, legal-move markers) | `src/go/GoRenderer.ts` |
-| **Turn controller** (two-phase animation, undo, restart) | `src/go/GoGame.ts` |
-| **Rules + "every level is solvable" tests** | `test/go.test.ts` |
+| **Turn controller** (two-phase animation, undo, restart, pause) | `src/go/GoGame.ts` |
+| **UI/UX shell** (menu, level select, top bar, win/lose modals) | `src/go/GoApp.ts` |
+| **Progress + best-turn persistence** (localStorage) | `src/go/progress.ts` |
+| **Rules + solvability + progression tests** | `test/go.test.ts`, `test/progress.test.ts` |
+
+A title screen lets you pick a level; levels unlock as you clear them and each
+remembers your best turn count. Win/lose modals offer the natural next step
+(next level · undo · retry · menu), and **Esc** reopens the menu at any time.
 
 ## Underlying engine (and the original real-time stealth core)
 

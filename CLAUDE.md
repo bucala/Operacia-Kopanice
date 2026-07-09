@@ -55,6 +55,7 @@ keep all three green.
 |---|---|
 | **GO puzzle rules (pure)** | `src/go/model/logic.ts`, `types.ts`, `grid.ts` |
 | **GO levels / renderer / controller** | `src/go/levels/`, `src/go/GoRenderer.ts`, `src/go/GoGame.ts` |
+| **GO UI shell (menu, modals) / progress** | `src/go/GoApp.ts`, `src/go/progress.ts` |
 | Isometric math / projection | `src/core/math/iso.ts` |
 | A\* pathfinding (weighted, octile heuristic) | `src/map/Pathfinding.ts` |
 | Field of view (height-aware raycast) | `src/map/Fov.ts` |
