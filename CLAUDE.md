@@ -5,10 +5,22 @@ Context for working in this repository with Claude Code. Read alongside
 
 ## What this is
 
-`Operácia Kopanice` is the core of a 2D isometric, grid-based tactical stealth
-game. It is a TypeScript + Vite browser app rendering to a 2D canvas, built on a
-small hand-written ECS engine. There is no game framework dependency — the
-engine, renderer, pathfinder, FoV, AI, and audio are all in this repo.
+`Operácia Kopanice` is a 2D isometric grid game. It is a TypeScript + Vite
+browser app rendering to a 2D canvas, built on a small hand-written engine with
+no game-framework dependency.
+
+**Two games share the tree:**
+
+1. **GO puzzle (the default — what `main.ts` boots).** A turn-based, node-graph
+   tactics puzzle in the vein of *Lara Croft GO* / *Deus Ex GO*. Its rules are
+   pure, deterministic functions in `src/go/model/logic.ts`; the controller and
+   renderer are `src/go/GoGame.ts` / `GoRenderer.ts`; levels are typed data in
+   `src/go/levels/`. See **[`docs/GO-DESIGN.md`](docs/GO-DESIGN.md)**.
+2. **Real-time stealth RTT (original core).** The ECS + systems game described
+   below. Still fully present and type-checked, but no longer booted by
+   `main.ts`; it is tree-shaken out of the production bundle.
+
+The rest of this guide documents the underlying engine and the real-time core.
 
 ## Commands
 
@@ -41,6 +53,8 @@ keep all three green.
 
 | Concern | File(s) |
 |---|---|
+| **GO puzzle rules (pure)** | `src/go/model/logic.ts`, `types.ts`, `grid.ts` |
+| **GO levels / renderer / controller** | `src/go/levels/`, `src/go/GoRenderer.ts`, `src/go/GoGame.ts` |
 | Isometric math / projection | `src/core/math/iso.ts` |
 | A\* pathfinding (weighted, octile heuristic) | `src/map/Pathfinding.ts` |
 | Field of view (height-aware raycast) | `src/map/Fov.ts` |

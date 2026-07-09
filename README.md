@@ -1,17 +1,37 @@
 # Operácia Kopanice
 
-A functional core for a **2D isometric, grid-based tactical stealth game**, built
-on a from-scratch **Entity–Component–System (ECS)** engine in TypeScript. You
-play an agent infiltrating a snow-bound mountain homestead in the Kopanice
-region: slip past patrols, exploit terrain and cover, and reach the stone
-cottage unseen.
+A **turn-based, node-graph tactics puzzle** in the vein of **Lara Croft GO** and
+**Deus Ex GO**, built on a from-scratch isometric TypeScript engine. You move one
+node at a time across a snow-bound Kopanice homestead: read the guards'
+deterministic sight-lines, slip behind them for silent takedowns, hack terminals
+to open gates, and reach the exit — with unlimited **undo** so every level is a
+solvable puzzle, not a reflex test.
+
+> This began as a real-time isometric stealth core; it was audited and
+> transformed into the GO-style game. The original real-time engine still lives
+> in the tree. See **[`docs/GO-DESIGN.md`](docs/GO-DESIGN.md)** for the audit,
+> the design, and what was reused vs replaced.
 
 ![Operácia Kopanice](docs/screenshot.png)
 
-> Slovak is the in-game language (HUD, log, advisor). The code and docs are in
-> English.
+> Slovak is the in-game language (HUD, log). The code and docs are in English.
 
-## Highlights
+## The GO puzzle
+
+| Piece | Where it lives |
+|---|---|
+| **Pure, deterministic rules** (sight, takedown, hacking, turn resolution) | `src/go/model/logic.ts` |
+| **Data model** (levels, guards, gates, state) | `src/go/model/types.ts`, `grid.ts` |
+| **Hand-authored, solvable levels** | `src/go/levels/` |
+| **Iso board renderer** (danger tiles, facing arrows, legal-move markers) | `src/go/GoRenderer.ts` |
+| **Turn controller** (two-phase animation, undo, restart) | `src/go/GoGame.ts` |
+| **Rules + "every level is solvable" tests** | `test/go.test.ts` |
+
+## Underlying engine (and the original real-time stealth core)
+
+The GO game is built on a from-scratch isometric engine that also still powers
+the original real-time stealth RTT (`main.ts` now boots the GO game; the RTT
+files remain in the tree). The engine highlights:
 
 | Brief requirement | Where it lives |
 |---|---|
@@ -41,19 +61,19 @@ npm run test       # unit tests (pathfinding, FoV, ECS, FSM, inventory)
 npm run typecheck  # tsc --noEmit
 ```
 
-## Controls
+## Controls (GO mode — the default)
 
 | Input | Action |
 |---|---|
-| **Left click** | Move to the tile (A\* path), or resolve an armed skill |
-| **Right click** | Move (also cancels a skill aim) |
-| **1 / 2 / 3** | Knife (🗡) · Disguise (🎭) · Stone (🪨) |
-| **H** | Ask the tactical assistant for a hint |
-| **F / G** | Toggle vision overlay / grid |
-| **P / R** | Pause / reset the mission |
+| **Click** a highlighted tile · **↑ ↓ ← →** · **WASD** | Step one node |
+| **Space** / **.** | Wait one turn |
+| **U** / **Z** | Undo the last turn |
+| **R** | Restart the level |
+| **N** | Next level (after solving) |
 
-Reach a cottage floor tile to win; getting cornered by an alerted guard fails
-the mission.
+Red tiles are lethal lines of sight. Reach the green exit; step onto a guard from
+its blind side for a silent takedown (never head-on); open gates from their
+terminals.
 
 ## How the systems fit together
 

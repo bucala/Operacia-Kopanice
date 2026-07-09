@@ -1,0 +1,341 @@
+import { Camera } from '@/core/Camera';
+import { Input } from '@/core/Input';
+import { defaultIso, type IsoConfig, screenToGrid } from '@/core/math/iso';
+import { GoGrid } from './model/grid';
+import {
+  advanceGuards,
+  applyPlayerMove,
+  cloneState,
+  dangerCells,
+  initState,
+  legalMoves,
+  resolve,
+} from './model/logic';
+import {
+  type Dir,
+  DIR_VEC,
+  type GoLevel,
+  type GoState,
+  type Move,
+  type Outcome,
+  type Phase,
+} from './model/types';
+import { LEVELS } from './levels';
+import { GoRenderer, type GuardView } from './GoRenderer';
+
+/** Snapshot the DOM HUD needs each frame. */
+export interface GoHudModel {
+  levelName: string;
+  levelIndex: number;
+  levelCount: number;
+  intro: string;
+  turn: number;
+  phase: Phase;
+  outcome: Outcome;
+  guardsAlive: number;
+  guardsTotal: number;
+  canUndo: boolean;
+  isLast: boolean;
+  log: string[];
+}
+
+type GuardAnim = GuardView;
+
+const EASE = 0.3;
+const EPS = 0.02;
+
+/**
+ * Turn-based controller for the GO puzzle. The logical state advances instantly
+ * through the pure rules in `model/logic.ts`; this class only animates the
+ * board toward that state (player half, then guard half), routes input into
+ * moves, and manages undo / restart / level progression.
+ */
+export class GoGame {
+  private readonly input = new Input();
+  private readonly cam: Camera;
+  private readonly iso: IsoConfig = defaultIso;
+  private readonly renderer: GoRenderer;
+
+  private levelIndex = 0;
+  private level!: GoLevel;
+  private grid!: GoGrid;
+  private state!: GoState;
+
+  private readonly undoStack: GoState[] = [];
+  private readonly logLines: string[] = [];
+
+  // Visual (interpolated) actor positions.
+  private pv = { x: 0, y: 0 };
+  private guardViews = new Map<string, GuardAnim>();
+
+  /** Two-phase turn animation: player step, then the guards' step. */
+  private anim: 'idle' | 'player' | 'guards' = 'idle';
+
+  private running = false;
+
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    private readonly onHud?: (m: GoHudModel) => void,
+  ) {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('2D canvas context unavailable');
+    this.cam = new Camera(canvas.width, canvas.height, this.iso);
+    this.renderer = new GoRenderer(ctx, canvas, this.cam, this.iso);
+  }
+
+  start(): void {
+    this.input.attach(this.canvas);
+    this.loadLevel(0);
+    this.running = true;
+    requestAnimationFrame(this.loop);
+  }
+
+  resize(width: number, height: number): void {
+    this.canvas.width = width;
+    this.canvas.height = height;
+    this.cam.viewportWidth = width;
+    this.cam.viewportHeight = height;
+    if (this.grid) this.renderer.frameBoard(this.grid);
+  }
+
+  // --- Level lifecycle -------------------------------------------------------
+
+  private loadLevel(index: number): void {
+    this.levelIndex = index;
+    this.level = LEVELS[index];
+    this.grid = new GoGrid(this.level);
+    this.state = initState(this.level);
+    this.undoStack.length = 0;
+    this.anim = 'idle';
+    this.snapVisuals();
+    this.renderer.frameBoard(this.grid);
+    this.logLines.length = 0;
+    this.log(`Úroveň ${index + 1}/${LEVELS.length}: ${this.level.name}`);
+    if (this.level.intro) this.log(this.level.intro);
+  }
+
+  private restart(): void {
+    this.loadLevel(this.levelIndex);
+  }
+
+  private nextLevel(): void {
+    if (this.levelIndex + 1 < LEVELS.length) this.loadLevel(this.levelIndex + 1);
+  }
+
+  /** Snap all visual positions to the current logical state (no tween). */
+  private snapVisuals(): void {
+    this.pv = { x: this.state.player.x, y: this.state.player.y };
+    this.guardViews.clear();
+    for (const g of this.state.guards) {
+      this.guardViews.set(g.id, {
+        id: g.id,
+        x: g.x,
+        y: g.y,
+        facing: g.facing,
+        alive: g.alive,
+        fade: g.alive ? 1 : 0,
+      });
+    }
+  }
+
+  // --- Turn execution --------------------------------------------------------
+
+  private tryMove(move: Move): void {
+    if (this.anim !== 'idle' || this.state.phase !== 'await') return;
+    const before = this.state;
+    const after = applyPlayerMove(this.grid, before, move);
+    if (after.turn === before.turn) return; // refused / no-op
+
+    this.undoStack.push(cloneState(before));
+    this.state = after;
+    this.anim = 'player';
+
+    // Narrate anything decisive from the player half.
+    const killed = before.guards.filter(
+      (g) => g.alive && !after.guards.find((h) => h.id === g.id)?.alive,
+    );
+    for (const g of killed) this.log(`Ticho zneškodnený strážca (${g.id}).`);
+    if (this.togglesGate(before, after)) this.log('Terminál aktivovaný — brána sa mení.');
+    if (after.phase === 'won') this.log('Východ dosiahnutý!');
+    if (after.phase === 'lost') this.log('Odhalený! Stlač U (späť) alebo R (reštart).');
+  }
+
+  private togglesGate(before: GoState, after: GoState): boolean {
+    return before.gates.some((g) => after.gates.find((h) => h.id === g.id)?.open !== g.open);
+  }
+
+  /** Drive the two-phase animation forward once the current phase has settled. */
+  private stepAnim(): void {
+    if (this.anim === 'idle') return;
+    if (!this.settled()) return;
+
+    if (this.anim === 'player') {
+      if (this.state.phase !== 'await') {
+        this.anim = 'idle';
+        return;
+      }
+      this.state = resolve(this.grid, advanceGuards(this.grid, this.state));
+      this.anim = 'guards';
+      if (this.state.phase === 'lost') this.log('Odhalený! Stlač U (späť) alebo R (reštart).');
+    } else if (this.anim === 'guards') {
+      this.anim = 'idle';
+    }
+  }
+
+  /** True when every visual position/fade has reached its logical target. */
+  private settled(): boolean {
+    if (Math.abs(this.pv.x - this.state.player.x) > EPS) return false;
+    if (Math.abs(this.pv.y - this.state.player.y) > EPS) return false;
+    for (const g of this.state.guards) {
+      const v = this.guardViews.get(g.id);
+      if (!v) continue;
+      if (Math.abs(v.x - g.x) > EPS || Math.abs(v.y - g.y) > EPS) return false;
+      const target = g.alive ? 1 : 0;
+      if (Math.abs(v.fade - target) > EPS) return false;
+    }
+    return true;
+  }
+
+  private ease(): void {
+    this.pv.x = lerp(this.pv.x, this.state.player.x, EASE);
+    this.pv.y = lerp(this.pv.y, this.state.player.y, EASE);
+    for (const g of this.state.guards) {
+      const v = this.guardViews.get(g.id);
+      if (!v) continue;
+      v.x = lerp(v.x, g.x, EASE);
+      v.y = lerp(v.y, g.y, EASE);
+      v.facing = g.facing;
+      v.alive = g.alive;
+      v.fade = lerp(v.fade, g.alive ? 1 : 0, EASE);
+    }
+  }
+
+  // --- Input -----------------------------------------------------------------
+
+  private handleInput(): void {
+    for (const k of this.input.takeKeys()) this.handleKey(k);
+
+    const clicks = this.input.takeClicks();
+    if (clicks.length && this.anim === 'idle' && this.state.phase === 'await') {
+      const c = clicks[clicks.length - 1];
+      const cell = this.pickCell(c.x, c.y);
+      const dir = this.dirToCell(cell.x, cell.y);
+      if (dir) this.tryMove({ kind: 'step', dir });
+      else if (cell.x === this.state.player.x && cell.y === this.state.player.y)
+        this.tryMove({ kind: 'wait' });
+    }
+  }
+
+  private handleKey(k: string): void {
+    if (k === 'r') return this.restart();
+    if (k === 'n' && this.state.phase === 'won') return this.nextLevel();
+    if (k === 'u' || k === 'z') return this.undo();
+    if (this.anim !== 'idle' || this.state.phase !== 'await') return;
+    const dir = KEY_DIR[k];
+    if (dir) this.tryMove({ kind: 'step', dir });
+    else if (k === ' ' || k === '.') this.tryMove({ kind: 'wait' });
+  }
+
+  private undo(): void {
+    const prev = this.undoStack.pop();
+    if (!prev) return;
+    this.state = prev;
+    this.anim = 'idle';
+    this.snapVisuals();
+    this.log('Ťah vrátený späť.');
+  }
+
+  /** Screen pixel → grid cell on the z=0 plane. */
+  private pickCell(sx: number, sy: number): { x: number; y: number } {
+    const w = this.cam.screenToWorld(sx, sy);
+    const g = screenToGrid(w.x, w.y, this.iso);
+    return { x: Math.round(g.x), y: Math.round(g.y) };
+  }
+
+  /** If (x, y) is orthogonally adjacent to the player, the step direction to it. */
+  private dirToCell(x: number, y: number): Dir | null {
+    const dx = x - this.state.player.x;
+    const dy = y - this.state.player.y;
+    for (const [dir, v] of Object.entries(DIR_VEC) as [Dir, { dx: number; dy: number }][]) {
+      if (v.dx === dx && v.dy === dy) {
+        return legalMoves(this.grid, this.state).some((m) => m.kind === 'step' && m.dir === dir)
+          ? dir
+          : null;
+      }
+    }
+    return null;
+  }
+
+  // --- Frame loop ------------------------------------------------------------
+
+  private loop = (): void => {
+    if (!this.running) return;
+    this.handleInput();
+    this.ease();
+    this.stepAnim();
+    this.renderer.render(this.buildRenderModel());
+    this.onHud?.(this.buildHud());
+    requestAnimationFrame(this.loop);
+  };
+
+  private buildRenderModel() {
+    const legal =
+      this.anim === 'idle' && this.state.phase === 'await'
+        ? legalMoves(this.grid, this.state)
+            .filter((m) => m.kind === 'step')
+            .map((m) => {
+              const v = DIR_VEC[(m as { dir: Dir }).dir];
+              return { x: this.state.player.x + v.dx, y: this.state.player.y + v.dy };
+            })
+        : [];
+    const hover = this.pickCell(this.input.mouseScreen.x, this.input.mouseScreen.y);
+    return {
+      grid: this.grid,
+      state: this.state,
+      player: { x: this.pv.x, y: this.pv.y, facing: this.state.player.facing },
+      guards: [...this.guardViews.values()],
+      danger: dangerCells(this.grid, this.state),
+      legal,
+      hover: this.grid.inBounds(hover.x, hover.y) ? hover : null,
+    };
+  }
+
+  private buildHud(): GoHudModel {
+    const guardsAlive = this.state.guards.filter((g) => g.alive).length;
+    return {
+      levelName: this.level.name,
+      levelIndex: this.levelIndex,
+      levelCount: LEVELS.length,
+      intro: this.level.intro ?? '',
+      turn: this.state.turn,
+      phase: this.state.phase,
+      outcome: this.state.outcome,
+      guardsAlive,
+      guardsTotal: this.state.guards.length,
+      canUndo: this.undoStack.length > 0,
+      isLast: this.levelIndex + 1 >= LEVELS.length,
+      log: [...this.logLines],
+    };
+  }
+
+  private log(message: string): void {
+    this.logLines.push(message);
+    while (this.logLines.length > 8) this.logLines.shift();
+  }
+}
+
+function lerp(a: number, b: number, t: number): number {
+  const n = a + (b - a) * t;
+  return Math.abs(n - b) < EPS ? b : n;
+}
+
+const KEY_DIR: Record<string, Dir> = {
+  arrowup: 'N',
+  arrowdown: 'S',
+  arrowleft: 'W',
+  arrowright: 'E',
+  w: 'N',
+  s: 'S',
+  a: 'W',
+  d: 'E',
+};
