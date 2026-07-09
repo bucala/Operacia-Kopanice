@@ -1,0 +1,110 @@
+{
+  "$schema": "./schema/tiles.schema.json",
+  "description": "Tile palette for Operácia Kopanice. moveCost weights A* pathfinding; noise scales footstep loudness; height feeds the vision/occlusion map.",
+  "tiles": [
+    {
+      "id": "road",
+      "name": "Cesta",
+      "moveCost": 1.0,
+      "noise": 0.5,
+      "walkable": true,
+      "blocksVision": false,
+      "height": 0,
+      "colors": { "top": "#7d756a", "left": "#544f48", "right": "#615b53" }
+    },
+    {
+      "id": "snow",
+      "name": "Sneh",
+      "moveCost": 2.4,
+      "noise": 1.5,
+      "walkable": true,
+      "blocksVision": false,
+      "height": 0,
+      "colors": { "top": "#e8eef5", "left": "#aeb9c6", "right": "#c7d1dc" }
+    },
+    {
+      "id": "mud",
+      "name": "Blato",
+      "moveCost": 1.9,
+      "noise": 0.7,
+      "walkable": true,
+      "blocksVision": false,
+      "height": 0,
+      "colors": { "top": "#5c4a36", "left": "#3c3022", "right": "#4a3b2b" }
+    },
+    {
+      "id": "grass",
+      "name": "Tráva",
+      "moveCost": 1.3,
+      "noise": 0.9,
+      "walkable": true,
+      "blocksVision": false,
+      "height": 0,
+      "colors": { "top": "#5a7a3c", "left": "#3c5326", "right": "#496630" }
+    },
+    {
+      "id": "floor",
+      "name": "Podlaha",
+      "moveCost": 1.0,
+      "noise": 0.8,
+      "walkable": true,
+      "blocksVision": false,
+      "height": 0,
+      "colors": { "top": "#8a6f4e", "left": "#5e4b34", "right": "#6f5a40" }
+    },
+    {
+      "id": "water",
+      "name": "Potok",
+      "moveCost": 999,
+      "noise": 0,
+      "walkable": false,
+      "blocksVision": false,
+      "height": 0,
+      "colors": { "top": "#2f6f8f", "left": "#1f4f66", "right": "#275f78" }
+    },
+    {
+      "id": "wall",
+      "name": "Múr",
+      "moveCost": 999,
+      "noise": 0,
+      "walkable": false,
+      "blocksVision": true,
+      "height": 2,
+      "decor": "block",
+      "colors": { "top": "#9a8f80", "left": "#5f574c", "right": "#73695c" }
+    },
+    {
+      "id": "tree",
+      "name": "Smrek",
+      "moveCost": 999,
+      "noise": 0,
+      "walkable": false,
+      "blocksVision": true,
+      "height": 3,
+      "decor": "conifer",
+      "colors": { "top": "#2f5d34", "left": "#1d3b22", "right": "#264c2b" }
+    },
+    {
+      "id": "rock",
+      "name": "Skala",
+      "moveCost": 999,
+      "noise": 0,
+      "walkable": false,
+      "blocksVision": true,
+      "height": 2,
+      "decor": "boulder",
+      "colors": { "top": "#8d8a86", "left": "#5a5854", "right": "#6c6a66" }
+    },
+    {
+      "id": "hay",
+      "name": "Kopa sena",
+      "moveCost": 2.0,
+      "noise": 1.2,
+      "walkable": true,
+      "blocksVision": true,
+      "height": 1,
+      "decor": "haystack",
+      "colors": { "top": "#c9a94e", "left": "#937a33", "right": "#ad9040" }
+    }
+  ]
+}
