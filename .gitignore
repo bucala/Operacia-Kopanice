@@ -13,3 +13,8 @@ coverage/
 # Godot 4+ specific ignores (legacy prototype on main)
 .godot/
 /android/
+
+# Python
+__pycache__/
+*.pyc
+_smoke.py
