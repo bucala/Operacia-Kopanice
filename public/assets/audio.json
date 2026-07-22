@@ -1,0 +1,19 @@
+{
+  "$schema": "./schema/audio.schema.json",
+  "description": "Sound bank for the positional audio system. Sounds are synthesised with the Web Audio API (oscillator/noise) so the entire bank stays text-only. Positional playback applies distance attenuation, stereo pan, and occlusion from walls between source and listener.",
+  "sounds": {
+    "footstep": { "wave": "noise", "freq": 220, "duration": 0.07, "gain": 0.35, "category": "movement" },
+    "footstep_snow": { "wave": "noise", "freq": 420, "duration": 0.12, "gain": 0.6, "category": "movement" },
+    "knife": { "wave": "noise", "freq": 1200, "duration": 0.14, "gain": 0.7, "category": "combat" },
+    "suspicious": { "wave": "triangle", "freq": 392, "duration": 0.25, "gain": 0.5, "category": "ai" },
+    "alert": { "wave": "square", "freq": 660, "duration": 0.4, "gain": 0.6, "category": "ai" },
+    "disguise": { "wave": "sine", "freq": 523, "duration": 0.3, "gain": 0.5, "category": "skill" },
+    "blocked": { "wave": "square", "freq": 110, "duration": 0.12, "gain": 0.4, "category": "ui" }
+  },
+  "occlusion": {
+    "perBlocker": 0.45,
+    "perHeight": 0.2,
+    "minGain": 0.04,
+    "maxDistance": 18
+  }
+}
