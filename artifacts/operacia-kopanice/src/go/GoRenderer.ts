@@ -174,6 +174,14 @@ export class GoRenderer {
         const terminal = m.state.terminals.find((t) => t.x === x && t.y === y);
         const distraction = m.state.distractions.find((d) => d.x === x && d.y === y);
         const lit = m.danger.has(key(x, y));
+        const playerOnCell = x === m.state.player.x && y === m.state.player.y;
+        // For stone distractions the player activates from 1 cell away in their facing direction.
+        const { dx: pfdx, dy: pfdy } = DIR_VEC[m.player.facing];
+        const playerCanActivate =
+          !!(distraction && !distraction.used) &&
+          (distraction.kind === 'stone'
+            ? x === m.player.x + pfdx && y === m.player.y + pfdy
+            : playerOnCell);
         items.push({
           depth: depthKey(x, y, 0),
           draw: () =>
@@ -186,7 +194,7 @@ export class GoRenderer {
               !!terminal,
               distraction,
               lit,
-              x === m.state.player.x && y === m.state.player.y,
+              playerCanActivate,
             ),
         });
       }
@@ -272,7 +280,8 @@ export class GoRenderer {
     isTerminal: boolean,
     distraction: DistractionState | undefined,
     lit: boolean,
-    playerOnCell: boolean,
+    /** True when the player can activate the distraction on this cell right now. */
+    playerCanActivate: boolean,
   ): void {
     const zoom = this.cam.zoom;
     const halfW = (this.iso.tileWidth / 2) * zoom;
@@ -360,7 +369,7 @@ export class GoRenderer {
     if (isGate && gateOpen) this.drawOpenGate(top, halfW, halfH);
     if (closedGate) this.drawGateBars(top, halfW, halfH);
     if (isTerminal) this.drawTerminal(top, halfW, halfH);
-    if (distraction) this.drawGenerator(top, halfW, halfH, distraction, playerOnCell);
+    if (distraction) this.drawDistraction(top, halfW, halfH, distraction, playerCanActivate);
 
     // House sprite on wall tiles — drawn after the cube geometry so its
     // transparent pixels reveal the grey block beneath it.
@@ -537,12 +546,29 @@ export class GoRenderer {
     this.ctx.shadowBlur = 0;
   }
 
+  /** Route to the per-kind draw helper. */
+  private drawDistraction(
+    top: Vec2,
+    halfW: number,
+    halfH: number,
+    distraction: DistractionState,
+    playerCanActivate: boolean,
+  ): void {
+    if (distraction.kind === 'stone') {
+      this.drawStone(top, halfW, halfH, distraction, playerCanActivate);
+    } else if (distraction.kind === 'bell') {
+      this.drawBell(top, halfW, halfH, distraction, playerCanActivate);
+    } else {
+      this.drawGenerator(top, halfW, halfH, distraction, playerCanActivate);
+    }
+  }
+
   private drawGenerator(
     top: Vec2,
     halfW: number,
     halfH: number,
     distraction: DistractionState,
-    playerOnCell: boolean,
+    playerCanActivate: boolean,
   ): void {
     const active = !distraction.used;
     const color = active ? '#d5a54b' : '#3d464d';
@@ -551,7 +577,7 @@ export class GoRenderer {
     const h = halfH * 0.9;
     this.ctx.save();
     if (!active) this.ctx.globalAlpha *= 0.75;
-    if (active && playerOnCell) {
+    if (active && playerCanActivate) {
       this.ctx.shadowColor = '#f1ce73';
       this.ctx.shadowBlur = 12 * this.cam.zoom;
     }
@@ -576,11 +602,150 @@ export class GoRenderer {
       this.ctx.lineTo(top.x + w / 2, top.y - h * 0.1);
       this.ctx.stroke();
     }
-    if (active && playerOnCell) {
+    if (active && playerCanActivate) {
       this.ctx.fillStyle = '#f5d48a';
       this.ctx.font = `900 ${Math.max(8, Math.round(9 * this.cam.zoom))}px ui-monospace, monospace`;
       this.ctx.fillText('E', top.x, top.y - h * 1.45);
     }
+    this.ctx.restore();
+  }
+
+  /** A small stone/pebble on the ground; player throws it in their facing direction. */
+  private drawStone(
+    top: Vec2,
+    halfW: number,
+    halfH: number,
+    distraction: DistractionState,
+    playerCanActivate: boolean,
+  ): void {
+    const active = !distraction.used;
+    this.ctx.save();
+    if (!active) this.ctx.globalAlpha *= 0.55;
+    const r = halfW * 0.24;
+    // Stone body — rough grey ellipse with light highlight.
+    this.ctx.fillStyle = active ? '#8a919a' : '#4a5057';
+    this.blob(top.x, top.y - halfH * 0.22, r, r * 0.55);
+    if (active) {
+      this.ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      this.blob(top.x - r * 0.28, top.y - halfH * 0.3, r * 0.42, r * 0.2);
+    }
+    // Activation glow and 'E' prompt.
+    if (active && playerCanActivate) {
+      this.ctx.shadowColor = '#c8dce8';
+      this.ctx.shadowBlur = 10 * this.cam.zoom;
+      this.ctx.strokeStyle = '#c8dce8';
+      this.ctx.lineWidth = Math.max(1, this.cam.zoom);
+      this.blob(top.x, top.y - halfH * 0.22, r * 1.5, r * 0.9);
+      this.ctx.shadowBlur = 0;
+      this.ctx.fillStyle = '#c8dce8';
+      this.ctx.font = `900 ${Math.max(8, Math.round(9 * this.cam.zoom))}px ui-monospace, monospace`;
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText('E', top.x, top.y - halfH * 0.85);
+    }
+    // Tiny "used" X when spent.
+    if (!active) {
+      this.ctx.strokeStyle = '#c25b4e';
+      this.ctx.lineWidth = Math.max(1, this.cam.zoom);
+      const s = r * 0.6;
+      this.ctx.beginPath();
+      this.ctx.moveTo(top.x - s, top.y - halfH * 0.35);
+      this.ctx.lineTo(top.x + s, top.y - halfH * 0.08);
+      this.ctx.stroke();
+      this.ctx.beginPath();
+      this.ctx.moveTo(top.x + s, top.y - halfH * 0.35);
+      this.ctx.lineTo(top.x - s, top.y - halfH * 0.08);
+      this.ctx.stroke();
+    }
+    this.ctx.restore();
+  }
+
+  /** Village bell: a bell-shaped silhouette on a short post; wide range. */
+  private drawBell(
+    top: Vec2,
+    halfW: number,
+    halfH: number,
+    distraction: DistractionState,
+    playerCanActivate: boolean,
+  ): void {
+    const active = !distraction.used;
+    const zoom = this.cam.zoom;
+    this.ctx.save();
+    if (!active) this.ctx.globalAlpha *= 0.65;
+
+    const bw = halfW * 0.44;   // bell width
+    const bh = halfH * 1.0;    // bell height
+    const cx = top.x;
+    const cy = top.y - halfH * 0.18;
+
+    // Active glow ring.
+    if (active && playerCanActivate) {
+      this.ctx.shadowColor = '#f5d060';
+      this.ctx.shadowBlur = 14 * zoom;
+    }
+
+    // Post.
+    const postH = halfH * 0.55;
+    this.ctx.fillStyle = active ? '#8c6828' : '#3d3028';
+    this.ctx.fillRect(cx - bw * 0.1, cy - postH, bw * 0.2, postH);
+
+    // Bell body (trapezoid — wide at bottom, narrow at top).
+    this.ctx.fillStyle = active ? '#e0b030' : '#504030';
+    this.ctx.beginPath();
+    this.ctx.moveTo(cx - bw * 0.28, cy - postH);        // top-left shoulder
+    this.ctx.lineTo(cx + bw * 0.28, cy - postH);        // top-right shoulder
+    this.ctx.lineTo(cx + bw * 0.5,  cy - postH + bh);   // bottom-right flare
+    this.ctx.lineTo(cx - bw * 0.5,  cy - postH + bh);   // bottom-left flare
+    this.ctx.closePath();
+    this.ctx.fill();
+
+    // Highlight arc across the top of the bell dome.
+    if (active) {
+      this.ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      this.ctx.beginPath();
+      this.ctx.ellipse(cx, cy - postH + bh * 0.25, bw * 0.22, bh * 0.18, 0, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+
+    // Clapper dot.
+    this.ctx.fillStyle = active ? '#704d20' : '#2a2018';
+    this.blob(cx, cy - postH + bh * 0.85, bw * 0.1, bh * 0.08);
+
+    // Bell outline.
+    this.ctx.strokeStyle = active ? '#c8900a' : '#302018';
+    this.ctx.lineWidth = Math.max(1, zoom);
+    this.ctx.beginPath();
+    this.ctx.moveTo(cx - bw * 0.28, cy - postH);
+    this.ctx.lineTo(cx + bw * 0.28, cy - postH);
+    this.ctx.lineTo(cx + bw * 0.5,  cy - postH + bh);
+    this.ctx.lineTo(cx - bw * 0.5,  cy - postH + bh);
+    this.ctx.closePath();
+    this.ctx.stroke();
+
+    this.ctx.shadowBlur = 0;
+
+    // 'E' prompt.
+    if (active && playerCanActivate) {
+      this.ctx.fillStyle = '#f5d060';
+      this.ctx.font = `900 ${Math.max(8, Math.round(9 * zoom))}px ui-monospace, monospace`;
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText('E', cx, cy - postH - halfH * 0.55);
+    }
+    // Spent X.
+    if (!active) {
+      this.ctx.strokeStyle = '#c25b4e';
+      this.ctx.lineWidth = Math.max(1.5, 1.8 * zoom);
+      this.ctx.beginPath();
+      this.ctx.moveTo(cx - bw * 0.42, cy - postH);
+      this.ctx.lineTo(cx + bw * 0.42, cy - postH + bh);
+      this.ctx.stroke();
+      this.ctx.beginPath();
+      this.ctx.moveTo(cx + bw * 0.42, cy - postH);
+      this.ctx.lineTo(cx - bw * 0.42, cy - postH + bh);
+      this.ctx.stroke();
+    }
+
     this.ctx.restore();
   }
 

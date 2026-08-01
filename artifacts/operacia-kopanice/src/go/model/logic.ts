@@ -103,6 +103,23 @@ export function availableDistractionAt(
   return distraction && !distraction.used ? distraction : undefined;
 }
 
+/**
+ * The cardinal direction from `from` most directly toward `to`.
+ * When the two cells are equal, returns 'E' as an arbitrary tiebreak.
+ * Used by the bell distraction to turn each guard toward the bell.
+ */
+export function dirToward(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+): Dir {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx >= 0 ? 'E' : 'W';
+  }
+  return dy >= 0 ? 'S' : 'N';
+}
+
 /** Can something stand on / move through this cell right now? */
 export function walkable(grid: GoGrid, state: GoState, x: number, y: number): boolean {
   const gate = gateAt(state, x, y);
@@ -231,8 +248,21 @@ export function isTakedown(guard: GuardState, moveDir: Dir): boolean {
 export function legalMoves(grid: GoGrid, state: GoState): Move[] {
   if (state.phase !== 'await') return [];
   const moves: Move[] = [{ kind: 'wait' }];
-  const distraction = availableDistractionAt(state, state.player.x, state.player.y);
-  if (distraction) moves.push({ kind: 'activateDistraction', id: distraction.id });
+
+  // Distractions the player can activate by standing on them (generator, bell).
+  // Stone is excluded here — it is activated from 1 cell away, checked below.
+  const onCell = availableDistractionAt(state, state.player.x, state.player.y);
+  if (onCell && onCell.kind !== 'stone') moves.push({ kind: 'activateDistraction', id: onCell.id });
+
+  // Stone: activatable from 1 cell away in the player's current facing direction.
+  const { dx: fdx, dy: fdy } = DIR_VEC[state.player.facing];
+  const aheadX = state.player.x + fdx;
+  const aheadY = state.player.y + fdy;
+  const stone = state.distractions.find(
+    (d) => d.kind === 'stone' && !d.used && d.x === aheadX && d.y === aheadY,
+  );
+  if (stone) moves.push({ kind: 'activateDistraction', id: stone.id });
+
   for (const dir of DIRS) {
     const { dx, dy } = DIR_VEC[dir];
     const tx = state.player.x + dx;
@@ -257,27 +287,32 @@ export function applyPlayerMove(grid: GoGrid, prev: GoState, move: Move): GoStat
   state.turn += 1;
 
   if (move.kind === 'activateDistraction') {
-    const distraction = state.distractions.find(
-      (candidate) =>
-        candidate.id === move.id &&
-        !candidate.used &&
-        candidate.x === state.player.x &&
-        candidate.y === state.player.y,
-    );
+    const distraction = state.distractions.find((candidate) => {
+      if (candidate.id !== move.id || candidate.used) return false;
+      // Stone: activated from 1 cell away in the player's facing direction.
+      if (candidate.kind === 'stone') {
+        const { dx, dy } = DIR_VEC[state.player.facing];
+        return candidate.x === state.player.x + dx && candidate.y === state.player.y + dy;
+      }
+      // Generator and bell: player must be standing on the distraction cell.
+      return candidate.x === state.player.x && candidate.y === state.player.y;
+    });
     if (!distraction) {
       state.turn -= 1;
       return state;
     }
     distraction.used = true;
     for (const guard of state.guards) {
-      if (
-        guard.alive &&
-        Math.abs(guard.x - distraction.x) + Math.abs(guard.y - distraction.y) <= distraction.range
-      ) {
-        guard.distractionDirection = distraction.direction;
-        guard.distractionTurn = state.turn;
-        guard.facing = distraction.direction;
-      }
+      if (!guard.alive) continue;
+      if (Math.abs(guard.x - distraction.x) + Math.abs(guard.y - distraction.y) > distraction.range) continue;
+      // Bell turns each guard toward the bell; stone and generator use a fixed direction.
+      const newDir: Dir =
+        distraction.kind === 'bell'
+          ? dirToward({ x: guard.x, y: guard.y }, { x: distraction.x, y: distraction.y })
+          : (distraction.direction ?? 'N');
+      guard.distractionDirection = newDir;
+      guard.distractionTurn = state.turn;
+      guard.facing = newDir;
     }
   }
 

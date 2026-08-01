@@ -121,7 +121,20 @@ export interface GateSpec {
   open: boolean;
 }
 
-export type DistractionKind = 'generator';
+export type DistractionKind =
+  /** Fuel generator: activated by standing on it; guards in range face the given direction. */
+  | 'generator'
+  /**
+   * Thrown stone: activated from one cell away in the direction the player is facing.
+   * Guards in range face the given direction (they hear the noise ahead).
+   */
+  | 'stone'
+  /**
+   * Village bell: activated by standing on it; every guard in range turns
+   * *toward* the bell (direction computed per guard, ignores the `direction` field).
+   * Typically has a larger range than a generator.
+   */
+  | 'bell';
 
 /** An interactive object that redirects nearby guards for one response turn. */
 export interface DistractionSpec {
@@ -131,8 +144,12 @@ export interface DistractionSpec {
   y: number;
   /** Manhattan effect radius, including guards on the object's cell. */
   range: number;
-  /** Direction guards face while responding to this distraction. */
-  direction: Dir;
+  /**
+   * Direction guards face while responding to this distraction.
+   * Required for `generator` and `stone`; ignored by `bell` (which computes
+   * direction dynamically toward the bell for each guard).
+   */
+  direction?: Dir;
 }
 
 /** A fully hand-authored puzzle level. */

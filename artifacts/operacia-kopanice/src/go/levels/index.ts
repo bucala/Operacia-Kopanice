@@ -282,4 +282,59 @@ const prielom: GoLevel = {
   ],
 };
 
-export const LEVELS: readonly GoLevel[] = [zacvik, hliadka, terminal, ulicka, prejazd, prielom];
+/**
+ * 7 — Kameň. A narrow Kopanice alley sealed by walls on both sides. A sentry
+ * faces south — directly toward the player — and blocks the only path to the
+ * exit. Standing on the alley mouth and facing north throws the stone one cell
+ * ahead, distracting the guard into looking east. With its gaze turned, slip
+ * north and take it down for a clear run to the exit.
+ *
+ * Requires the stone distraction: guard faces toward the player's only approach
+ * (head-on takedown impossible), and the flanking cells are walled off.
+ * Solution: N N [throw stone] N [takedown] N N (6 actions).
+ */
+const kamen: GoLevel = {
+  name: 'Kameň',
+  intro: 'Hoď kameň smerom, ktorým sa pozeráš — odvedie stráž z cesty.',
+  width: 7,
+  height: 8,
+  cells: [
+    '.......',  // y=0
+    '..X....',  // y=1  exit at (2,1)
+    '.......',  // y=2
+    '##.####', // y=3  walls; gap at x=2 (guard)
+    '##.####', // y=4  walls; gap at x=2 (stone)
+    '##.####', // y=5  walls; gap at x=2 (player throws from here)
+    '.......',  // y=6
+    '.......',  // y=7  start area
+  ],
+  start: { x: 2, y: 7, facing: 'N' },
+  guards: [
+    {
+      id: 'sentry1',
+      kind: 'sentry',
+      x: 2,
+      y: 3,
+      facing: 'S',
+      sight: 1,
+    },
+  ],
+  decorations: [
+    { kind: 'house1', x: 0, y: 2, scale: 1.55 },
+    { kind: 'house2', x: 6, y: 3, scale: 1.6 },
+    { kind: 'fence', x: 2, y: 7, scale: 0.65 },
+  ],
+  distractions: [
+    { id: 'stone1', kind: 'stone', x: 2, y: 4, range: 2, direction: 'E' },
+  ],
+};
+
+export const LEVELS: readonly GoLevel[] = [
+  zacvik,
+  hliadka,
+  terminal,
+  ulicka,
+  prejazd,
+  prielom,
+  kamen,
+];

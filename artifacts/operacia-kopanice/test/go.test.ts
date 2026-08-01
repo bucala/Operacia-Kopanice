@@ -274,6 +274,170 @@ describe('GO puzzle levels', () => {
     expect(state.outcome).toBe('spotted');
   });
 
+  it('throws a stone one cell ahead and redirects only guards in range', () => {
+    const level: GoLevel = {
+      name: 'stone distraction fixture',
+      width: 8,
+      height: 3,
+      cells: ['........', '........', '........'],
+      start: { x: 1, y: 1, facing: 'E' },
+      guards: [
+        { id: 'near', kind: 'sentry', x: 4, y: 1, facing: 'S', sight: 1 },
+        { id: 'far',  kind: 'sentry', x: 7, y: 1, facing: 'S', sight: 1 },
+      ],
+      distractions: [
+        { id: 'stone', kind: 'stone', x: 2, y: 1, range: 3, direction: 'N' },
+      ],
+    };
+    const grid = new GoGrid(level);
+    const initial = initState(level);
+
+    // Player faces E; stone at (2,1) is exactly 1 cell ahead.
+    expect(legalMoves(grid, initial)).toContainEqual({ kind: 'activateDistraction', id: 'stone' });
+
+    const activation = applyPlayerMove(grid, initial, {
+      kind: 'activateDistraction',
+      id: 'stone',
+    });
+
+    expect(activation.turn).toBe(1);
+    expect(activation.distractions[0]?.used).toBe(true);
+    // Guard 'near' is within range 3 (distance 2) → redirected N.
+    expect(activation.guards.find((g) => g.id === 'near')?.facing).toBe('N');
+    // Guard 'far' is at distance 5 > 3 → not redirected.
+    expect(activation.guards.find((g) => g.id === 'far')?.facing).toBe('S');
+    // Stone no longer in legal moves once used.
+    expect(legalMoves(grid, activation)).not.toContainEqual({
+      kind: 'activateDistraction',
+      id: 'stone',
+    });
+  });
+
+  it('cannot throw a stone when player is not facing it', () => {
+    const level: GoLevel = {
+      name: 'stone wrong-facing fixture',
+      width: 4,
+      height: 2,
+      cells: ['....', '....'],
+      start: { x: 0, y: 0, facing: 'S' }, // facing south; stone is east
+      guards: [],
+      distractions: [
+        { id: 'stone', kind: 'stone', x: 1, y: 0, range: 2, direction: 'W' },
+      ],
+    };
+    const grid = new GoGrid(level);
+    const state = initState(level);
+
+    // Stone is 1 cell east but player faces south — must not appear.
+    expect(legalMoves(grid, state)).not.toContainEqual({
+      kind: 'activateDistraction',
+      id: 'stone',
+    });
+  });
+
+  it('cannot activate a stone by standing on its cell (must throw from adjacent)', () => {
+    const level: GoLevel = {
+      name: 'stone on-cell fixture',
+      width: 4,
+      height: 1,
+      cells: ['....'],
+      start: { x: 1, y: 0, facing: 'E' }, // player IS on the stone cell
+      guards: [],
+      distractions: [
+        { id: 'stone', kind: 'stone', x: 1, y: 0, range: 2, direction: 'N' },
+      ],
+    };
+    const grid = new GoGrid(level);
+    const state = initState(level);
+
+    // Stone at player's position but stone requires adjacency, not standing-on.
+    // Facing E → the cell ahead is (2,0); stone is at (1,0) → not a match.
+    expect(legalMoves(grid, state)).not.toContainEqual({
+      kind: 'activateDistraction',
+      id: 'stone',
+    });
+  });
+
+  it('bell turns every guard in range toward the bell dynamically', () => {
+    const level: GoLevel = {
+      name: 'bell distraction fixture',
+      width: 9,
+      height: 9,
+      cells: [
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+        '.........',
+      ],
+      // Player stands on the bell cell.
+      start: { x: 4, y: 4, facing: 'N' },
+      guards: [
+        { id: 'north', kind: 'sentry', x: 4, y: 0, facing: 'S', sight: 1 }, // directly north
+        { id: 'east',  kind: 'sentry', x: 8, y: 4, facing: 'W', sight: 1 }, // directly east
+        { id: 'sw',    kind: 'sentry', x: 0, y: 8, facing: 'N', sight: 1 }, // SW corner
+        { id: 'far',   kind: 'sentry', x: 0, y: 0, facing: 'S', sight: 1 }, // NW corner, range 8
+      ],
+      distractions: [
+        // range 8 covers all guards except 'far' at (0,0) which is distance 8 — on the edge.
+        // Use range 7 so 'far' at distance 8 is cleanly out, and 'sw' at distance 8 is also out.
+        // Use range 6 to ensure 'sw' (dist 8) is excluded but 'north' (dist 4) and 'east' (dist 4)
+        // are included. 'sw' is intentionally out-of-range to test the boundary.
+        { id: 'bell', kind: 'bell', x: 4, y: 4, range: 5 },
+      ],
+    };
+    const grid = new GoGrid(level);
+    const initial = initState(level);
+    const activation = applyPlayerMove(grid, initial, {
+      kind: 'activateDistraction',
+      id: 'bell',
+    });
+
+    expect(activation.distractions[0]?.used).toBe(true);
+    // 'north' at (4,0): bell at (4,4) is due south — distance 4 ≤ range 5 → face S.
+    expect(activation.guards.find((g) => g.id === 'north')?.facing).toBe('S');
+    // 'east' at (8,4): bell at (4,4) is due west — distance 4 ≤ range 5 → face W.
+    expect(activation.guards.find((g) => g.id === 'east')?.facing).toBe('W');
+    // 'sw' at (0,8): distance = 4+4 = 8 > range 5 → not redirected; stays N.
+    expect(activation.guards.find((g) => g.id === 'sw')?.facing).toBe('N');
+    // 'far' at (0,0): distance = 4+4 = 8 > range 5 → not redirected; stays S.
+    expect(activation.guards.find((g) => g.id === 'far')?.facing).toBe('S');
+  });
+
+  it('bell requires standing on its cell to activate', () => {
+    const level: GoLevel = {
+      name: 'bell adjacent fixture',
+      width: 4,
+      height: 1,
+      cells: ['....'],
+      start: { x: 0, y: 0, facing: 'E' },
+      guards: [],
+      distractions: [
+        { id: 'bell', kind: 'bell', x: 1, y: 0, range: 3 },
+      ],
+    };
+    const grid = new GoGrid(level);
+    const state = initState(level);
+
+    // Player is adjacent and facing the bell but bell requires standing on it.
+    expect(legalMoves(grid, state)).not.toContainEqual({
+      kind: 'activateDistraction',
+      id: 'bell',
+    });
+
+    // Stepping onto the bell cell should allow activation.
+    const onBell = applyPlayerMove(grid, state, { kind: 'step', dir: 'E' });
+    const afterGuards = resolve(grid, advanceGuards(grid, onBell));
+    expect(legalMoves(grid, afterGuards)).toContainEqual({
+      kind: 'activateDistraction',
+      id: 'bell',
+    });
+  });
+
   it('activates a generator for exactly one turn and redirects only guards in range', () => {
     const level: GoLevel = {
       name: 'generator distraction fixture',
