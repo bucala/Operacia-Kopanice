@@ -481,6 +481,41 @@ describe('GO puzzle levels', () => {
     expect(repeated).toEqual(afterTurn);
   });
 
+  it('Výpadok is unsolvable without the generator', () => {
+    const index = LEVELS.findIndex((lvl) => lvl.name === 'Výpadok');
+    expect(index).toBeGreaterThanOrEqual(0);
+
+    const level = LEVELS[index]!;
+    const grid = new GoGrid(level);
+    const start = initState(level);
+    const seen = new Set<string>();
+    const queue: GoState[] = [start];
+
+    let solvableWithoutGenerator = false;
+    outer: while (queue.length > 0) {
+      const state = queue.shift()!;
+      if (state.phase === 'won') { solvableWithoutGenerator = true; break outer; }
+      if (state.phase === 'lost') continue;
+      if (state.turn >= MAX_TURNS) continue;
+
+      const key = stateKey(state);
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      for (const move of legalMoves(grid, state)) {
+        if (move.kind === 'activateDistraction') continue; // no generator allowed
+        let next = applyPlayerMove(grid, state, move);
+        if (next.phase === 'won') { solvableWithoutGenerator = true; break outer; }
+        if (next.phase === 'lost') continue;
+        next = advanceGuards(grid, next);
+        next = resolve(grid, next);
+        if (next.phase !== 'lost') queue.push(next);
+      }
+    }
+
+    expect(solvableWithoutGenerator).toBe(false);
+  });
+
   it('does not activate a distraction that is not on the player cell', () => {
     const level: GoLevel = {
       name: 'unreachable generator fixture',

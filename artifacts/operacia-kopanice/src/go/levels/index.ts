@@ -329,6 +329,56 @@ const kamen: GoLevel = {
   ],
 };
 
+/**
+ * 8 — Výpadok. A narrow three-cell alley hemmed in by solid walls; a static
+ * sentry at the far end faces south and watches the cell directly ahead
+ * (sight=1) — exactly where the player must walk to reach the exit. There is
+ * no rotation, no flanking path, no alternative. The generator lies two cells
+ * south of the guard; activating it turns the sentry north for one beat,
+ * opening a window to sprint past and take it down from behind.
+ *
+ * Without the generator the BFS finds no winning line within MAX_TURNS turns.
+ *
+ * Layout (7 × 8): walls at x∈{0,1,3,4,5,6} for rows y∈{3,4,5}; open south.
+ * Solution: W N N N [activate generator] N N [takedown] N N  (9 actions).
+ */
+const vypadok: GoLevel = {
+  name: 'Výpadok',
+  intro:
+    'Strážca blokuje jedinú cestu. Aktivuj generátor — na jeden ťah odvráti jeho pohľad a ty môžeš prejsť.',
+  width: 7,
+  height: 8,
+  cells: [
+    '.......', // y=0
+    '..X....', // y=1  exit at (2,1)
+    '.......', // y=2
+    '##.####', // y=3  guard at (2,3)
+    '##.####', // y=4
+    '##.####', // y=5  generator at (2,5)
+    '.......', // y=6
+    '.......', // y=7  start area
+  ],
+  start: { x: 3, y: 7, facing: 'N' },
+  guards: [
+    {
+      id: 'sentry1',
+      kind: 'sentry',
+      x: 2,
+      y: 3,
+      facing: 'S',
+      sight: 1,
+    },
+  ],
+  decorations: [
+    { kind: 'house1', x: 0, y: 2, scale: 1.55 },
+    { kind: 'house2', x: 5, y: 3, scale: 1.6 },
+    { kind: 'fence', x: 3, y: 7, scale: 0.65 },
+  ],
+  distractions: [
+    { id: 'generator1', kind: 'generator', x: 2, y: 5, range: 3, direction: 'N' },
+  ],
+};
+
 export const LEVELS: readonly GoLevel[] = [
   zacvik,
   hliadka,
@@ -337,4 +387,5 @@ export const LEVELS: readonly GoLevel[] = [
   prejazd,
   prielom,
   kamen,
+  vypadok,
 ];
