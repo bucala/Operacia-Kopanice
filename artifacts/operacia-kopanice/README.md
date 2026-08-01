@@ -23,3 +23,7 @@ pnpm --filter @workspace/operacia-kopanice run build
 ## Village board
 
 The active GO board uses declarative terrain and decorative objects. Snow, roads, planks, mud, houses, trees, rocks, crates, and fences are rendered separately from the deterministic movement and guard logic. Houses and trees are solid by default; individual decorations can opt into or out of movement and sight blocking with explicit collision flags.
+
+## Visual shell
+
+The game uses a shared dark tactical interface: brass framing, geometric linework, a reusable Operácia Kopanice mark, and consistent level, HUD, enemy, and control panels. The browser icon is supplied by `public/favicon.svg`, while the full lockup lives in `public/brand/operacia-kopanice-mark.svg`.

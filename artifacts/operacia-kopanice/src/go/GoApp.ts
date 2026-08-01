@@ -184,7 +184,7 @@ export class GoApp {
     const actions = el('div', { class: 'tb-actions' }, [
       this.undoBtn,
       this.restartBtn,
-      el('button', { class: 'btn', text: '☰ Menu', onclick: () => this.showMenu() }),
+      el('button', { class: 'btn', text: '◈ Menu', onclick: () => this.showMenu() }),
     ]);
     return el('header', { class: 'topbar hidden' }, [info, actions]);
   }
@@ -236,7 +236,7 @@ export class GoApp {
 
     return el('div', { class: 'panel menu' }, [
       el('div', { class: 'brand' }, [
-        el('h1', { class: 'title', text: 'OPERÁCIA KOPANICE' }),
+        brandMark(),
         el('div', { class: 'subtitle', text: 'Ťahová taktická hádanka · v štýle Lara Croft GO' }),
       ]),
       el('button', {
@@ -261,8 +261,8 @@ export class GoApp {
     const badge = done
       ? el('span', { class: 'badge done', text: `✓ ${best} ťahov` })
       : unlocked
-        ? el('span', { class: 'badge open', text: '▶ hrať' })
-        : el('span', { class: 'badge lock', text: '🔒 zamknuté' });
+        ? el('span', { class: 'badge open', text: '▶' })
+        : el('span', { class: 'badge lock', text: '▣  zamknuté' });
 
     return el(
       'button',
@@ -289,7 +289,7 @@ export class GoApp {
       );
     }
     buttons.push(el('button', { class: 'btn ghost', text: '⟳ Znova', onclick: () => this.doRestart() }));
-    buttons.push(el('button', { class: 'btn', text: '☰ Menu', onclick: () => this.showMenu() }));
+    buttons.push(el('button', { class: 'btn', text: '◈ Menu', onclick: () => this.showMenu() }));
 
     return el('div', { class: 'panel outcome win' }, [
       el('div', { class: 'outcome-icon', text: '✔' }),
@@ -310,7 +310,7 @@ export class GoApp {
       );
     }
     buttons.push(el('button', { class: 'btn ghost', text: '⟳ Skús znova', onclick: () => this.doRestart() }));
-    buttons.push(el('button', { class: 'btn', text: '☰ Menu', onclick: () => this.showMenu() }));
+    buttons.push(el('button', { class: 'btn', text: '◈ Menu', onclick: () => this.showMenu() }));
 
     return el('div', { class: 'panel outcome lose' }, [
       el('div', { class: 'outcome-icon', text: '✖' }),
@@ -349,6 +349,15 @@ function legendItem(swatchClass: string, label: string): HTMLElement {
     el('span', { class: `swatch ${swatchClass}` }),
     el('span', { text: label }),
   ]);
+}
+
+function brandMark(): HTMLElement {
+  const mark = document.createElement('img');
+  mark.className = 'brand-mark';
+  mark.src = `${import.meta.env.BASE_URL}brand/operacia-kopanice-mark.svg`;
+  mark.alt = 'Operácia Kopanice';
+  mark.draggable = false;
+  return mark;
 }
 
 /** Labels and portrait image paths per guard kind. */

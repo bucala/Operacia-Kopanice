@@ -1,0 +1,6 @@
+<svg width="760" height="360" viewBox="0 0 760 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M378 24L596 180L378 336L160 180L378 24Z" stroke="#C8AA68" stroke-width="7"/>
+  <path d="M378 72L532 180L378 288L224 180L378 72Z" stroke="#C8AA68" stroke-width="2" opacity=".75"/>
+  <text x="380" y="145" text-anchor="middle" fill="#F5F1E7" font-family="Arial Narrow, Impact, sans-serif" font-size="79" font-weight="800" letter-spacing="15">OPERÁCIA</text>
+  <text x="380" y="218" text-anchor="middle" fill="#C8AA68" font-family="Arial Narrow, Impact, sans-serif" font-size="55" font-weight="800" letter-spacing="6">KOPANICE</text>
+</svg>

@@ -4,6 +4,8 @@
 
 ### Changed
 
+- Rebuilt the menu and in-mission interface around the dark tactical, brass-framed Operácia Kopanice visual system.
+- Added a reusable geometric game logo and a matching browser icon.
 - Reworked the Operácia Kopanice GO board toward a snowy village composition with larger isometric cells and compact single-cell character sprites.
 - Added visual terrain distinctions for snow, roads, planks, and mud.
 - Added declarative village decorations for houses, trees, crates, and fences across the existing missions.
