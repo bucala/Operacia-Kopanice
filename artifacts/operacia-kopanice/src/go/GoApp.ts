@@ -232,6 +232,7 @@ export class GoApp {
       const card = this.epCards.get(gt.kind)!;
       const neutralised = gt.alive === 0;
       card.classList.toggle('ep-dead', neutralised);
+      card.classList.toggle('ep-alerted', gt.alerted > 0);
       // Update the small count badge.
       const badge = card.querySelector<HTMLElement>('.ep-count');
       if (badge) {
@@ -239,6 +240,8 @@ export class GoApp {
       }
       const sight = card.querySelector<HTMLElement>('.ep-sight');
       if (sight) sight.textContent = `◉ ${gt.maxSight} polí`;
+      const alert = card.querySelector<HTMLElement>('.ep-alert');
+      if (alert) alert.textContent = gt.alerted > 0 ? `⚠ ${gt.alerted} v strehu` : '';
     }
     // Remove cards for kinds no longer in the level.
     for (const [kind, card] of this.epCards) {
@@ -416,9 +419,11 @@ function buildEpCard(kind: string, onClick: () => void): HTMLElement {
 
   const badge = el('span', { class: 'ep-count', text: '' });
   const sight = el('span', { class: 'ep-sight', text: '' });
+  const alert = el('span', { class: 'ep-alert', text: '' });
   const label = el('div', { class: 'ep-label' }, [
     el('span', { text: meta.label }),
     sight,
+    alert,
     badge,
   ]);
 

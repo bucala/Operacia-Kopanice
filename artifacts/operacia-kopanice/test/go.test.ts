@@ -9,7 +9,15 @@
 import { describe, it, expect } from 'vitest';
 import { LEVELS } from '../src/go/levels';
 import { GoGrid } from '../src/go/model/grid';
-import { advanceGuards, applyPlayerMove, cloneState, initState, legalMoves, resolve } from '../src/go/model/logic';
+import {
+  advanceGuards,
+  applyOfficerAlerts,
+  applyPlayerMove,
+  cloneState,
+  initState,
+  legalMoves,
+  resolve,
+} from '../src/go/model/logic';
 import type { GoLevel, GoState } from '../src/go/model/types';
 
 const MAX_TURNS = 60;
@@ -25,7 +33,7 @@ function stateKey(s: GoState): string {
   const g = s.guards
     .map(
       (g) =>
-        `${g.alive ? 1 : 0},${g.x},${g.y},${g.facing},${g.routeIndex},${g.routeDir},${g.rotateIndex}`,
+        `${g.alive ? 1 : 0},${g.alerted ? 1 : 0},${g.x},${g.y},${g.facing},${g.routeIndex},${g.routeDir},${g.rotateIndex}`,
     )
     .join('|');
   const gates = s.gates.map((g) => (g.open ? '1' : '0')).join('');
@@ -187,6 +195,53 @@ describe('GO puzzle levels', () => {
     expect(afterTurn.guards[0]?.x).toBe(2);
     expect(snapshot).toEqual(start);
     expect(snapshot).not.toEqual(afterTurn);
+  });
+
+  it('alerts nearby infantry at the outer edge of an officer sight beam', () => {
+    const level: GoLevel = {
+      name: 'officer alert fixture',
+      width: 6,
+      height: 3,
+      cells: ['......', '......', '......'],
+      start: { x: 1, y: 1, facing: 'W' },
+      guards: [
+        { id: 'officer', kind: 'sentry', x: 3, y: 1, facing: 'W', sight: 3 },
+        {
+          id: 'infantry',
+          kind: 'patrol',
+          x: 4,
+          y: 0,
+          facing: 'W',
+          route: [[3, 0], [4, 0]],
+          sight: 1,
+        },
+      ],
+    };
+    const grid = new GoGrid(level);
+    const initial = initState(level);
+    const alerted = applyPlayerMove(grid, initial, { kind: 'step', dir: 'W' });
+
+    expect(alerted.phase).toBe('await');
+    expect(alerted.guards.find((guard) => guard.id === 'infantry')?.alerted).toBe(true);
+    expect(alerted.guards.find((guard) => guard.id === 'infantry')?.routeDir).toBe(-1);
+
+    const advanced = advanceGuards(grid, alerted);
+    expect(advanced.guards.find((guard) => guard.id === 'infantry')?.x).toBe(3);
+  });
+
+  it('keeps the inner officer sight field lethal', () => {
+    const level: GoLevel = {
+      name: 'officer sight fixture',
+      width: 4,
+      height: 1,
+      cells: ['....'],
+      start: { x: 2, y: 0, facing: 'E' },
+      guards: [{ id: 'officer', kind: 'sentry', x: 3, y: 0, facing: 'W', sight: 3 }],
+    };
+    const grid = new GoGrid(level);
+    const state = applyPlayerMove(grid, initState(level), { kind: 'wait' });
+    expect(state.phase).toBe('lost');
+    expect(state.outcome).toBe('spotted');
   });
 });
 

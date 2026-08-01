@@ -59,6 +59,7 @@ export function initState(level: GoLevel): GoState {
       rotate,
       sight: g.sight,
       alive: true,
+      alerted: false,
       variant: g.variant,
     };
   });
@@ -133,6 +134,68 @@ export function dangerCells(grid: GoGrid, state: GoState): Set<string> {
     for (const c of guardSightCells(grid, state, g)) set.add(c);
   }
   return set;
+}
+
+/**
+ * The outermost currently visible cell for every living officer.
+ * Sentries are the existing officer slot; patrols are the infantry slot.
+ */
+export function officerAlertCells(grid: GoGrid, state: GoState): Set<string> {
+  const cells = new Set<string>();
+  for (const guard of state.guards) {
+    if (!guard.alive || guard.kind !== 'sentry') continue;
+    const sight = guardSightCells(grid, state, guard);
+    const edge = sight.at(-1);
+    if (edge) cells.add(edge);
+  }
+  return cells;
+}
+
+/**
+ * Alert nearby infantry once when the player reaches an officer's sight edge.
+ * The route direction is reversed deterministically; no random pursuit is added.
+ */
+export function applyOfficerAlerts(grid: GoGrid, prev: GoState, beforeMove?: GoState): GoState {
+  const state = cloneState(prev);
+  if (state.phase !== 'await') return state;
+
+  const playerKey = key(state.player.x, state.player.y);
+  const wasAlreadyAtEdge =
+    beforeMove !== undefined &&
+    officerAlertCells(grid, beforeMove).has(key(beforeMove.player.x, beforeMove.player.y));
+  if (wasAlreadyAtEdge) return state;
+  const officers = state.guards.filter(
+    (guard) =>
+      guard.alive &&
+      guard.kind === 'sentry' &&
+      officerAlertCells(grid, state).has(playerKey),
+  );
+  if (officers.length === 0) return state;
+
+  for (const infantry of state.guards) {
+    if (!infantry.alive || infantry.kind !== 'patrol' || infantry.alerted) continue;
+    const nearby = officers.some(
+      (officer) => Math.abs(officer.x - infantry.x) + Math.abs(officer.y - infantry.y) <= 2,
+    );
+    if (!nearby) continue;
+    infantry.alerted = true;
+    if (infantry.routeIndex === 0) infantry.routeDir = 1;
+    else if (infantry.routeIndex === infantry.route.length - 1) infantry.routeDir = -1;
+    else infantry.routeDir = (infantry.routeDir * -1) as 1 | -1;
+  }
+  return state;
+}
+
+/** An officer's edge cell is a warning, but every other visible beam cell is lethal. */
+function playerIsInLethalSight(grid: GoGrid, state: GoState): boolean {
+  const playerKey = key(state.player.x, state.player.y);
+  const officerEdges = officerAlertCells(grid, state);
+  return state.guards.some(
+    (guard) =>
+      guard.alive &&
+      guardSightCells(grid, state, guard).includes(playerKey) &&
+      !(guard.kind === 'sentry' && officerEdges.has(playerKey)),
+  );
 }
 
 /**
@@ -216,8 +279,11 @@ export function applyPlayerMove(grid: GoGrid, prev: GoState, move: Move): GoStat
     return state;
   }
 
-  // Stepped into a currently-lit tile → spotted.
-  if (dangerCells(grid, state).has(key(state.player.x, state.player.y))) {
+  // Reaching an officer's outermost sight cell triggers an alert instead of
+  // immediate detection. Any other lit cell remains lethal.
+  const alerted = applyOfficerAlerts(grid, state, prev);
+  state.guards = alerted.guards;
+  if (playerIsInLethalSight(grid, state)) {
     state.phase = 'lost';
     state.outcome = 'spotted';
   }
@@ -267,7 +333,7 @@ export function resolve(grid: GoGrid, prev: GoState): GoState {
     state.outcome = 'collision';
     return state;
   }
-  if (dangerCells(grid, state).has(key(x, y))) {
+  if (playerIsInLethalSight(grid, state)) {
     state.phase = 'lost';
     state.outcome = 'spotted';
   }

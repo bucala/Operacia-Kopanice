@@ -31,6 +31,7 @@ export interface GuardTypeCount {
   alive: number;
   total: number;
   maxSight: number;
+  alerted: number;
 }
 
 /** Snapshot the DOM HUD needs each frame. */
@@ -220,6 +221,7 @@ export class GoGame {
         y: g.y,
         facing: g.facing,
         alive: g.alive,
+        alerted: g.alerted,
         fade: g.alive ? 1 : 0,
         variant: g.variant,
       });
@@ -239,6 +241,11 @@ export class GoGame {
     this.undoStack.push(cloneState(before));
     this.state = after;
     this.anim = 'player';
+    for (const guard of after.guards) {
+      if (!before.guards.find((previous) => previous.id === guard.id)?.alerted && guard.alerted) {
+        this.log(`Dôstojník zalarmoval pechotu (${guard.id}).`);
+      }
+    }
 
     // Narrate anything decisive from the player half.
     const killed = before.guards.filter(
@@ -308,6 +315,7 @@ export class GoGame {
       v.y = lerp(v.y, g.y, EASE);
       v.facing = g.facing;
       v.alive = g.alive;
+      v.alerted = g.alerted;
       v.fade = lerp(v.fade, g.alive ? 1 : 0, EASE);
     }
   }
@@ -411,11 +419,12 @@ export class GoGame {
     const guardsAlive = this.state.guards.filter((g) => g.alive).length;
 
     // Aggregate unique guard types with alive/total counts.
-    const typeMap = new Map<GuardKind, { alive: number; total: number; maxSight: number }>();
+    const typeMap = new Map<GuardKind, { alive: number; total: number; maxSight: number; alerted: number }>();
     for (const g of this.state.guards) {
-      const entry = typeMap.get(g.kind) ?? { alive: 0, total: 0, maxSight: 0 };
+      const entry = typeMap.get(g.kind) ?? { alive: 0, total: 0, maxSight: 0, alerted: 0 };
       entry.total += 1;
       if (g.alive) entry.alive += 1;
+      if (g.alerted) entry.alerted += 1;
       entry.maxSight = Math.max(entry.maxSight, g.sight);
       typeMap.set(g.kind, entry);
     }

@@ -28,6 +28,8 @@ export interface GuardView {
   y: number;
   facing: Dir;
   alive: boolean;
+  /** Officer-alert state; alerted infantry uses an amber warning marker. */
+  alerted: boolean;
   /** 1 = solid, 0 = fully faded (used to dissolve a taken-down guard). */
   fade: number;
   /** Which sprite to render for this guard. */
@@ -198,6 +200,7 @@ export class GoRenderer {
             true,
             g.variant,
             m.highlightedGuardIds.has(g.id),
+            g.alerted,
           ),
       });
     }
@@ -525,6 +528,7 @@ export class GoRenderer {
     isGuard = false,
     variant?: GuardVariant,
     highlighted = false,
+    alerted = false,
   ): void {
     const zoom = this.cam.zoom;
     const tileW = this.iso.tileWidth * zoom;
@@ -543,6 +547,22 @@ export class GoRenderer {
       this.ctx.lineWidth = Math.max(2, 2.5 * zoom);
       this.diamondPath(base.x, base.y + halfH * 0.18, tileW * 0.54, halfH * 0.34);
       this.ctx.stroke();
+      this.ctx.restore();
+    }
+
+    if (alerted) {
+      this.ctx.save();
+      this.ctx.shadowColor = '#e4b95e';
+      this.ctx.shadowBlur = 10 * zoom;
+      this.ctx.strokeStyle = '#e7bf68';
+      this.ctx.lineWidth = Math.max(1.5, 2 * zoom);
+      this.diamondPath(base.x, base.y + halfH * 0.16, tileW * 0.58, halfH * 0.38);
+      this.ctx.stroke();
+      this.ctx.fillStyle = '#f5d48a';
+      this.ctx.font = `900 ${Math.max(11, Math.round(13 * zoom))}px Arial, sans-serif`;
+      this.ctx.textAlign = 'center';
+      this.ctx.textBaseline = 'middle';
+      this.ctx.fillText('!', base.x, base.y - tileW * 0.72);
       this.ctx.restore();
     }
 

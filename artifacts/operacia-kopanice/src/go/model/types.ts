@@ -160,6 +160,8 @@ export interface GuardState {
   rotate: Dir[];
   sight: number;
   alive: boolean;
+  /** Officer alert state; alerted infantry reverses its prescribed route. */
+  alerted: boolean;
   /** Visual sprite variant carried from GuardSpec. */
   variant?: GuardVariant;
 }

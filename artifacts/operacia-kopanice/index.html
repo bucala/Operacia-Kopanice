@@ -296,6 +296,19 @@
          text-transform: none;
          white-space: nowrap;
        }
+       .ep-alert {
+         min-height: 9px;
+         color: #e7bf68;
+         font-size: 8px;
+         font-weight: 800;
+         letter-spacing: 0;
+         text-transform: none;
+         white-space: nowrap;
+       }
+       .ep-card.ep-alerted {
+         border-color: #e7bf68;
+         box-shadow: inset 0 0 0 1px rgba(231,191,104,.24), 0 0 10px rgba(231,191,104,.16);
+       }
 
       /* Small alive/total count below the label */
       .ep-count {
@@ -326,6 +339,7 @@
          .ep-portrait { width: 58px; height: 52px; }
          .ep-label { padding: 3px 2px 4px; font-size: 7px; }
          .ep-sight { font-size: 7px; }
+         .ep-alert { font-size: 7px; }
          .ep-count { font-size: 7px; }
          .hintbar {
           left: 8px; right: 8px; bottom: 8px;
