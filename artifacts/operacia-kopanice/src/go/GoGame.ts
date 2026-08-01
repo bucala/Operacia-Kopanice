@@ -22,6 +22,7 @@ import {
 } from './model/types';
 import { LEVELS } from './levels';
 import { GoRenderer, type GuardView } from './GoRenderer';
+import { SpriteCache } from './SpriteCache';
 
 /** Snapshot the DOM HUD needs each frame. */
 export interface GoHudModel {
@@ -93,7 +94,7 @@ export class GoGame {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('2D canvas context unavailable');
     this.cam = new Camera(canvas.width, canvas.height, this.iso);
-    this.renderer = new GoRenderer(ctx, canvas, this.cam, this.iso);
+    this.renderer = new GoRenderer(ctx, canvas, this.cam, this.iso, new SpriteCache());
   }
 
   /** Attach input and begin the render loop with level 0 as a frozen backdrop. */

@@ -4,6 +4,7 @@ import type { Vec2 } from '@/core/math/Vec2';
 import { GoGrid } from './model/grid';
 import { key } from './model/logic';
 import { DIR_VEC, type Dir, type GoState } from './model/types';
+import { SpriteCache } from './SpriteCache';
 
 /** Everything the renderer needs for one frame, assembled by {@link GoGame}. */
 export interface RenderModel {
@@ -34,47 +35,81 @@ interface DrawItem {
   draw: () => void;
 }
 
+// ---------------------------------------------------------------------------
+// Winter / SNP colour palette
+// ---------------------------------------------------------------------------
 const COL = {
-  floorTop: '#39434f',
-  floorLeft: '#232b34',
-  floorRight: '#2c353f',
-  edge: 'rgba(8,12,18,0.55)',
-  exitTop: '#2f9c63',
-  exitGlow: '#59e39b',
-  wallTop: '#5c6675',
-  wallLeft: '#333b46',
-  wallRight: '#434d5a',
+  // Snow ground
+  floorTop: '#d8e8f4',
+  floorLeft: '#8ca8c0',
+  floorRight: '#a8c0d4',
+  edge: 'rgba(40,70,100,0.45)',
+
+  // Exit tile — amber lantern glow
+  exitTop: '#c8a030',
+  exitGlow: '#f0cc58',
+
+  // Wall cube fallback (hidden behind house sprite when image loads)
+  wallTop: '#7a8a96',
+  wallLeft: '#3e4e5c',
+  wallRight: '#526070',
+
+  // Gate
   gateBar: '#c58a3a',
   gateFrame: 'rgba(197,138,58,0.5)',
+
+  // Terminal screen
   terminal: '#39c6d6',
-  player: '#4aa3ff',
-  playerDark: '#2c6fb8',
-  guard: '#f2554e',
-  guardDark: '#a83732',
-  danger: 'rgba(242,85,78,0.34)',
-  legal: '#8fe0ff',
+
+  // Player — partisan green coat
+  player: '#5a9068',
+  playerDark: '#38604a',
+
+  // Guard — Wehrmacht field-grey / danger red accent
+  guard: '#c05048',
+  guardDark: '#8a2828',
+
+  // Danger sight-cone overlay
+  danger: 'rgba(210,50,40,0.28)',
+
+  // Legal-move marker
+  legal: '#90d8ff',
+};
+
+// Sprite paths — use Vite's BASE_URL so they work regardless of deploy sub-path.
+const _base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const SPRITE = {
+  house1: `${_base}/assets/sprites/house1.png`,
+  house2: `${_base}/assets/sprites/house2.png`,
+  trees: `${_base}/assets/sprites/trees.png`,
 };
 
 /**
- * Isometric renderer for the GO puzzle. Reuses the engine's iso projection and
- * camera, but paints a GO-flavoured board: raised platform nodes, red "lit"
- * danger tiles, guard facing arrows, a glowing exit, gates/terminals, and the
- * cyan legal-move markers the player clicks.
+ * Isometric renderer for the GO puzzle.
+ *
+ * Visual upgrade: snow-white tile surfaces, photorealistic house sprites on
+ * wall nodes, partisan-green player figure, atmospheric winter sky gradient.
+ * All sprites degrade gracefully to geometric shapes when images are not yet
+ * loaded.
  */
 export class GoRenderer {
+  private readonly sprites: SpriteCache;
+
   constructor(
     private readonly ctx: CanvasRenderingContext2D,
     private readonly canvas: HTMLCanvasElement,
     private readonly cam: Camera,
     private readonly iso: IsoConfig,
-  ) {}
+    sprites?: SpriteCache,
+  ) {
+    this.sprites = sprites ?? new SpriteCache();
+    // Kick off image loading; renders work even while loading (fallback shapes).
+    void this.sprites.preload(Object.values(SPRITE));
+  }
 
   /** Fit the whole board on screen with a margin (called per level / resize). */
   frameBoard(grid: GoGrid): void {
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const [gx, gy] of [
       [0, 0],
       [grid.width - 1, 0],
@@ -87,8 +122,8 @@ export class GoRenderer {
       maxX = Math.max(maxX, p.x);
       maxY = Math.max(maxY, p.y);
     }
-    const marginX = this.iso.tileWidth;
-    const marginY = this.iso.tileHeight * 3; // headroom for raised walls/figures
+    const marginX = this.iso.tileWidth * 2;
+    const marginY = this.iso.tileHeight * 4;
     const spanX = maxX - minX + marginX * 2;
     const spanY = maxY - minY + marginY * 2;
     this.cam.target = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
@@ -117,38 +152,56 @@ export class GoRenderer {
     // Player.
     items.push({
       depth: depthKey(m.player.x, m.player.y, 0.6),
-      draw: () => this.drawFigure(m.player.x, m.player.y, m.player.facing, COL.player, COL.playerDark, 1),
+      draw: () =>
+        this.drawFigure(m.player.x, m.player.y, m.player.facing, COL.player, COL.playerDark, 1),
     });
     // Guards.
     for (const g of m.guards) {
       if (g.fade <= 0.01) continue;
       items.push({
         depth: depthKey(g.x, g.y, 0.6),
-        draw: () => this.drawFigure(g.x, g.y, g.facing, COL.guard, COL.guardDark, g.fade, true),
+        draw: () =>
+          this.drawFigure(g.x, g.y, g.facing, COL.guard, COL.guardDark, g.fade, true),
       });
     }
 
     items.sort((a, b) => a.depth - b.depth);
     for (const it of items) it.draw();
 
-    // Overlays on top of the board.
+    // Overlays drawn on top.
     for (const cell of m.legal) this.drawLegalMarker(cell.x, cell.y);
     if (m.hover) this.drawHover(m.hover.x, m.hover.y);
   }
 
+  // ---------------------------------------------------------------------------
+  // Background
+  // ---------------------------------------------------------------------------
+
   private clear(): void {
     const { width, height } = this.canvas;
-    const g = this.ctx.createLinearGradient(0, 0, 0, height);
-    g.addColorStop(0, '#0a0d12');
-    g.addColorStop(1, '#12171f');
-    this.ctx.fillStyle = g;
+    // Deep winter night sky gradient.
+    const sky = this.ctx.createLinearGradient(0, 0, 0, height);
+    sky.addColorStop(0, '#0b1320');
+    sky.addColorStop(0.45, '#101826');
+    sky.addColorStop(1, '#090e16');
+    this.ctx.fillStyle = sky;
+    this.ctx.fillRect(0, 0, width, height);
+
+    // Subtle ambient snow haze around the board centre.
+    const cx = width / 2;
+    const cy = height * 0.48;
+    const r = Math.max(width, height) * 0.7;
+    const haze = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    haze.addColorStop(0, 'rgba(160,200,240,0.07)');
+    haze.addColorStop(0.55, 'rgba(100,150,200,0.03)');
+    haze.addColorStop(1, 'rgba(0,0,0,0)');
+    this.ctx.fillStyle = haze;
     this.ctx.fillRect(0, 0, width, height);
   }
 
-  private center(x: number, y: number, z: number): Vec2 {
-    const w = gridToScreen(x, y, z, this.iso);
-    return this.cam.worldToScreen(w.x, w.y);
-  }
+  // ---------------------------------------------------------------------------
+  // Tile drawing
+  // ---------------------------------------------------------------------------
 
   private drawCell(
     x: number,
@@ -159,11 +212,12 @@ export class GoRenderer {
     isTerminal: boolean,
     lit: boolean,
   ): void {
-    const halfW = (this.iso.tileWidth / 2) * this.cam.zoom;
-    const halfH = (this.iso.tileHeight / 2) * this.cam.zoom;
+    const zoom = this.cam.zoom;
+    const halfW = (this.iso.tileWidth / 2) * zoom;
+    const halfH = (this.iso.tileHeight / 2) * zoom;
     const closedGate = isGate && !gateOpen;
     const isWall = kind === 'wall' || closedGate;
-    const z = isWall ? 1.4 : 0.35; // every node is a slightly raised platform
+    const z = isWall ? 1.4 : 0.35;
 
     const top = this.center(x, y, z);
     const base = this.center(x, y, 0);
@@ -171,7 +225,12 @@ export class GoRenderer {
     let topColor = COL.floorTop;
     let leftColor = COL.floorLeft;
     let rightColor = COL.floorRight;
-    if (kind === 'exit') topColor = COL.exitTop;
+
+    if (kind === 'exit') {
+      topColor = COL.exitTop;
+      leftColor = '#8c6820';
+      rightColor = '#a87c28';
+    }
     if (kind === 'wall') {
       topColor = COL.wallTop;
       leftColor = COL.wallLeft;
@@ -207,7 +266,13 @@ export class GoRenderer {
     this.diamondPath(top.x, top.y, halfW, halfH);
     this.ctx.stroke();
 
-    // Danger tint sits on the walkable top surface.
+    // Subtle snow sparkle on floor tiles (tiny white highlight at the peak).
+    if (kind !== 'wall' && !isWall) {
+      this.ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      this.diamond(top.x, top.y - halfH * 0.25, halfW * 0.35, halfH * 0.22);
+    }
+
+    // Danger tint.
     if (lit && !isWall) {
       this.ctx.fillStyle = COL.danger;
       this.diamond(top.x, top.y, halfW, halfH);
@@ -217,18 +282,67 @@ export class GoRenderer {
     if (isGate && gateOpen) this.drawOpenGate(top, halfW, halfH);
     if (closedGate) this.drawGateBars(top, halfW, halfH);
     if (isTerminal) this.drawTerminal(top, halfW, halfH);
+
+    // House sprite on wall tiles — drawn after the cube geometry so it clips the
+    // grey block; uses 'screen' compositing so the black PNG background drops out.
+    if (kind === 'wall') {
+      this.drawHouseSprite(x, y);
+    }
   }
 
+  /**
+   * Draw the photorealistic house sprite on a wall tile, alternating between
+   * house1 and house2 for visual variety.
+   */
+  private drawHouseSprite(gx: number, gy: number): void {
+    // Alternate houses so a row of walls doesn't look uniform.
+    const src = (gx + gy) % 2 === 0 ? SPRITE.house1 : SPRITE.house2;
+    const img = this.sprites.get(src);
+    if (!img) return; // still loading — fallback cube is already drawn
+
+    const zoom = this.cam.zoom;
+    const tileW = this.iso.tileWidth * zoom;         // e.g. 64 * zoom
+    const halfH = (this.iso.tileHeight / 2) * zoom;  // 16 * zoom
+
+    // Scale: house occupies about 2.8× tile width
+    const spriteW = tileW * 2.8;
+    const ratio = img.naturalHeight / img.naturalWidth;
+    const spriteH = spriteW * ratio;
+
+    // Anchor: the base slab bottom of the house sits at the tile base level.
+    // For these renders the slab bottom is ~90 % down the image.
+    const anchorY = 0.90;
+    const base = this.center(gx, gy, 0);
+    const tileBaseY = base.y + halfH; // bottom of diamond at z=0
+
+    const drawX = base.x - spriteW / 2;
+    const drawY = tileBaseY - spriteH * anchorY;
+
+    // Use 'screen' compositing so black backgrounds disappear on the dark canvas.
+    const prevComposite = this.ctx.globalCompositeOperation;
+    this.ctx.globalCompositeOperation = 'screen';
+    this.ctx.drawImage(img, drawX, drawY, spriteW, spriteH);
+    this.ctx.globalCompositeOperation = prevComposite;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tile decorations
+  // ---------------------------------------------------------------------------
+
   private drawExitMark(top: Vec2, halfW: number, halfH: number): void {
+    // Glowing amber exit beacon.
+    this.ctx.shadowColor = COL.exitGlow;
+    this.ctx.shadowBlur = 12 * this.cam.zoom;
     this.ctx.strokeStyle = COL.exitGlow;
     this.ctx.lineWidth = 2;
-    this.diamondPath(top.x, top.y, halfW * 0.6, halfH * 0.6);
+    this.diamondPath(top.x, top.y, halfW * 0.62, halfH * 0.62);
     this.ctx.stroke();
     this.ctx.fillStyle = COL.exitGlow;
-    this.ctx.font = `bold ${Math.round(halfH * 0.9)}px ui-monospace, monospace`;
+    this.ctx.font = `bold ${Math.round(halfH * 0.95)}px ui-monospace, monospace`;
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     this.ctx.fillText('▲', top.x, top.y - halfH * 0.1);
+    this.ctx.shadowBlur = 0;
   }
 
   private drawOpenGate(top: Vec2, halfW: number, halfH: number): void {
@@ -252,11 +366,21 @@ export class GoRenderer {
   private drawTerminal(top: Vec2, halfW: number, halfH: number): void {
     const w = halfW * 0.5;
     const h = halfH * 1.1;
-    this.ctx.fillStyle = '#12303a';
+    this.ctx.fillStyle = '#0e2430';
     this.ctx.fillRect(top.x - w / 2, top.y - h, w, h);
     this.ctx.fillStyle = COL.terminal;
     this.ctx.fillRect(top.x - w / 2 + 2, top.y - h + 2, w - 4, h * 0.4);
+    // Blinking cursor glow
+    this.ctx.shadowColor = COL.terminal;
+    this.ctx.shadowBlur = 6;
+    this.ctx.fillStyle = COL.terminal;
+    this.ctx.fillRect(top.x - w / 4, top.y - h * 0.45, w * 0.15, h * 0.12);
+    this.ctx.shadowBlur = 0;
   }
+
+  // ---------------------------------------------------------------------------
+  // Character figures
+  // ---------------------------------------------------------------------------
 
   private drawFigure(
     x: number,
@@ -270,57 +394,83 @@ export class GoRenderer {
     const zoom = this.cam.zoom;
     const s = this.center(x, y, 0.35);
     const r = 8 * zoom;
-    const h = 20 * zoom;
+    const h = 22 * zoom;
     const prev = this.ctx.globalAlpha;
     this.ctx.globalAlpha = alpha;
 
-    // Shadow.
-    this.ctx.fillStyle = 'rgba(0,0,0,0.35)';
-    this.blob(s.x, s.y + 2 * zoom, r * 1.1, r * 0.5);
+    // Ground shadow.
+    this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    this.blob(s.x, s.y + 2 * zoom, r * 1.15, r * 0.48);
 
-    // Facing arrow on the ground (points where the figure looks).
+    // Facing direction arrow.
     const v = DIR_VEC[facing];
     const fx = (v.dx - v.dy) * 0.5;
     const fy = (v.dx + v.dy) * 0.5;
     this.ctx.fillStyle = isGuard ? COL.guard : COL.legal;
     this.poly([
-      { x: s.x + fx * r * 2.2, y: s.y + fy * r * 1.1 },
+      { x: s.x + fx * r * 2.4, y: s.y + fy * r * 1.2 },
       { x: s.x + (fx * 1.0 - fy * 0.7) * r, y: s.y + (fy * 1.0 + fx * 0.7) * r * 0.5 },
       { x: s.x + (fx * 1.0 + fy * 0.7) * r, y: s.y + (fy * 1.0 - fx * 0.7) * r * 0.5 },
     ]);
 
-    // Body column + head.
+    // Coat/body.
     this.ctx.fillStyle = dark;
     this.roundedColumn(s.x, s.y, r, h);
     this.ctx.fillStyle = color;
     this.roundedColumn(s.x - r * 0.15, s.y, r * 0.82, h);
-    this.ctx.fillStyle = color;
-    this.blob(s.x, s.y - h, r * 0.6, r * 0.6);
+
+    // Head (slightly skin-toned).
+    const headColor = isGuard ? '#c8a878' : '#d4aa80';
+    this.ctx.fillStyle = headColor;
+    this.blob(s.x, s.y - h, r * 0.62, r * 0.62);
+
+    // Tiny hat silhouette on top of head.
+    const hatColor = isGuard ? '#4a3020' : '#2a3a28';
+    this.ctx.fillStyle = hatColor;
+    this.ctx.fillRect(s.x - r * 0.58, s.y - h - r * 0.68, r * 1.16, r * 0.38);
+    this.ctx.fillRect(s.x - r * 0.32, s.y - h - r * 1.1, r * 0.64, r * 0.45);
 
     this.ctx.globalAlpha = prev;
   }
 
+  // ---------------------------------------------------------------------------
+  // Move markers
+  // ---------------------------------------------------------------------------
+
   private drawLegalMarker(x: number, y: number): void {
-    const halfW = (this.iso.tileWidth / 2) * this.cam.zoom;
-    const halfH = (this.iso.tileHeight / 2) * this.cam.zoom;
+    const zoom = this.cam.zoom;
+    const halfW = (this.iso.tileWidth / 2) * zoom;
+    const halfH = (this.iso.tileHeight / 2) * zoom;
     const c = this.center(x, y, 0.36);
+    // Outer ring.
     this.ctx.strokeStyle = COL.legal;
-    this.ctx.lineWidth = 2;
-    this.diamondPath(c.x, c.y, halfW * 0.5, halfH * 0.5);
+    this.ctx.lineWidth = 1.5;
+    this.diamondPath(c.x, c.y, halfW * 0.52, halfH * 0.52);
     this.ctx.stroke();
+    // Subtle fill.
+    this.ctx.fillStyle = 'rgba(144,216,255,0.08)';
+    this.diamond(c.x, c.y, halfW * 0.52, halfH * 0.52);
   }
 
   private drawHover(x: number, y: number): void {
-    const halfW = (this.iso.tileWidth / 2) * this.cam.zoom;
-    const halfH = (this.iso.tileHeight / 2) * this.cam.zoom;
+    const zoom = this.cam.zoom;
+    const halfW = (this.iso.tileWidth / 2) * zoom;
+    const halfH = (this.iso.tileHeight / 2) * zoom;
     const c = this.center(x, y, 0.36);
-    this.ctx.strokeStyle = '#ffffff';
+    this.ctx.strokeStyle = 'rgba(255,255,255,0.6)';
     this.ctx.lineWidth = 1.5;
     this.diamondPath(c.x, c.y, halfW, halfH);
     this.ctx.stroke();
   }
 
-  // --- primitives ------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Primitives
+  // ---------------------------------------------------------------------------
+
+  private center(x: number, y: number, z: number): Vec2 {
+    const w = gridToScreen(x, y, z, this.iso);
+    return this.cam.worldToScreen(w.x, w.y);
+  }
 
   private poly(points: Vec2[]): void {
     const ctx = this.ctx;
