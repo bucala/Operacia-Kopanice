@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Operácia Kopanice"
+description = "A turn-based, node-graph tactics puzzle game in the vein of Lara Croft GO and Deus Ex GO. Built on a from-scratch isometric TypeScript engine, players move across a snow-bound Kopanice homestead, reading guard sight-lines, executing silent takedowns, hacking terminals, and reaching the exit — with unlimited undo so every level is a solvable puzzle."
+version = "1.0.0"
+id = "artifacts/operacia-kopanice"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22332
+
+[services.development]
+run = "pnpm --filter @workspace/operacia-kopanice run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/operacia-kopanice", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/operacia-kopanice/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22332"
+BASE_PATH = "/"
