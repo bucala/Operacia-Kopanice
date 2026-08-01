@@ -133,6 +133,27 @@ describe('GO puzzle levels', () => {
     expect(grid.decorationBlocksMovement(2, 0)).toBe(true);
     expect(grid.decorationBlocksSight(2, 0)).toBe(true);
   });
+
+  it('aggregates the maximum sight range for each guard type', () => {
+    const level: GoLevel = {
+      name: 'sight aggregation fixture',
+      width: 4,
+      height: 1,
+      cells: ['....'],
+      start: { x: 0, y: 0, facing: 'E' },
+      guards: [
+        { id: 'officer-a', kind: 'sentry', x: 1, y: 0, facing: 'S', sight: 2 },
+        { id: 'officer-b', kind: 'sentry', x: 2, y: 0, facing: 'N', sight: 4 },
+        { id: 'patrol-a', kind: 'patrol', x: 3, y: 0, facing: 'W', sight: 3 },
+      ],
+    };
+    const state = initState(level);
+    const sentries = state.guards.filter((guard) => guard.kind === 'sentry');
+    const patrols = state.guards.filter((guard) => guard.kind === 'patrol');
+
+    expect(Math.max(...sentries.map((guard) => guard.sight))).toBe(4);
+    expect(Math.max(...patrols.map((guard) => guard.sight))).toBe(3);
+  });
 });
 
 function findExit(level: GoLevel): { x: number; y: number } {

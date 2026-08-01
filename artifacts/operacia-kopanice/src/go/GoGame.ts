@@ -30,6 +30,7 @@ export interface GuardTypeCount {
   kind: GuardKind;
   alive: number;
   total: number;
+  maxSight: number;
 }
 
 /** Snapshot the DOM HUD needs each frame. */
@@ -91,6 +92,8 @@ export class GoGame {
 
   /** Two-phase turn animation: player step, then the guards' step. */
   private anim: 'idle' | 'player' | 'guards' = 'idle';
+  private highlightedKind: GuardKind | null = null;
+  private highlightUntil = 0;
 
   private running = false;
   /** When false the board is frozen (a menu/overlay is showing over it). */
@@ -136,6 +139,12 @@ export class GoGame {
   }
   get canUndo(): boolean {
     return this.undoStack.length > 0;
+  }
+
+  highlightGuardKind(kind: GuardKind): void {
+    if (!this.active) return;
+    this.highlightedKind = kind;
+    this.highlightUntil = performance.now() + 1400;
   }
 
   /** Load a level and start playing it. */
@@ -189,6 +198,8 @@ export class GoGame {
     this.undoStack.length = 0;
     this.anim = 'idle';
     this.outcomeReported = false;
+    this.highlightedKind = null;
+    this.highlightUntil = 0;
     this.snapVisuals();
     this.renderer.frameBoard(this.grid);
     this.logLines.length = 0;
@@ -220,6 +231,8 @@ export class GoGame {
     const before = this.state;
     const after = applyPlayerMove(this.grid, before, move);
     if (after.turn === before.turn) return; // refused / no-op
+    this.highlightedKind = null;
+    this.highlightUntil = 0;
 
     this.undoStack.push(cloneState(before));
     this.state = after;
@@ -358,6 +371,18 @@ export class GoGame {
   };
 
   private buildRenderModel() {
+    const now = performance.now();
+    const highlightedGuardIds =
+      this.highlightedKind && now < this.highlightUntil
+        ? new Set(
+            this.state.guards
+              .filter((guard) => guard.alive && guard.kind === this.highlightedKind)
+              .map((guard) => guard.id),
+          )
+        : new Set<string>();
+    if (highlightedGuardIds.size === 0 && now >= this.highlightUntil) {
+      this.highlightedKind = null;
+    }
     const showLegal = this.active && this.anim === 'idle' && this.state.phase === 'await';
     const legal = showLegal
       ? legalMoves(this.grid, this.state)
@@ -373,6 +398,7 @@ export class GoGame {
       state: this.state,
       player: { x: this.pv.x, y: this.pv.y, facing: this.state.player.facing },
       guards: [...this.guardViews.values()],
+      highlightedGuardIds,
       danger: dangerCells(this.grid, this.state),
       legal,
       hover: this.active && this.grid.inBounds(hover.x, hover.y) ? hover : null,
@@ -383,11 +409,12 @@ export class GoGame {
     const guardsAlive = this.state.guards.filter((g) => g.alive).length;
 
     // Aggregate unique guard types with alive/total counts.
-    const typeMap = new Map<GuardKind, { alive: number; total: number }>();
+    const typeMap = new Map<GuardKind, { alive: number; total: number; maxSight: number }>();
     for (const g of this.state.guards) {
-      const entry = typeMap.get(g.kind) ?? { alive: 0, total: 0 };
+      const entry = typeMap.get(g.kind) ?? { alive: 0, total: 0, maxSight: 0 };
       entry.total += 1;
       if (g.alive) entry.alive += 1;
+      entry.maxSight = Math.max(entry.maxSight, g.sight);
       typeMap.set(g.kind, entry);
     }
     // Stable order: sentry first, then patrol.

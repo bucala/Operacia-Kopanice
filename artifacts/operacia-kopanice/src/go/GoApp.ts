@@ -198,7 +198,7 @@ export class GoApp {
     // Add any new cards not yet in the panel.
     for (const gt of types) {
       if (!this.epCards.has(gt.kind)) {
-        const card = buildEpCard(gt.kind);
+        const card = buildEpCard(gt.kind, () => this.game.highlightGuardKind(gt.kind));
         this.epCards.set(gt.kind, card);
         this.enemyPanel.appendChild(card);
       }
@@ -210,6 +210,8 @@ export class GoApp {
       if (badge) {
         badge.textContent = `${gt.alive}/${gt.total}`;
       }
+      const sight = card.querySelector<HTMLElement>('.ep-sight');
+      if (sight) sight.textContent = `◉ ${gt.maxSight} polí`;
     }
     // Remove cards for kinds no longer in the level.
     for (const [kind, card] of this.epCards) {
@@ -367,7 +369,7 @@ const GUARD_KIND_META: Record<string, { label: string; img: string }> = {
 };
 
 /** Build a single portrait card for the enemy panel. */
-function buildEpCard(kind: string): HTMLElement {
+function buildEpCard(kind: string, onClick: () => void): HTMLElement {
   const meta = GUARD_KIND_META[kind] ?? { label: kind.toUpperCase(), img: '' };
 
   const portrait = el('div', { class: 'ep-portrait' });
@@ -386,10 +388,16 @@ function buildEpCard(kind: string): HTMLElement {
   }
 
   const badge = el('span', { class: 'ep-count', text: '' });
+  const sight = el('span', { class: 'ep-sight', text: '' });
   const label = el('div', { class: 'ep-label' }, [
     el('span', { text: meta.label }),
+    sight,
     badge,
   ]);
 
-  return el('div', { class: 'ep-card' }, [portrait, label]);
+  return el('button', {
+    class: 'ep-card',
+    onclick: onClick,
+    attrs: { type: 'button', title: 'Zvýrazniť stráže tohto typu na mape' },
+  }, [portrait, label]);
 }

@@ -17,6 +17,8 @@ export interface RenderModel {
   danger: Set<string>;
   /** Legal step-target cells to highlight for the player. */
   legal: Vec2[];
+  /** Guard ids highlighted from the enemy panel. */
+  highlightedGuardIds: Set<string>;
   hover: Vec2 | null;
 }
 
@@ -186,7 +188,17 @@ export class GoRenderer {
       items.push({
         depth: depthKey(g.x, g.y, 0.6),
         draw: () =>
-          this.drawFigure(g.x, g.y, g.facing, COL.guard, COL.guardDark, g.fade, true, g.variant),
+          this.drawFigure(
+            g.x,
+            g.y,
+            g.facing,
+            COL.guard,
+            COL.guardDark,
+            g.fade,
+            true,
+            g.variant,
+            m.highlightedGuardIds.has(g.id),
+          ),
       });
     }
 
@@ -512,6 +524,7 @@ export class GoRenderer {
     alpha: number,
     isGuard = false,
     variant?: GuardVariant,
+    highlighted = false,
   ): void {
     const zoom = this.cam.zoom;
     const tileW = this.iso.tileWidth * zoom;
@@ -521,6 +534,17 @@ export class GoRenderer {
     const r = 8 * zoom;
     const prev = this.ctx.globalAlpha;
     this.ctx.globalAlpha = alpha;
+
+    if (highlighted) {
+      this.ctx.save();
+      this.ctx.shadowColor = '#e7cf91';
+      this.ctx.shadowBlur = 16 * zoom;
+      this.ctx.strokeStyle = '#f4dfaa';
+      this.ctx.lineWidth = Math.max(2, 2.5 * zoom);
+      this.diamondPath(base.x, base.y + halfH * 0.18, tileW * 0.54, halfH * 0.34);
+      this.ctx.stroke();
+      this.ctx.restore();
+    }
 
     // Ground shadow.
     this.ctx.fillStyle = 'rgba(0,0,0,0.45)';

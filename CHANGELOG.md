@@ -6,6 +6,8 @@
 
 - Rebuilt the menu and in-mission interface around the dark tactical, brass-framed Operácia Kopanice visual system.
 - Added a reusable geometric game logo and a matching browser icon.
+- Connected enemy portrait cards to temporary map highlights for live guards and added each type's maximum sight range to the card.
+- Reworked the enemy panel as an interactive, brass-accented responsive strip that remains usable on narrow screens.
 - Reworked the Operácia Kopanice GO board toward a snowy village composition with larger isometric cells and compact single-cell character sprites.
 - Added visual terrain distinctions for snow, roads, planks, and mud.
 - Added declarative village decorations for houses, trees, crates, and fences across the existing missions.

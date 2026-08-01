@@ -27,3 +27,5 @@ The active GO board uses declarative terrain and decorative objects. Snow, roads
 ## Visual shell
 
 The game uses a shared dark tactical interface: brass framing, geometric linework, a reusable Operácia Kopanice mark, and consistent level, HUD, enemy, and control panels. The browser icon is supplied by `public/favicon.svg`, while the full lockup lives in `public/brand/operacia-kopanice-mark.svg`.
+
+Enemy portrait cards are interactive during a mission: selecting a card briefly rings live guards of that type on the board, and each card shows the maximum sight range in cells for that type. The strip collapses into a compact horizontal mobile panel so it does not compete with the top HUD.
