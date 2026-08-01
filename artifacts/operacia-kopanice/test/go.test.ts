@@ -243,6 +243,27 @@ describe('GO puzzle levels', () => {
     expect(state.phase).toBe('lost');
     expect(state.outcome).toBe('spotted');
   });
+
+  it("does not let one officer's edge hide another officer's inner beam", () => {
+    const level: GoLevel = {
+      name: 'overlapping officer sight fixture',
+      width: 6,
+      height: 1,
+      cells: ['......'],
+      start: { x: 1, y: 0, facing: 'E' },
+      guards: [
+        { id: 'near-officer', kind: 'sentry', x: 4, y: 0, facing: 'W', sight: 2 },
+        { id: 'far-officer', kind: 'sentry', x: 5, y: 0, facing: 'W', sight: 4 },
+      ],
+    };
+    const grid = new GoGrid(level);
+    const state = applyPlayerMove(grid, initState(level), { kind: 'step', dir: 'E' });
+
+    // (2,0) is the near officer's outer edge, but it is an inner cell for
+    // the far officer and must remain lethal.
+    expect(state.phase).toBe('lost');
+    expect(state.outcome).toBe('spotted');
+  });
 });
 
 function findExit(level: GoLevel): { x: number; y: number } {

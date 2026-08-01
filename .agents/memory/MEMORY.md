@@ -1,2 +1,3 @@
 - [Village decoration collision](village-decoration-collision.md) — logical occupancy must be explicit so visual props cannot hide or contradict playable GO nodes.
 - [Canvas sprite compositing](canvas-sprite-compositing.md) — use source-over with transparent assets; screen blending hides dark backgrounds but creates pale ghosting on photographed props.
+- [Officer sight-edge alerts](officer-sight-edge-alerts.md) — edge immunity is scoped per officer; overlapping beams must keep another officer’s inner cells lethal.

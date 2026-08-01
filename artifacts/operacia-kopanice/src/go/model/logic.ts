@@ -189,12 +189,13 @@ export function applyOfficerAlerts(grid: GoGrid, prev: GoState, beforeMove?: GoS
 /** An officer's edge cell is a warning, but every other visible beam cell is lethal. */
 function playerIsInLethalSight(grid: GoGrid, state: GoState): boolean {
   const playerKey = key(state.player.x, state.player.y);
-  const officerEdges = officerAlertCells(grid, state);
   return state.guards.some(
-    (guard) =>
-      guard.alive &&
-      guardSightCells(grid, state, guard).includes(playerKey) &&
-      !(guard.kind === 'sentry' && officerEdges.has(playerKey)),
+    (guard) => {
+      if (!guard.alive || !guardSightCells(grid, state, guard).includes(playerKey)) return false;
+      if (guard.kind !== 'sentry') return true;
+      const sight = guardSightCells(grid, state, guard);
+      return sight.at(-1) !== playerKey;
+    },
   );
 }
 
