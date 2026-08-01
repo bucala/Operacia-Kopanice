@@ -357,6 +357,7 @@ export class GoApp {
 
   private renderOverlay(panel: HTMLElement): void {
     this.overlay.replaceChildren(panel);
+    this.overlay.classList.toggle('menu-overlay', panel.classList.contains('menu'));
     this.overlay.classList.remove('hidden');
   }
 

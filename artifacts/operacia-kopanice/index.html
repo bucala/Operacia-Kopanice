@@ -119,6 +119,13 @@
          backdrop-filter: blur(8px);
         z-index: 10;
       }
+      .overlay.menu-overlay {
+        overflow: auto;
+        background:
+          radial-gradient(ellipse at 50% 0%, rgba(211, 178, 100, .16), transparent 28%),
+          radial-gradient(ellipse at 50% 100%, rgba(96, 62, 27, .18), transparent 50%),
+          linear-gradient(180deg, #080909 0%, #171818 48%, #090a0b 100%);
+      }
       .panel {
         width: 100%;
          max-width: 590px;
@@ -135,17 +142,37 @@
       }
 
       /* Menu */
-       .menu { position: relative; display: flex; flex-direction: column; gap: 13px; overflow: hidden; }
+       .menu {
+         position: relative;
+         display: flex;
+         flex-direction: column;
+         gap: 13px;
+         overflow: hidden;
+         background:
+           radial-gradient(ellipse at 50% 0%, rgba(223, 192, 117, .08), transparent 27%),
+           linear-gradient(180deg, #101112 0%, #1b1a18 31%, #171817 55%, #0b0c0d 100%);
+         box-shadow:
+           0 24px 60px rgba(0, 0, 0, .72),
+           inset 0 1px rgba(255, 255, 255, .08),
+           inset 0 0 0 3px #121416;
+       }
        .menu::before { content: ""; position: absolute; inset: 0 50%; width: 1px; background: linear-gradient(var(--brass), rgba(199,170,106,.08) 18%, rgba(199,170,106,.08) 82%, var(--brass)); opacity: .72; pointer-events: none; }
        .menu > * { position: relative; z-index: 1; }
-       .brand { margin: 0 auto 2px; width: min(100%, 390px); }
+       .brand {
+         margin: -16px -14px 2px;
+         padding: 0 14px 15px;
+         width: calc(100% + 28px);
+         background: linear-gradient(180deg, rgba(4, 5, 6, .04), rgba(4, 5, 6, .72));
+         border-bottom: 1px solid rgba(224, 202, 145, .28);
+       }
        .brand-mark {
          display: block;
          width: 100%;
-         max-height: 190px;
+         max-height: 230px;
          object-fit: contain;
          object-position: center;
-         border-radius: 3px;
+         border-radius: 2px;
+         box-shadow: 0 12px 28px rgba(0, 0, 0, .3);
        }
        .title { margin: 0; font-size: 30px; letter-spacing: 3px; font-weight: 800; }
        .subtitle { color: #d4cec0; font-size: 14px; margin-top: 6px; text-shadow: 0 1px #000; }
