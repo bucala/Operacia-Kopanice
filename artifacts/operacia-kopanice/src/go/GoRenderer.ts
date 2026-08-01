@@ -82,6 +82,10 @@ const SPRITE = {
   house1: `${_base}/assets/sprites/house1.png`,
   house2: `${_base}/assets/sprites/house2.png`,
   trees: `${_base}/assets/sprites/trees.png`,
+  /** Odbojár / Resister — the player character. */
+  playerChar: `${_base}/assets/sprites/player.png`,
+  /** German Officer — the enemy guard. */
+  guardChar: `${_base}/assets/sprites/guard.png`,
 };
 
 /**
@@ -392,17 +396,19 @@ export class GoRenderer {
     isGuard = false,
   ): void {
     const zoom = this.cam.zoom;
+    const tileW = this.iso.tileWidth * zoom;
+    const halfH = (this.iso.tileHeight / 2) * zoom;
+    const base = this.center(x, y, 0);
     const s = this.center(x, y, 0.35);
     const r = 8 * zoom;
-    const h = 22 * zoom;
     const prev = this.ctx.globalAlpha;
     this.ctx.globalAlpha = alpha;
 
     // Ground shadow.
-    this.ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    this.blob(s.x, s.y + 2 * zoom, r * 1.15, r * 0.48);
+    this.ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    this.blob(base.x, base.y + halfH * 0.5, tileW * 0.48, tileW * 0.18);
 
-    // Facing direction arrow.
+    // Facing direction arrow — always drawn under the portrait for legibility.
     const v = DIR_VEC[facing];
     const fx = (v.dx - v.dy) * 0.5;
     const fy = (v.dx + v.dy) * 0.5;
@@ -413,22 +419,34 @@ export class GoRenderer {
       { x: s.x + (fx * 1.0 + fy * 0.7) * r, y: s.y + (fy * 1.0 - fx * 0.7) * r * 0.5 },
     ]);
 
-    // Coat/body.
-    this.ctx.fillStyle = dark;
-    this.roundedColumn(s.x, s.y, r, h);
-    this.ctx.fillStyle = color;
-    this.roundedColumn(s.x - r * 0.15, s.y, r * 0.82, h);
+    // --- Portrait sprite (photorealistic) ---------------------------------
+    const spriteSrc = isGuard ? SPRITE.guardChar : SPRITE.playerChar;
+    const img = this.sprites.get(spriteSrc);
 
-    // Head (slightly skin-toned).
-    const headColor = isGuard ? '#c8a878' : '#d4aa80';
-    this.ctx.fillStyle = headColor;
-    this.blob(s.x, s.y - h, r * 0.62, r * 0.62);
-
-    // Tiny hat silhouette on top of head.
-    const hatColor = isGuard ? '#4a3020' : '#2a3a28';
-    this.ctx.fillStyle = hatColor;
-    this.ctx.fillRect(s.x - r * 0.58, s.y - h - r * 0.68, r * 1.16, r * 0.38);
-    this.ctx.fillRect(s.x - r * 0.32, s.y - h - r * 1.1, r * 0.64, r * 0.45);
+    if (img) {
+      // Scale so the character occupies ~2.2× tile width.
+      // The sprite image includes the stone base; anchor its bottom-centre to
+      // the bottom edge of the tile's floor diamond.
+      const spriteW = tileW * 2.2;
+      const spriteH = spriteW * (img.naturalHeight / img.naturalWidth);
+      const drawX = base.x - spriteW / 2;
+      const drawY = base.y + halfH - spriteH; // bottom of sprite == tile base bottom
+      this.ctx.drawImage(img, drawX, drawY, spriteW, spriteH);
+    } else {
+      // --- Procedural fallback (used until sprites finish loading) ----------
+      const h = 22 * zoom;
+      this.ctx.fillStyle = dark;
+      this.roundedColumn(s.x, s.y, r, h);
+      this.ctx.fillStyle = color;
+      this.roundedColumn(s.x - r * 0.15, s.y, r * 0.82, h);
+      const headColor = isGuard ? '#c8a878' : '#d4aa80';
+      this.ctx.fillStyle = headColor;
+      this.blob(s.x, s.y - h, r * 0.62, r * 0.62);
+      const hatColor = isGuard ? '#4a3020' : '#2a3a28';
+      this.ctx.fillStyle = hatColor;
+      this.ctx.fillRect(s.x - r * 0.58, s.y - h - r * 0.68, r * 1.16, r * 0.38);
+      this.ctx.fillRect(s.x - r * 0.32, s.y - h - r * 1.1, r * 0.64, r * 0.45);
+    }
 
     this.ctx.globalAlpha = prev;
   }
