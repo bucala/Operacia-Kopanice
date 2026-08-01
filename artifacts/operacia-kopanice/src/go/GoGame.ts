@@ -16,6 +16,7 @@ import {
   DIR_VEC,
   type GoLevel,
   type GoState,
+  type GuardKind,
   type Move,
   type Outcome,
   type Phase,
@@ -23,6 +24,13 @@ import {
 import { LEVELS } from './levels';
 import { GoRenderer, type GuardView } from './GoRenderer';
 import { SpriteCache } from './SpriteCache';
+
+/** Per-type guard count shown in the enemy panel. */
+export interface GuardTypeCount {
+  kind: GuardKind;
+  alive: number;
+  total: number;
+}
 
 /** Snapshot the DOM HUD needs each frame. */
 export interface GoHudModel {
@@ -35,6 +43,8 @@ export interface GoHudModel {
   outcome: Outcome;
   guardsAlive: number;
   guardsTotal: number;
+  /** Unique guard types present in the level, with live/total counts. */
+  guardTypes: GuardTypeCount[];
   canUndo: boolean;
   isLast: boolean;
   log: string[];
@@ -370,6 +380,21 @@ export class GoGame {
 
   private buildHud(): GoHudModel {
     const guardsAlive = this.state.guards.filter((g) => g.alive).length;
+
+    // Aggregate unique guard types with alive/total counts.
+    const typeMap = new Map<GuardKind, { alive: number; total: number }>();
+    for (const g of this.state.guards) {
+      const entry = typeMap.get(g.kind) ?? { alive: 0, total: 0 };
+      entry.total += 1;
+      if (g.alive) entry.alive += 1;
+      typeMap.set(g.kind, entry);
+    }
+    // Stable order: sentry first, then patrol.
+    const kindOrder: GuardKind[] = ['sentry', 'patrol'];
+    const guardTypes = kindOrder
+      .filter((k) => typeMap.has(k))
+      .map((k) => ({ kind: k, ...typeMap.get(k)! }));
+
     return {
       levelName: this.level.name,
       levelIndex: this.levelIndex,
@@ -380,6 +405,7 @@ export class GoGame {
       outcome: this.state.outcome,
       guardsAlive,
       guardsTotal: this.state.guards.length,
+      guardTypes,
       canUndo: this.undoStack.length > 0,
       isLast: this.isLast,
       log: [...this.logLines],

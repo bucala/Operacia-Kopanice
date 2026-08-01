@@ -177,6 +177,91 @@
         background: #1c232e; border: 1px solid #36404d; border-radius: 4px;
         padding: 1px 6px; font-family: ui-monospace, monospace;
       }
+
+      /* Enemy type panel — top-left portrait strip */
+      .enemy-panel {
+        position: absolute;
+        top: 66px; /* sits just below the topbar */
+        left: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      .ep-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 80px;
+        background: rgba(12, 17, 24, 0.88);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+        backdrop-filter: blur(6px);
+        transition: opacity 0.3s, filter 0.3s;
+      }
+
+      /* Neutralised guard: greyed out */
+      .ep-card.ep-dead {
+        opacity: 0.45;
+        filter: grayscale(1);
+      }
+
+      .ep-portrait {
+        width: 80px;
+        height: 88px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0a0f18;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .ep-portrait img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+        display: block;
+        user-select: none;
+      }
+
+      .ep-silhouette {
+        width: 48px;
+        height: 56px;
+        color: var(--muted);
+        opacity: 0.6;
+      }
+
+      .ep-label {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 4px 4px 5px;
+        gap: 1px;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        text-transform: uppercase;
+        line-height: 1.2;
+      }
+
+      /* Small alive/total count below the label */
+      .ep-count {
+        font-size: 8px;
+        font-weight: 400;
+        color: var(--red);
+        letter-spacing: 0;
+      }
+
+      .ep-card:not(.ep-dead) .ep-count {
+        color: var(--green);
+      }
     </style>
   </head>
   <body>

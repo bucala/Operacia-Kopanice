@@ -1,4 +1,4 @@
-import { GoGame, type GoHudModel } from './GoGame';
+import { GoGame, type GoHudModel, type GuardTypeCount } from './GoGame';
 import { LEVELS } from './levels';
 import {
   bestTurns,
@@ -49,6 +49,7 @@ export class GoApp {
   // Long-lived DOM the HUD updates each frame.
   private readonly topbar: HTMLElement;
   private readonly hintbar: HTMLElement;
+  private readonly enemyPanel: HTMLElement;
   private readonly overlay: HTMLElement;
   private readonly elLevel = el('span', { class: 'tb-strong' });
   private readonly elTurn = el('span');
@@ -56,6 +57,8 @@ export class GoApp {
   private readonly elIntro = el('div', { class: 'hint-intro' });
   private readonly undoBtn: HTMLButtonElement;
   private readonly restartBtn: HTMLButtonElement;
+  /** Live card elements keyed by guard kind, updated each HUD frame. */
+  private readonly epCards = new Map<string, HTMLElement>();
 
   constructor(canvas: HTMLCanvasElement, root: HTMLElement) {
     this.game = new GoGame(canvas, {
@@ -75,9 +78,10 @@ export class GoApp {
     });
     this.topbar = this.buildTopbar();
     this.hintbar = this.buildHintbar();
+    this.enemyPanel = this.buildEnemyPanel();
     this.overlay = el('div', { class: 'overlay hidden' });
 
-    root.append(this.topbar, this.hintbar, this.overlay);
+    root.append(this.topbar, this.hintbar, this.enemyPanel, this.overlay);
   }
 
   start(): void {
@@ -164,6 +168,7 @@ export class GoApp {
     this.elGuards.textContent = `Stráže ${m.guardsAlive}/${m.guardsTotal}`;
     this.elIntro.textContent = m.intro;
     this.undoBtn.disabled = !m.canUndo;
+    this.updateEnemyPanel(m.guardTypes);
   }
 
   // --- DOM builders ----------------------------------------------------------
@@ -182,6 +187,37 @@ export class GoApp {
       el('button', { class: 'btn', text: '☰ Menu', onclick: () => this.showMenu() }),
     ]);
     return el('header', { class: 'topbar hidden' }, [info, actions]);
+  }
+
+  private buildEnemyPanel(): HTMLElement {
+    // The panel is initially empty; cards are added/updated per-level via updateEnemyPanel().
+    return el('div', { class: 'enemy-panel hidden' });
+  }
+
+  private updateEnemyPanel(types: GuardTypeCount[]): void {
+    // Add any new cards not yet in the panel.
+    for (const gt of types) {
+      if (!this.epCards.has(gt.kind)) {
+        const card = buildEpCard(gt.kind);
+        this.epCards.set(gt.kind, card);
+        this.enemyPanel.appendChild(card);
+      }
+      const card = this.epCards.get(gt.kind)!;
+      const neutralised = gt.alive === 0;
+      card.classList.toggle('ep-dead', neutralised);
+      // Update the small count badge.
+      const badge = card.querySelector<HTMLElement>('.ep-count');
+      if (badge) {
+        badge.textContent = `${gt.alive}/${gt.total}`;
+      }
+    }
+    // Remove cards for kinds no longer in the level.
+    for (const [kind, card] of this.epCards) {
+      if (!types.find((t) => t.kind === kind)) {
+        card.remove();
+        this.epCards.delete(kind);
+      }
+    }
   }
 
   private buildHintbar(): HTMLElement {
@@ -299,6 +335,12 @@ export class GoApp {
   private setChrome(playing: boolean): void {
     this.topbar.classList.toggle('hidden', !playing);
     this.hintbar.classList.toggle('hidden', !playing);
+    this.enemyPanel.classList.toggle('hidden', !playing);
+    if (!playing) {
+      // Clear cards so next level starts fresh.
+      this.epCards.clear();
+      this.enemyPanel.replaceChildren();
+    }
   }
 }
 
@@ -307,4 +349,38 @@ function legendItem(swatchClass: string, label: string): HTMLElement {
     el('span', { class: `swatch ${swatchClass}` }),
     el('span', { text: label }),
   ]);
+}
+
+/** Labels and portrait image paths per guard kind. */
+const GUARD_KIND_META: Record<string, { label: string; img: string }> = {
+  sentry: { label: 'DÔSTOJNÍK', img: '/assets/sprites/guard-officer.png' },
+  patrol: { label: 'PEŠIAK',    img: '/assets/sprites/guard-soldier.png' },
+};
+
+/** Build a single portrait card for the enemy panel. */
+function buildEpCard(kind: string): HTMLElement {
+  const meta = GUARD_KIND_META[kind] ?? { label: kind.toUpperCase(), img: '' };
+
+  const portrait = el('div', { class: 'ep-portrait' });
+  if (meta.img) {
+    const img = document.createElement('img');
+    img.src = meta.img;
+    img.alt = meta.label;
+    img.draggable = false;
+    portrait.appendChild(img);
+  } else {
+    // Fallback silhouette when no image is available.
+    portrait.innerHTML = `<svg viewBox="0 0 60 70" xmlns="http://www.w3.org/2000/svg" class="ep-silhouette">
+      <ellipse cx="30" cy="16" rx="12" ry="13" fill="currentColor"/>
+      <path d="M10 70 Q10 40 30 38 Q50 40 50 70Z" fill="currentColor"/>
+    </svg>`;
+  }
+
+  const badge = el('span', { class: 'ep-count', text: '' });
+  const label = el('div', { class: 'ep-label' }, [
+    el('span', { text: meta.label }),
+    badge,
+  ]);
+
+  return el('div', { class: 'ep-card' }, [portrait, label]);
 }
