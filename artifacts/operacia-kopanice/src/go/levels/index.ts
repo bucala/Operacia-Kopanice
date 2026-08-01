@@ -14,7 +14,7 @@ import type { GoLevel } from '../model/types';
 /** 1 — sight & the exit. A lone static sentry; simply route around its beam. */
 const zacvik: GoLevel = {
   name: 'Zácvik',
-  intro: 'Vyhni sa červenému zornému lúču a dostaň sa k východu.',
+  intro: 'Vyhni sa červenému zornému lúču. Generátor odvráti pozornosť na jeden ťah.',
   width: 8,
   height: 6,
   cells: [
@@ -31,6 +31,9 @@ const zacvik: GoLevel = {
     { kind: 'house1', x: 0, y: 0, scale: 1.8 },
     { kind: 'house2', x: 7, y: 4, scale: 1.7 },
     { kind: 'fence', x: 1, y: 4 },
+  ],
+  distractions: [
+    { id: 'generator-zacvik', kind: 'generator', x: 2, y: 4, range: 2, direction: 'S' },
   ],
 };
 
@@ -83,6 +86,9 @@ const hliadka: GoLevel = {
     { kind: 'house2', x: 6, y: 0, scale: 1.7 },
     { kind: 'house1', x: 8, y: 4, scale: 1.55 },
     { kind: 'crate', x: 6, y: 5 },
+  ],
+  distractions: [
+    { id: 'generator1', kind: 'generator', x: 7, y: 5, range: 3, direction: 'N' },
   ],
 };
 

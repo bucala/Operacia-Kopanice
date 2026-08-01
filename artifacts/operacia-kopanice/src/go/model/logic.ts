@@ -21,6 +21,7 @@ import {
   DIR_VEC,
   DIRS,
   dirOf,
+  type DistractionState,
   type GateState,
   type GoLevel,
   type GoState,
@@ -66,12 +67,17 @@ export function initState(level: GoLevel): GoState {
 
   const gates: GateState[] = (level.gates ?? []).map((g) => ({ ...g }));
   const terminals = (level.terminals ?? []).map((t) => ({ ...t }));
+  const distractions: DistractionState[] = (level.distractions ?? []).map((d) => ({
+    ...d,
+    used: false,
+  }));
 
   return {
     player: { x: level.start.x, y: level.start.y, facing: level.start.facing },
     guards,
     gates,
     terminals,
+    distractions,
     phase: 'await',
     outcome: null,
     turn: 0,
@@ -82,6 +88,19 @@ export function initState(level: GoLevel): GoState {
 
 function gateAt(state: GoState, x: number, y: number): GateState | undefined {
   return state.gates.find((g) => g.x === x && g.y === y);
+}
+
+function distractionAt(state: GoState, x: number, y: number): DistractionState | undefined {
+  return state.distractions.find((d) => d.x === x && d.y === y);
+}
+
+export function availableDistractionAt(
+  state: GoState,
+  x: number,
+  y: number,
+): DistractionState | undefined {
+  const distraction = distractionAt(state, x, y);
+  return distraction && !distraction.used ? distraction : undefined;
 }
 
 /** Can something stand on / move through this cell right now? */
@@ -212,6 +231,8 @@ export function isTakedown(guard: GuardState, moveDir: Dir): boolean {
 export function legalMoves(grid: GoGrid, state: GoState): Move[] {
   if (state.phase !== 'await') return [];
   const moves: Move[] = [{ kind: 'wait' }];
+  const distraction = availableDistractionAt(state, state.player.x, state.player.y);
+  if (distraction) moves.push({ kind: 'activateDistraction', id: distraction.id });
   for (const dir of DIRS) {
     const { dx, dy } = DIR_VEC[dir];
     const tx = state.player.x + dx;
@@ -234,6 +255,31 @@ export function applyPlayerMove(grid: GoGrid, prev: GoState, move: Move): GoStat
   const state = cloneState(prev);
   if (state.phase !== 'await') return state;
   state.turn += 1;
+
+  if (move.kind === 'activateDistraction') {
+    const distraction = state.distractions.find(
+      (candidate) =>
+        candidate.id === move.id &&
+        !candidate.used &&
+        candidate.x === state.player.x &&
+        candidate.y === state.player.y,
+    );
+    if (!distraction) {
+      state.turn -= 1;
+      return state;
+    }
+    distraction.used = true;
+    for (const guard of state.guards) {
+      if (
+        guard.alive &&
+        Math.abs(guard.x - distraction.x) + Math.abs(guard.y - distraction.y) <= distraction.range
+      ) {
+        guard.distractionDirection = distraction.direction;
+        guard.distractionTurn = state.turn;
+        guard.facing = distraction.direction;
+      }
+    }
+  }
 
   if (move.kind === 'step') {
     const { dx, dy } = DIR_VEC[move.dir];
@@ -320,6 +366,11 @@ export function advanceGuards(grid: GoGrid, prev: GoState): GoState {
     g.y = ny;
     g.routeIndex = next;
   }
+  for (const g of state.guards) {
+    if (g.alive && g.distractionTurn === state.turn && g.distractionDirection) {
+      g.facing = g.distractionDirection;
+    }
+  }
   return state;
 }
 
@@ -337,6 +388,12 @@ export function resolve(grid: GoGrid, prev: GoState): GoState {
   if (playerIsInLethalSight(grid, state)) {
     state.phase = 'lost';
     state.outcome = 'spotted';
+  }
+  for (const guard of state.guards) {
+    if (guard.distractionTurn === state.turn) {
+      delete guard.distractionTurn;
+      delete guard.distractionDirection;
+    }
   }
   return state;
 }

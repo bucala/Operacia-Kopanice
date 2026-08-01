@@ -34,4 +34,6 @@ Undo stores a complete turn-boundary snapshot, including player position, guard 
 
 Officers (the existing sentry slot) can now detect the player on the outermost cell of their sight beam and alert nearby infantry (the existing patrol slot) within two Manhattan cells. Alerted infantry reverses its deterministic patrol direction, shows an amber warning marker on the board, and marks its portrait card as on alert; the normal inner sight cells remain lethal.
 
+Distractions are authored per level as walkable-cell objects. The generator is activated with `E` or by clicking it while standing on its cell, consumes exactly one turn, redirects every living guard within its configured Manhattan range to its configured direction for that response, and then becomes visibly spent. Its state is included in undo/reset snapshots.
+
 Branding uses the supplied logo artwork at `public/brand/operacia-kopanice-logo.png`. The same artwork is composed into a square `public/icon.png` for the browser favicon, Apple touch icon, and installable application icon; `public/manifest.webmanifest` exposes it to supported installs.

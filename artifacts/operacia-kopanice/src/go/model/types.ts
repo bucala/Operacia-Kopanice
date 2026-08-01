@@ -121,6 +121,20 @@ export interface GateSpec {
   open: boolean;
 }
 
+export type DistractionKind = 'generator';
+
+/** An interactive object that redirects nearby guards for one response turn. */
+export interface DistractionSpec {
+  id: string;
+  kind: DistractionKind;
+  x: number;
+  y: number;
+  /** Manhattan effect radius, including guards on the object's cell. */
+  range: number;
+  /** Direction guards face while responding to this distraction. */
+  direction: Dir;
+}
+
 /** A fully hand-authored puzzle level. */
 export interface GoLevel {
   name: string;
@@ -140,6 +154,7 @@ export interface GoLevel {
   guards: GuardSpec[];
   terminals?: TerminalSpec[];
   gates?: GateSpec[];
+  distractions?: DistractionSpec[];
 }
 
 // --- Runtime state (snapshotted for undo) ------------------------------------
@@ -162,6 +177,10 @@ export interface GuardState {
   alive: boolean;
   /** Officer alert state; alerted infantry reverses its prescribed route. */
   alerted: boolean;
+  /** Turn on which a distraction temporarily overrides this guard's facing. */
+  distractionTurn?: number;
+  /** Direction imposed by the currently resolving distraction turn. */
+  distractionDirection?: Dir;
   /** Visual sprite variant carried from GuardSpec. */
   variant?: GuardVariant;
 }
@@ -180,6 +199,10 @@ export interface TerminalState {
   gate: string;
 }
 
+export interface DistractionState extends DistractionSpec {
+  used: boolean;
+}
+
 export type Phase = 'await' | 'won' | 'lost';
 
 /** Why the mission ended, for the HUD. */
@@ -191,6 +214,7 @@ export interface GoState {
   guards: GuardState[];
   gates: GateState[];
   terminals: TerminalState[];
+  distractions: DistractionState[];
   phase: Phase;
   outcome: Outcome;
   turn: number;
@@ -199,4 +223,5 @@ export interface GoState {
 /** A single action the player can take on their turn. */
 export type Move =
   | { kind: 'step'; dir: Dir }
-  | { kind: 'wait' };
+  | { kind: 'wait' }
+  | { kind: 'activateDistraction'; id: string };

@@ -257,6 +257,7 @@ export class GoApp {
       legendItem('sw-danger', 'smrteľný lúč'),
       legendItem('sw-move', 'možný krok'),
       legendItem('sw-take', 'zozadu = tichá likvidácia'),
+      legendItem('sw-distraction', 'E = generátor'),
     ]);
     return el('footer', { class: 'hintbar hidden' }, [this.elIntro, legend]);
   }
@@ -280,7 +281,7 @@ export class GoApp {
       el('div', { class: 'level-grid' }, cards),
       el('div', {
         class: 'menu-foot',
-        text: 'Klik/šípky = krok · medzerník = čakaj · U = späť · R = znova · Esc = menu',
+        text: 'Klik/šípky = krok · E = generátor · medzerník = čakaj · U = späť · R = znova · Esc = menu',
       }),
     ]);
   }

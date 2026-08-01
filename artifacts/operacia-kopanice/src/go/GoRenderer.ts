@@ -3,7 +3,15 @@ import { depthKey, gridToScreen, type IsoConfig } from '@/core/math/iso';
 import type { Vec2 } from '@/core/math/Vec2';
 import { GoGrid } from './model/grid';
 import { key } from './model/logic';
-import { DIR_VEC, type CellKind, type DecorationSpec, type Dir, type GoState, type GuardVariant } from './model/types';
+import {
+  DIR_VEC,
+  type CellKind,
+  type DecorationSpec,
+  type Dir,
+  type DistractionState,
+  type GoState,
+  type GuardVariant,
+} from './model/types';
 import { SpriteCache } from './SpriteCache';
 
 /** Everything the renderer needs for one frame, assembled by {@link GoGame}. */
@@ -164,10 +172,22 @@ export class GoRenderer {
         if (kind === 'void') continue;
         const gate = m.state.gates.find((g) => g.x === x && g.y === y);
         const terminal = m.state.terminals.find((t) => t.x === x && t.y === y);
+        const distraction = m.state.distractions.find((d) => d.x === x && d.y === y);
         const lit = m.danger.has(key(x, y));
         items.push({
           depth: depthKey(x, y, 0),
-          draw: () => this.drawCell(x, y, kind, gate?.open, !!gate, !!terminal, lit),
+          draw: () =>
+            this.drawCell(
+              x,
+              y,
+              kind,
+              gate?.open,
+              !!gate,
+              !!terminal,
+              distraction,
+              lit,
+              x === m.state.player.x && y === m.state.player.y,
+            ),
         });
       }
     }
@@ -250,7 +270,9 @@ export class GoRenderer {
     gateOpen: boolean | undefined,
     isGate: boolean,
     isTerminal: boolean,
+    distraction: DistractionState | undefined,
     lit: boolean,
+    playerOnCell: boolean,
   ): void {
     const zoom = this.cam.zoom;
     const halfW = (this.iso.tileWidth / 2) * zoom;
@@ -338,6 +360,7 @@ export class GoRenderer {
     if (isGate && gateOpen) this.drawOpenGate(top, halfW, halfH);
     if (closedGate) this.drawGateBars(top, halfW, halfH);
     if (isTerminal) this.drawTerminal(top, halfW, halfH);
+    if (distraction) this.drawGenerator(top, halfW, halfH, distraction, playerOnCell);
 
     // House sprite on wall tiles — drawn after the cube geometry so its
     // transparent pixels reveal the grey block beneath it.
@@ -512,6 +535,53 @@ export class GoRenderer {
     this.ctx.fillStyle = COL.terminal;
     this.ctx.fillRect(top.x - w / 4, top.y - h * 0.45, w * 0.15, h * 0.12);
     this.ctx.shadowBlur = 0;
+  }
+
+  private drawGenerator(
+    top: Vec2,
+    halfW: number,
+    halfH: number,
+    distraction: DistractionState,
+    playerOnCell: boolean,
+  ): void {
+    const active = !distraction.used;
+    const color = active ? '#d5a54b' : '#3d464d';
+    const dark = active ? '#704d20' : '#22292f';
+    const w = halfW * 0.68;
+    const h = halfH * 0.9;
+    this.ctx.save();
+    if (!active) this.ctx.globalAlpha *= 0.75;
+    if (active && playerOnCell) {
+      this.ctx.shadowColor = '#f1ce73';
+      this.ctx.shadowBlur = 12 * this.cam.zoom;
+    }
+    this.ctx.fillStyle = dark;
+    this.ctx.fillRect(top.x - w / 2, top.y - h * 1.1, w, h);
+    this.ctx.fillStyle = color;
+    this.ctx.fillRect(top.x - w * 0.34, top.y - h * 1.02, w * 0.68, h * 0.26);
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = Math.max(1, this.cam.zoom);
+    this.ctx.strokeRect(top.x - w / 2, top.y - h * 1.1, w, h);
+    this.ctx.fillStyle = active ? '#f5d48a' : '#c25b4e';
+    this.ctx.font = `900 ${Math.max(10, Math.round(12 * this.cam.zoom))}px Arial, sans-serif`;
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.ctx.fillText(active ? '⚡' : '✕', top.x, top.y - h * 0.72);
+    if (!active) {
+      // Diagonal "out of order" slash across the whole housing.
+      this.ctx.strokeStyle = '#c25b4e';
+      this.ctx.lineWidth = Math.max(1.5, 1.8 * this.cam.zoom);
+      this.ctx.beginPath();
+      this.ctx.moveTo(top.x - w / 2, top.y - h * 1.1);
+      this.ctx.lineTo(top.x + w / 2, top.y - h * 0.1);
+      this.ctx.stroke();
+    }
+    if (active && playerOnCell) {
+      this.ctx.fillStyle = '#f5d48a';
+      this.ctx.font = `900 ${Math.max(8, Math.round(9 * this.cam.zoom))}px ui-monospace, monospace`;
+      this.ctx.fillText('E', top.x, top.y - h * 1.45);
+    }
+    this.ctx.restore();
   }
 
   // ---------------------------------------------------------------------------

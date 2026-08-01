@@ -32,6 +32,7 @@ export class GoGrid {
       for (const [rx, ry] of g.route ?? []) this.ensureFloor(rx, ry);
     }
     for (const t of level.terminals ?? []) this.ensureFloor(t.x, t.y);
+    for (const d of level.distractions ?? []) this.ensureFloor(d.x, d.y);
   }
 
   private ensureFloor(x: number, y: number): void {

@@ -37,7 +37,8 @@ function stateKey(s: GoState): string {
     )
     .join('|');
   const gates = s.gates.map((g) => (g.open ? '1' : '0')).join('');
-  return `${p}/${g}/${gates}`;
+  const distractions = s.distractions.map((d) => (d.used ? '1' : '0')).join('');
+  return `${p}/${g}/${gates}/${distractions}`;
 }
 
 function isSolvable(levelIndex: number): boolean {
@@ -95,6 +96,7 @@ describe('GO puzzle levels', () => {
       ...(level.guards ?? []),
       ...(level.terminals ?? []),
       ...(level.gates ?? []),
+      ...(level.distractions ?? []),
       { x: findExit(level).x, y: findExit(level).y },
     ];
 
@@ -119,6 +121,13 @@ describe('GO puzzle levels', () => {
     expect(grid.decorationBlocksMovement(1, 0)).toBe(true);
     expect(grid.decorationBlocksSight(1, 0)).toBe(true);
     expect(legalMoves(grid, state)).not.toContainEqual({ kind: 'step', dir: 'E' });
+  });
+
+  it.each(LEVELS)('keeps every distraction on a walkable cell in %s', (level) => {
+    const grid = new GoGrid(level);
+    for (const distraction of level.distractions ?? []) {
+      expect(['floor', 'road', 'plank', 'mud', 'exit']).toContain(grid.kindAt(distraction.x, distraction.y));
+    }
   });
 
   it('treats houses and trees as solid by default', () => {
@@ -263,6 +272,73 @@ describe('GO puzzle levels', () => {
     // the far officer and must remain lethal.
     expect(state.phase).toBe('lost');
     expect(state.outcome).toBe('spotted');
+  });
+
+  it('activates a generator for exactly one turn and redirects only guards in range', () => {
+    const level: GoLevel = {
+      name: 'generator distraction fixture',
+      width: 8,
+      height: 2,
+      cells: ['........', '........'],
+      start: { x: 2, y: 0, facing: 'E' },
+      guards: [
+        { id: 'near', kind: 'sentry', x: 4, y: 0, facing: 'S', sight: 1 },
+        { id: 'far', kind: 'sentry', x: 7, y: 1, facing: 'W', sight: 1 },
+      ],
+      distractions: [
+        { id: 'generator', kind: 'generator', x: 2, y: 0, range: 3, direction: 'E' },
+      ],
+    };
+    const grid = new GoGrid(level);
+    const initial = initState(level);
+    const activation = applyPlayerMove(grid, initial, {
+      kind: 'activateDistraction',
+      id: 'generator',
+    });
+
+    expect(activation.turn).toBe(1);
+    expect(activation.distractions[0]?.used).toBe(true);
+    expect(activation.guards.find((guard) => guard.id === 'near')?.facing).toBe('E');
+    expect(activation.guards.find((guard) => guard.id === 'far')?.facing).toBe('W');
+    expect(legalMoves(grid, activation)).not.toContainEqual({
+      kind: 'activateDistraction',
+      id: 'generator',
+    });
+
+    const afterTurn = resolve(grid, advanceGuards(grid, activation));
+    expect(afterTurn.turn).toBe(1);
+    expect(afterTurn.guards.find((guard) => guard.id === 'near')?.facing).toBe('E');
+
+    const repeated = applyPlayerMove(grid, afterTurn, {
+      kind: 'activateDistraction',
+      id: 'generator',
+    });
+    expect(repeated.turn).toBe(1);
+    expect(repeated).toEqual(afterTurn);
+  });
+
+  it('does not activate a distraction that is not on the player cell', () => {
+    const level: GoLevel = {
+      name: 'unreachable generator fixture',
+      width: 3,
+      height: 1,
+      cells: ['...'],
+      start: { x: 0, y: 0, facing: 'E' },
+      guards: [],
+      distractions: [{ id: 'generator', kind: 'generator', x: 2, y: 0, range: 2, direction: 'W' }],
+    };
+    const grid = new GoGrid(level);
+    const state = initState(level);
+    const attempted = applyPlayerMove(grid, state, {
+      kind: 'activateDistraction',
+      id: 'generator',
+    });
+
+    expect(attempted).toEqual(state);
+    expect(legalMoves(grid, state)).not.toContainEqual({
+      kind: 'activateDistraction',
+      id: 'generator',
+    });
   });
 });
 

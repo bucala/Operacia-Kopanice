@@ -246,6 +246,9 @@ export class GoGame {
         this.log(`Dôstojník zalarmoval pechotu (${guard.id}).`);
       }
     }
+    if (after.distractions.some((d) => d.used && !before.distractions.find((b) => b.id === d.id)?.used)) {
+      this.log('Generátor aktivovaný — pozornosť odvrátená.');
+    }
 
     // Narrate anything decisive from the player half.
     const killed = before.guards.filter(
@@ -331,8 +334,12 @@ export class GoGame {
       const cell = this.pickCell(c.x, c.y);
       const dir = this.dirToCell(cell.x, cell.y);
       if (dir) this.tryMove({ kind: 'step', dir });
-      else if (cell.x === this.state.player.x && cell.y === this.state.player.y)
-        this.tryMove({ kind: 'wait' });
+      else if (cell.x === this.state.player.x && cell.y === this.state.player.y) {
+        const distraction = legalMoves(this.grid, this.state).find(
+          (move) => move.kind === 'activateDistraction',
+        );
+        this.tryMove(distraction ?? { kind: 'wait' });
+      }
     }
   }
 
@@ -341,6 +348,12 @@ export class GoGame {
     if (this.anim !== 'idle' || this.state.phase !== 'await') return;
     const dir = KEY_DIR[k];
     if (dir) this.tryMove({ kind: 'step', dir });
+    else if (k === 'e') {
+      const distraction = legalMoves(this.grid, this.state).find(
+        (move) => move.kind === 'activateDistraction',
+      );
+      if (distraction) this.tryMove(distraction);
+    }
     else if (k === ' ' || k === '.') this.tryMove({ kind: 'wait' });
   }
 
