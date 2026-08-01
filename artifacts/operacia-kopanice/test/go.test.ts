@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { LEVELS } from '../src/go/levels';
 import { GoGrid } from '../src/go/model/grid';
 import { advanceGuards, applyPlayerMove, initState, legalMoves, resolve } from '../src/go/model/logic';
-import type { GoState } from '../src/go/model/types';
+import type { GoLevel, GoState } from '../src/go/model/types';
 
 const MAX_TURNS = 60;
 
@@ -79,4 +79,67 @@ describe('GO puzzle levels', () => {
       expect(['floor', 'road', 'plank', 'mud', 'exit']).toContain(grid.kindAt(terminal.x, terminal.y));
     }
   });
+
+  it.each(LEVELS)('keeps solid decorations away from critical nodes in %s', (level) => {
+    const grid = new GoGrid(level);
+    const critical = [
+      level.start,
+      ...(level.guards ?? []),
+      ...(level.terminals ?? []),
+      ...(level.gates ?? []),
+      { x: findExit(level).x, y: findExit(level).y },
+    ];
+
+    for (const node of critical) {
+      expect(grid.decorationBlocksMovement(node.x, node.y)).toBe(false);
+    }
+  });
+
+  it('applies explicit decoration collision to movement and sight', () => {
+    const level: GoLevel = {
+      name: 'decoration collision fixture',
+      width: 4,
+      height: 1,
+      cells: ['....'],
+      start: { x: 0, y: 0, facing: 'E' },
+      guards: [{ id: 'fixture-guard', kind: 'sentry', x: 3, y: 0, facing: 'W', sight: 3 }],
+      decorations: [{ kind: 'crate', x: 1, y: 0, blocksMovement: true, blocksSight: true }],
+    };
+    const grid = new GoGrid(level);
+    const state = initState(level);
+
+    expect(grid.decorationBlocksMovement(1, 0)).toBe(true);
+    expect(grid.decorationBlocksSight(1, 0)).toBe(true);
+    expect(legalMoves(grid, state)).not.toContainEqual({ kind: 'step', dir: 'E' });
+  });
+
+  it('treats houses and trees as solid by default', () => {
+    const level: GoLevel = {
+      name: 'default decoration collision fixture',
+      width: 3,
+      height: 1,
+      cells: ['...'],
+      start: { x: 0, y: 0, facing: 'E' },
+      guards: [],
+      decorations: [
+        { kind: 'house1', x: 1, y: 0 },
+        { kind: 'tree', x: 2, y: 0 },
+      ],
+    };
+    const grid = new GoGrid(level);
+
+    expect(grid.decorationBlocksMovement(1, 0)).toBe(true);
+    expect(grid.decorationBlocksSight(1, 0)).toBe(true);
+    expect(grid.decorationBlocksMovement(2, 0)).toBe(true);
+    expect(grid.decorationBlocksSight(2, 0)).toBe(true);
+  });
 });
+
+function findExit(level: GoLevel): { x: number; y: number } {
+  for (let y = 0; y < level.height; y++) {
+    if (level.cells[y]?.includes('X')) {
+      return { x: level.cells[y].indexOf('X'), y };
+    }
+  }
+  throw new Error(`Level ${level.name} has no exit`);
+}

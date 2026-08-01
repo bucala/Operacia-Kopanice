@@ -1,0 +1,2 @@
+- [Village decoration collision](village-decoration-collision.md) — logical occupancy must be explicit so visual props cannot hide or contradict playable GO nodes.
+- [Canvas sprite compositing](canvas-sprite-compositing.md) — use source-over with transparent assets; screen blending hides dark backgrounds but creates pale ghosting on photographed props.

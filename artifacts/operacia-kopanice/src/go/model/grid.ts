@@ -48,6 +48,24 @@ export class GoGrid {
     if (!this.inBounds(x, y)) return 'void';
     return this.kinds[y * this.width + x];
   }
+
+  decorationsAt(x: number, y: number): readonly DecorationSpec[] {
+    return this.decorations.filter((decoration) => decoration.x === x && decoration.y === y);
+  }
+
+  decorationBlocksMovement(x: number, y: number): boolean {
+    return this.decorationsAt(x, y).some((decoration) => {
+      if (decoration.blocksMovement !== undefined) return decoration.blocksMovement;
+      return decoration.kind === 'house1' || decoration.kind === 'house2' || decoration.kind === 'tree';
+    });
+  }
+
+  decorationBlocksSight(x: number, y: number): boolean {
+    return this.decorationsAt(x, y).some((decoration) => {
+      if (decoration.blocksSight !== undefined) return decoration.blocksSight;
+      return decoration.kind === 'house1' || decoration.kind === 'house2' || decoration.kind === 'tree';
+    });
+  }
 }
 
 function charToKind(ch: string | undefined): CellKind {

@@ -324,8 +324,8 @@ export class GoRenderer {
     if (closedGate) this.drawGateBars(top, halfW, halfH);
     if (isTerminal) this.drawTerminal(top, halfW, halfH);
 
-    // House sprite on wall tiles — drawn after the cube geometry so it clips the
-    // grey block; uses 'screen' compositing so the black PNG background drops out.
+    // House sprite on wall tiles — drawn after the cube geometry so its
+    // transparent pixels reveal the grey block beneath it.
     if (kind === 'wall') {
       this.drawHouseSprite(x, y);
     }
@@ -361,11 +361,7 @@ export class GoRenderer {
     const drawX = base.x - spriteW / 2;
     const drawY = tileBaseY - spriteH * anchorY;
 
-    // Use 'screen' compositing so black backgrounds disappear on the dark canvas.
-    const prevComposite = this.ctx.globalCompositeOperation;
-    this.ctx.globalCompositeOperation = 'screen';
     this.ctx.drawImage(img, drawX, drawY, spriteW, spriteH);
-    this.ctx.globalCompositeOperation = prevComposite;
   }
 
   private drawSurfaceDetail(top: Vec2, halfW: number, halfH: number, kind: 'road' | 'plank'): void {
@@ -447,10 +443,7 @@ export class GoRenderer {
     const base = this.center(decor.x, decor.y, 0);
     const width = this.iso.tileWidth * this.cam.zoom * (decor.scale ?? 1.6);
     const height = width * (img.naturalHeight / img.naturalWidth);
-    this.ctx.save();
-    this.ctx.globalCompositeOperation = 'screen';
     this.ctx.drawImage(img, base.x - width / 2, base.y - height * 0.9, width, height);
-    this.ctx.restore();
   }
 
   // ---------------------------------------------------------------------------

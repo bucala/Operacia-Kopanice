@@ -66,6 +66,13 @@ export interface DecorationSpec {
   scale?: number;
   /** Optional painter offset for objects that sit in front of their cell. */
   layer?: number;
+  /**
+   * Optional logical collision flags for decorative props.
+   * Houses and trees are solid by default; lightweight props remain visual-only
+   * unless a level opts them into collision explicitly.
+   */
+  blocksMovement?: boolean;
+  blocksSight?: boolean;
 }
 
 export type GuardKind =
@@ -124,11 +131,10 @@ export interface GoLevel {
   /**
    * Terrain rows. Each char: `#` wall · `.` floor · `=` road · `-` plank ·
  * `~` mud · `T` tree · `R` rock · `X` exit · ` ` or `_` void.
-   * Entities (player/guards/terminals/gates) are placed by the specs below and
-   * always sit on an implied floor node.
+   * Entities (player/guards/terminals/gates) are placed by the specs below.
    */
   cells: string[];
-  /** Optional anchored art objects. They never change the logical rules. */
+  /** Optional anchored art objects with explicit logical collision policy. */
   decorations?: DecorationSpec[];
   start: { x: number; y: number; facing: Dir };
   guards: GuardSpec[];

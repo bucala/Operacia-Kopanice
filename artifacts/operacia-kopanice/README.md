@@ -22,4 +22,4 @@ pnpm --filter @workspace/operacia-kopanice run build
 
 ## Village board
 
-The active GO board uses declarative terrain and decorative objects. Snow, roads, planks, mud, houses, trees, rocks, crates, and fences are rendered separately from the deterministic movement and guard logic, so visual improvements do not weaken puzzle solvability or undo behavior.
+The active GO board uses declarative terrain and decorative objects. Snow, roads, planks, mud, houses, trees, rocks, crates, and fences are rendered separately from the deterministic movement and guard logic. Houses and trees are solid by default; individual decorations can opt into or out of movement and sight blocking with explicit collision flags.

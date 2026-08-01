@@ -87,6 +87,7 @@ function gateAt(state: GoState, x: number, y: number): GateState | undefined {
 export function walkable(grid: GoGrid, state: GoState, x: number, y: number): boolean {
   const gate = gateAt(state, x, y);
   if (gate) return gate.open;
+  if (grid.decorationBlocksMovement(x, y)) return false;
   const k = grid.kindAt(x, y);
   return k === 'floor' || k === 'road' || k === 'plank' || k === 'mud' || k === 'exit';
 }
@@ -95,6 +96,7 @@ export function walkable(grid: GoGrid, state: GoState, x: number, y: number): bo
 export function blocksSight(grid: GoGrid, state: GoState, x: number, y: number): boolean {
   const gate = gateAt(state, x, y);
   if (gate) return !gate.open;
+  if (grid.decorationBlocksSight(x, y)) return true;
   const kind = grid.kindAt(x, y);
   return kind === 'wall' || kind === 'tree' || kind === 'rock';
 }
