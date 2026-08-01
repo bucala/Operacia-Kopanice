@@ -1,6 +1,6 @@
-# [Project name]
+# Operácia Kopanice workspace
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Operácia Kopanice is a turn-based stealth puzzle game set in a snowy mountain village; the workspace also contains its shared API and design-preview artifacts.
 
 ## Run & Operate
 
@@ -30,11 +30,12 @@ _Populate as you build — non-obvious choices a reader couldn't infer from the 
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Play a sequence of deterministic GO-style stealth missions with guard patrols, sight lines, terminals, gates, undo, and saved local progress.
+- Explore the missions as a snowy Kopanice village with isometric roads, planks, houses, trees, vehicles, and tactical cover.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Each completed change should be delivered through a new GitHub pull request with a changelog and README update.
 
 ## Gotchas
 

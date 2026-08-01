@@ -5,7 +5,8 @@ import type { GoLevel } from '../model/types';
  * introduces one idea; the `test/go.test.ts` "every level is solvable" test
  * brute-forces a winning line so a broken puzzle can never ship.
  *
- * Terrain chars: `#` wall · `.` floor · `X` exit · space/`_` void (gap).
+ * Terrain chars: `#` house wall · `.` snow · `=` road · `-` planks · `~` mud
+ * · `T` tree · `R` rock · `X` exit · space/`_` void (gap).
  * Gate cells use a plain `.` in the terrain and are declared under `gates`;
  * a shut gate reads as a wall until a terminal toggles it.
  */
@@ -17,15 +18,20 @@ const zacvik: GoLevel = {
   width: 8,
   height: 6,
   cells: [
-    '........',
+    'TT......',
     '...X....',
-    '........',
-    '........',
-    '........',
-    '........',
+    '..====..',
+    '..=..=..',
+    '..=..=TT',
+    '...~~...',
   ],
   start: { x: 2, y: 5, facing: 'N' },
   guards: [{ id: 's1', kind: 'sentry', x: 3, y: 3, facing: 'E', sight: 3, variant: 'sniper' }],
+  decorations: [
+    { kind: 'house1', x: 0, y: 0, scale: 1.8 },
+    { kind: 'house2', x: 7, y: 4, scale: 1.7 },
+    { kind: 'fence', x: 1, y: 4 },
+  ],
 };
 
 /** 2 — the takedown. A rotating sentry lights the exit; slip in on its blind beat. */
@@ -35,13 +41,13 @@ const hliadka: GoLevel = {
   width: 9,
   height: 7,
   cells: [
-    '.........',
-    '.........',
-    '.........',
-    'X........',
-    '.........',
-    '.........',
-    '.........',
+    'TT...TT..',
+    '..===....',
+    '..=.=....',
+    'X.=.=....',
+    '..=.=..TT',
+    '..=.=....',
+    '...~.....',
   ],
   start: { x: 8, y: 6, facing: 'N' },
   guards: [
@@ -73,6 +79,11 @@ const hliadka: GoLevel = {
       variant: 'machinegunner',
     },
   ],
+  decorations: [
+    { kind: 'house2', x: 6, y: 0, scale: 1.7 },
+    { kind: 'house1', x: 8, y: 4, scale: 1.55 },
+    { kind: 'crate', x: 6, y: 5 },
+  ],
 };
 
 /** 3 — Deus Ex GO hacking. A gate seals the exit niche; trip the terminal to open it. */
@@ -82,13 +93,13 @@ const terminal: GoLevel = {
   width: 9,
   height: 7,
   cells: [
-    '.........',
-    '.........',
+    'TT..=....',
+    '....=....',
     '......###',
     '........X',
     '......###',
-    '.........',
-    '.........',
+    '....=....',
+    '....=..TT',
   ],
   start: { x: 0, y: 6, facing: 'N' },
   guards: [
@@ -110,6 +121,11 @@ const terminal: GoLevel = {
   ],
   terminals: [{ id: 't1', x: 1, y: 3, gate: 'gate1' }],
   gates: [{ id: 'gate1', x: 6, y: 3, open: false }],
+  decorations: [
+    { kind: 'house1', x: 7, y: 2, scale: 1.75 },
+    { kind: 'house2', x: 7, y: 4, scale: 1.7 },
+    { kind: 'fence', x: 3, y: 0, scale: 0.8 },
+  ],
 };
 
 /**
@@ -145,6 +161,11 @@ const ulicka: GoLevel = {
       rotate: ['S', 'E', 'N', 'W'],
       sight: 2,
     },
+  ],
+  decorations: [
+    { kind: 'house1', x: 1, y: 2, scale: 1.65 },
+    { kind: 'house2', x: 7, y: 3, scale: 1.7 },
+    { kind: 'fence', x: 4, y: 6, scale: 0.7 },
   ],
 };
 
@@ -201,6 +222,12 @@ const prejazd: GoLevel = {
       variant: 'machinegunner',
     },
   ],
+  decorations: [
+    { kind: 'house2', x: 0, y: 0, scale: 1.65 },
+    { kind: 'house1', x: 8, y: 0, scale: 1.65 },
+    { kind: 'fence', x: 0, y: 7, scale: 0.72 },
+    { kind: 'crate', x: 7, y: 7 },
+  ],
 };
 
 /**
@@ -220,7 +247,7 @@ const prielom: GoLevel = {
   height: 7,
   cells: [
     '#######', // y=0
-    '#T...X#', // y=1  terminal at (1,1), exit at (5,1)
+    '#....X#', // y=1  terminal at (1,1), exit at (5,1)
     '#.....#', // y=2
     '#.....#', // y=3
     '###.###', // y=4  single gap at (3,4)
@@ -241,6 +268,12 @@ const prielom: GoLevel = {
   ],
   terminals: [{ id: 't1', x: 1, y: 1, gate: 'gate1' }],
   gates: [{ id: 'gate1', x: 4, y: 1, open: false }],
+  decorations: [
+    { kind: 'house1', x: 0, y: 0, scale: 1.55 },
+    { kind: 'house2', x: 6, y: 0, scale: 1.6 },
+    { kind: 'crate', x: 1, y: 5 },
+    { kind: 'fence', x: 5, y: 5 },
+  ],
 };
 
 export const LEVELS: readonly GoLevel[] = [zacvik, hliadka, terminal, ulicka, prejazd, prielom];

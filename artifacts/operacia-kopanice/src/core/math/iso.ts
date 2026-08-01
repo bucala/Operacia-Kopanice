@@ -17,9 +17,9 @@ export interface IsoConfig {
 }
 
 export const defaultIso: IsoConfig = {
-  tileWidth: 64,
-  tileHeight: 32,
-  heightStep: 16,
+  tileWidth: 96,
+  tileHeight: 48,
+  heightStep: 24,
 };
 
 /** Grid coordinates (+ optional height z) → screen-space pixel position. */

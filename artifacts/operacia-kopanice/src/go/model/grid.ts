@@ -1,4 +1,4 @@
-import type { CellKind, GoLevel } from './types';
+import type { CellKind, DecorationSpec, GoLevel } from './types';
 
 /**
  * Static terrain of a level as a flat grid of {@link CellKind}. Gates and
@@ -8,11 +8,13 @@ import type { CellKind, GoLevel } from './types';
 export class GoGrid {
   readonly width: number;
   readonly height: number;
+  readonly decorations: readonly DecorationSpec[];
   private readonly kinds: CellKind[];
 
   constructor(level: GoLevel) {
     this.width = level.width;
     this.height = level.height;
+    this.decorations = level.decorations ?? [];
     this.kinds = new Array(level.width * level.height).fill('void');
 
     for (let y = 0; y < level.height; y++) {
@@ -54,6 +56,16 @@ function charToKind(ch: string | undefined): CellKind {
       return 'wall';
     case 'X':
       return 'exit';
+    case '=':
+      return 'road';
+    case '-':
+      return 'plank';
+    case '~':
+      return 'mud';
+    case 'T':
+      return 'tree';
+    case 'R':
+      return 'rock';
     case '.':
       return 'floor';
     default:

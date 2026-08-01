@@ -353,8 +353,8 @@ function legendItem(swatchClass: string, label: string): HTMLElement {
 
 /** Labels and portrait image paths per guard kind. */
 const GUARD_KIND_META: Record<string, { label: string; img: string }> = {
-  sentry: { label: 'DÔSTOJNÍK', img: '/assets/sprites/guard-officer.png' },
-  patrol: { label: 'PEŠIAK',    img: '/assets/sprites/guard-soldier.png' },
+  sentry: { label: 'DÔSTOJNÍK', img: `${import.meta.env.BASE_URL}assets/sprites/guard-officer.png` },
+  patrol: { label: 'PEŠIAK', img: `${import.meta.env.BASE_URL}assets/sprites/guard-soldier.png` },
 };
 
 /** Build a single portrait card for the enemy panel. */

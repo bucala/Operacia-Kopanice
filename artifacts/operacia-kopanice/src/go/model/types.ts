@@ -40,10 +40,33 @@ export type CellKind =
   | 'void'
   /** A walkable node. */
   | 'floor'
+  /** A compacted village road; walkable and visually distinct from snow. */
+  | 'road'
+  /** A wooden plank bridge or footpath; walkable. */
+  | 'plank'
+  /** A muddy track; walkable but visually softer than the road. */
+  | 'mud'
   /** Solid: blocks movement and line of sight. */
   | 'wall'
+  /** Static tree cover; blocks movement and line of sight. */
+  | 'tree'
+  /** Static rock cover; blocks movement and line of sight. */
+  | 'rock'
   /** The goal node; stepping here wins the level. */
   | 'exit';
+
+export type DecorationKind = 'house1' | 'house2' | 'tree' | 'crate' | 'fence';
+
+/** A visual village object anchored to one logical cell. */
+export interface DecorationSpec {
+  kind: DecorationKind;
+  x: number;
+  y: number;
+  /** Width as a multiple of the isometric tile width. */
+  scale?: number;
+  /** Optional painter offset for objects that sit in front of their cell. */
+  layer?: number;
+}
 
 export type GuardKind =
   /** Walks a fixed route, ping-ponging between its ends; faces its travel dir. */
@@ -99,11 +122,14 @@ export interface GoLevel {
   width: number;
   height: number;
   /**
-   * Terrain rows. Each char: `#` wall · `.` floor · `X` exit · ` ` or `_` void.
+   * Terrain rows. Each char: `#` wall · `.` floor · `=` road · `-` plank ·
+ * `~` mud · `T` tree · `R` rock · `X` exit · ` ` or `_` void.
    * Entities (player/guards/terminals/gates) are placed by the specs below and
    * always sit on an implied floor node.
    */
   cells: string[];
+  /** Optional anchored art objects. They never change the logical rules. */
+  decorations?: DecorationSpec[];
   start: { x: number; y: number; facing: Dir };
   guards: GuardSpec[];
   terminals?: TerminalSpec[];

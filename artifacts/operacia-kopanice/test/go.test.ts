@@ -72,4 +72,11 @@ describe('GO puzzle levels', () => {
       expect(isSolvable(index)).toBe(true);
     },
   );
+
+  it.each(LEVELS)('keeps every terminal on a walkable cell in %s', (level) => {
+    const grid = new GoGrid(level);
+    for (const terminal of level.terminals ?? []) {
+      expect(['floor', 'road', 'plank', 'mud', 'exit']).toContain(grid.kindAt(terminal.x, terminal.y));
+    }
+  });
 });

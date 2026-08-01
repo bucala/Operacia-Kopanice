@@ -35,6 +35,7 @@
       #ui { position: absolute; inset: 0; pointer-events: none; }
       #ui .topbar,
       #ui .hintbar,
+      #ui .enemy-panel,
       #ui .overlay { pointer-events: auto; }
       .hidden { display: none !important; }
 
@@ -66,7 +67,7 @@
 
       /* Top bar */
       .topbar {
-        position: absolute; top: 12px; left: 12px; right: 12px;
+        position: absolute; top: 16px; left: 126px; right: 16px;
         display: flex; align-items: center; justify-content: space-between;
         gap: 12px;
         padding: 8px 12px;
@@ -82,7 +83,7 @@
 
       /* Hint bar */
       .hintbar {
-        position: absolute; left: 12px; bottom: 12px; right: 12px;
+        position: absolute; left: 126px; bottom: 16px; right: 16px;
         display: flex; align-items: center; justify-content: space-between; gap: 16px;
         flex-wrap: wrap;
         padding: 8px 14px;
@@ -181,8 +182,8 @@
       /* Enemy type panel — top-left portrait strip */
       .enemy-panel {
         position: absolute;
-        top: 66px; /* sits just below the topbar */
-        left: 12px;
+        top: 16px;
+        left: 16px;
         display: flex;
         flex-direction: column;
         gap: 6px;
@@ -261,6 +262,31 @@
 
       .ep-card:not(.ep-dead) .ep-count {
         color: var(--green);
+      }
+
+      @media (max-width: 720px) {
+        .topbar {
+          top: 8px; left: 8px; right: 8px;
+          padding: 6px 8px;
+        }
+        .tb-info { gap: 5px; font-size: 11px; }
+        .tb-actions { gap: 4px; }
+        .tb-actions .btn { padding: 6px 8px; font-size: 11px; }
+        .enemy-panel {
+          top: auto; bottom: 76px; left: 8px;
+          flex-direction: row;
+          gap: 4px;
+        }
+        .ep-card { width: 58px; border-radius: 6px; }
+        .ep-portrait { width: 58px; height: 52px; }
+        .ep-label { padding: 3px; font-size: 7px; }
+        .ep-count { font-size: 7px; }
+        .hintbar {
+          left: 8px; right: 8px; bottom: 8px;
+          padding: 6px 8px; font-size: 10px;
+        }
+        .legend { display: none; }
+        .hint-intro { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       }
     </style>
   </head>

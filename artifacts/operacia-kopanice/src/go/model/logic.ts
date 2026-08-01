@@ -88,14 +88,15 @@ export function walkable(grid: GoGrid, state: GoState, x: number, y: number): bo
   const gate = gateAt(state, x, y);
   if (gate) return gate.open;
   const k = grid.kindAt(x, y);
-  return k === 'floor' || k === 'exit';
+  return k === 'floor' || k === 'road' || k === 'plank' || k === 'mud' || k === 'exit';
 }
 
 /** Does this cell stop a guard's line of sight? Walls and shut gates do. */
 export function blocksSight(grid: GoGrid, state: GoState, x: number, y: number): boolean {
   const gate = gateAt(state, x, y);
   if (gate) return !gate.open;
-  return grid.kindAt(x, y) === 'wall';
+  const kind = grid.kindAt(x, y);
+  return kind === 'wall' || kind === 'tree' || kind === 'rock';
 }
 
 /** The living guard occupying (x, y), if any. */

@@ -3,7 +3,7 @@ import { depthKey, gridToScreen, type IsoConfig } from '@/core/math/iso';
 import type { Vec2 } from '@/core/math/Vec2';
 import { GoGrid } from './model/grid';
 import { key } from './model/logic';
-import { DIR_VEC, type Dir, type GoState, type GuardVariant } from './model/types';
+import { DIR_VEC, type CellKind, type DecorationSpec, type Dir, type GoState, type GuardVariant } from './model/types';
 import { SpriteCache } from './SpriteCache';
 
 /** Everything the renderer needs for one frame, assembled by {@link GoGame}. */
@@ -46,6 +46,15 @@ const COL = {
   floorLeft: '#8ca8c0',
   floorRight: '#a8c0d4',
   edge: 'rgba(40,70,100,0.45)',
+  roadTop: '#78808a',
+  roadLeft: '#4b535d',
+  roadRight: '#5d6670',
+  plankTop: '#947657',
+  plankLeft: '#60452f',
+  plankRight: '#75563b',
+  mudTop: '#655348',
+  mudLeft: '#3d3029',
+  mudRight: '#4e3d33',
 
   // Exit tile — amber lantern glow
   exitTop: '#c8a030',
@@ -158,6 +167,12 @@ export class GoRenderer {
         });
       }
     }
+    for (const decor of grid.decorations) {
+      items.push({
+        depth: depthKey(decor.x, decor.y, decor.layer ?? 0.48),
+        draw: () => this.drawDecoration(decor),
+      });
+    }
 
     // Player.
     items.push({
@@ -216,7 +231,7 @@ export class GoRenderer {
   private drawCell(
     x: number,
     y: number,
-    kind: string,
+    kind: CellKind,
     gateOpen: boolean | undefined,
     isGate: boolean,
     isTerminal: boolean,
@@ -226,7 +241,7 @@ export class GoRenderer {
     const halfW = (this.iso.tileWidth / 2) * zoom;
     const halfH = (this.iso.tileHeight / 2) * zoom;
     const closedGate = isGate && !gateOpen;
-    const isWall = kind === 'wall' || closedGate;
+    const isWall = kind === 'wall' || kind === 'tree' || kind === 'rock' || closedGate;
     const z = isWall ? 1.4 : 0.35;
 
     const top = this.center(x, y, z);
@@ -241,7 +256,22 @@ export class GoRenderer {
       leftColor = '#8c6820';
       rightColor = '#a87c28';
     }
-    if (kind === 'wall') {
+    if (kind === 'road') {
+      topColor = COL.roadTop;
+      leftColor = COL.roadLeft;
+      rightColor = COL.roadRight;
+    }
+    if (kind === 'plank') {
+      topColor = COL.plankTop;
+      leftColor = COL.plankLeft;
+      rightColor = COL.plankRight;
+    }
+    if (kind === 'mud') {
+      topColor = COL.mudTop;
+      leftColor = COL.mudLeft;
+      rightColor = COL.mudRight;
+    }
+    if (kind === 'wall' || kind === 'tree' || kind === 'rock') {
       topColor = COL.wallTop;
       leftColor = COL.wallLeft;
       rightColor = COL.wallRight;
@@ -277,10 +307,11 @@ export class GoRenderer {
     this.ctx.stroke();
 
     // Subtle snow sparkle on floor tiles (tiny white highlight at the peak).
-    if (kind !== 'wall' && !isWall) {
+    if (!isWall) {
       this.ctx.fillStyle = 'rgba(255,255,255,0.18)';
       this.diamond(top.x, top.y - halfH * 0.25, halfW * 0.35, halfH * 0.22);
     }
+    if (kind === 'road' || kind === 'plank') this.drawSurfaceDetail(top, halfW, halfH, kind);
 
     // Danger tint.
     if (lit && !isWall) {
@@ -298,6 +329,8 @@ export class GoRenderer {
     if (kind === 'wall') {
       this.drawHouseSprite(x, y);
     }
+    if (kind === 'tree') this.drawTreeSprite(x, y);
+    if (kind === 'rock') this.drawRock(x, y);
   }
 
   /**
@@ -333,6 +366,91 @@ export class GoRenderer {
     this.ctx.globalCompositeOperation = 'screen';
     this.ctx.drawImage(img, drawX, drawY, spriteW, spriteH);
     this.ctx.globalCompositeOperation = prevComposite;
+  }
+
+  private drawSurfaceDetail(top: Vec2, halfW: number, halfH: number, kind: 'road' | 'plank'): void {
+    this.ctx.save();
+    this.ctx.strokeStyle = kind === 'road' ? 'rgba(218,225,230,0.22)' : 'rgba(57,37,23,0.48)';
+    this.ctx.lineWidth = Math.max(1, this.cam.zoom);
+    const count = kind === 'road' ? 3 : 4;
+    for (let i = 1; i <= count; i++) {
+      const t = i / (count + 1);
+      this.ctx.beginPath();
+      this.ctx.moveTo(top.x - halfW * (1 - t), top.y - halfH * (1 - t));
+      this.ctx.lineTo(top.x + halfW * t, top.y + halfH * t);
+      this.ctx.stroke();
+    }
+    this.ctx.restore();
+  }
+
+  private drawTreeSprite(gx: number, gy: number): void {
+    const img = this.sprites.get(SPRITE.trees);
+    if (!img) return;
+    const base = this.center(gx, gy, 0);
+    const tileW = this.iso.tileWidth * this.cam.zoom;
+    const spriteW = tileW * 1.75;
+    const crop = 0.28;
+    const srcW = img.naturalWidth * crop;
+    const srcH = img.naturalHeight * 0.52;
+    this.ctx.drawImage(
+      img,
+      (gx + gy) % 2 ? 0 : img.naturalWidth * crop,
+      0,
+      srcW,
+      srcH,
+      base.x - spriteW / 2,
+      base.y - spriteW * 1.3,
+      spriteW,
+      spriteW * 1.45,
+    );
+  }
+
+  private drawRock(gx: number, gy: number): void {
+    const base = this.center(gx, gy, 0);
+    const size = this.iso.tileWidth * this.cam.zoom * 0.36;
+    this.ctx.fillStyle = '#69717a';
+    this.blob(base.x, base.y, size, size * 0.45);
+    this.ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    this.blob(base.x - size * 0.16, base.y - size * 0.16, size * 0.48, size * 0.2);
+  }
+
+  private drawDecoration(decor: DecorationSpec): void {
+    if (decor.kind === 'house1' || decor.kind === 'house2') {
+      this.drawDecorationHouse(decor);
+      return;
+    }
+    if (decor.kind === 'tree') {
+      this.drawTreeSprite(decor.x, decor.y);
+      return;
+    }
+    const base = this.center(decor.x, decor.y, 0);
+    const size = this.iso.tileWidth * this.cam.zoom * (decor.scale ?? 0.38);
+    if (decor.kind === 'fence') {
+      this.ctx.strokeStyle = '#725238';
+      this.ctx.lineWidth = Math.max(2, this.cam.zoom * 2);
+      this.ctx.beginPath();
+      this.ctx.moveTo(base.x - size, base.y);
+      this.ctx.lineTo(base.x + size, base.y);
+      this.ctx.stroke();
+      return;
+    }
+    this.ctx.fillStyle = '#7b512f';
+    this.ctx.fillRect(base.x - size / 2, base.y - size * 0.55, size, size * 0.55);
+    this.ctx.strokeStyle = '#c1d7e7';
+    this.ctx.strokeRect(base.x - size / 2, base.y - size * 0.55, size, size * 0.55);
+  }
+
+  private drawDecorationHouse(decor: DecorationSpec): void {
+    const src = decor.kind === 'house1' ? SPRITE.house1 : SPRITE.house2;
+    const img = this.sprites.get(src);
+    if (!img) return;
+    const base = this.center(decor.x, decor.y, 0);
+    const width = this.iso.tileWidth * this.cam.zoom * (decor.scale ?? 1.6);
+    const height = width * (img.naturalHeight / img.naturalWidth);
+    this.ctx.save();
+    this.ctx.globalCompositeOperation = 'screen';
+    this.ctx.drawImage(img, base.x - width / 2, base.y - height * 0.9, width, height);
+    this.ctx.restore();
   }
 
   // ---------------------------------------------------------------------------
@@ -437,10 +555,11 @@ export class GoRenderer {
     const img = this.sprites.get(spriteSrc);
 
     if (img) {
-      // Scale so the character occupies ~2.2× tile width.
+      // Keep the actor inside one logical cell rather than treating a portrait
+      // as a multi-cell prop.
       // The sprite image includes the stone base; anchor its bottom-centre to
       // the bottom edge of the tile's floor diamond.
-      const spriteW = tileW * 2.2;
+      const spriteW = tileW * 0.92;
       const spriteH = spriteW * (img.naturalHeight / img.naturalWidth);
       const drawX = base.x - spriteW / 2;
       const drawY = base.y + halfH - spriteH; // bottom of sprite == tile base bottom
