@@ -59,6 +59,7 @@ export function initState(level: GoLevel): GoState {
       rotate,
       sight: g.sight,
       alive: true,
+      variant: g.variant,
     };
   });
 

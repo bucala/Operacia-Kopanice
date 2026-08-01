@@ -51,6 +51,12 @@ export type GuardKind =
   /** Stays put; optionally rotates its facing through a fixed cycle each turn. */
   | 'sentry';
 
+/**
+ * Visual variant for a guard — selects which sprite is rendered.
+ * Falls back to the default officer sprite when unset.
+ */
+export type GuardVariant = 'officer' | 'sniper' | 'machinegunner';
+
 /** Authoring spec for a guard, as written in a level file. */
 export interface GuardSpec {
   id: string;
@@ -64,6 +70,8 @@ export interface GuardSpec {
   rotate?: Dir[];
   /** Straight-line sight range in cells (a guard sees along its facing). */
   sight: number;
+  /** Visual sprite variant — determines which character sprite is drawn. */
+  variant?: GuardVariant;
 }
 
 /** A hackable terminal (Deus Ex GO): entering it toggles the linked gate. */
@@ -120,6 +128,8 @@ export interface GuardState {
   rotate: Dir[];
   sight: number;
   alive: boolean;
+  /** Visual sprite variant carried from GuardSpec. */
+  variant?: GuardVariant;
 }
 
 export interface GateState {

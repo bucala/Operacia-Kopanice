@@ -3,7 +3,7 @@ import { depthKey, gridToScreen, type IsoConfig } from '@/core/math/iso';
 import type { Vec2 } from '@/core/math/Vec2';
 import { GoGrid } from './model/grid';
 import { key } from './model/logic';
-import { DIR_VEC, type Dir, type GoState } from './model/types';
+import { DIR_VEC, type Dir, type GoState, type GuardVariant } from './model/types';
 import { SpriteCache } from './SpriteCache';
 
 /** Everything the renderer needs for one frame, assembled by {@link GoGame}. */
@@ -28,6 +28,8 @@ export interface GuardView {
   alive: boolean;
   /** 1 = solid, 0 = fully faded (used to dissolve a taken-down guard). */
   fade: number;
+  /** Which sprite to render for this guard. */
+  variant?: GuardVariant;
 }
 
 interface DrawItem {
@@ -84,8 +86,12 @@ const SPRITE = {
   trees: `${_base}/assets/sprites/trees.png`,
   /** Odbojár / Resister — the player character. */
   playerChar: `${_base}/assets/sprites/player.png`,
-  /** German Officer — the enemy guard. */
-  guardChar: `${_base}/assets/sprites/guard.png`,
+  /** German Officer — default enemy guard sprite. */
+  guardOfficer: `${_base}/assets/sprites/guard.png`,
+  /** Sniper — long-range threat, white winter cloak. */
+  guardSniper: `${_base}/assets/sprites/guard-sniper.png`,
+  /** Machine Gunner — wide-threat patrol, holds LMG. */
+  guardMachinegunner: `${_base}/assets/sprites/guard-machinegunner.png`,
 };
 
 /**
@@ -165,7 +171,7 @@ export class GoRenderer {
       items.push({
         depth: depthKey(g.x, g.y, 0.6),
         draw: () =>
-          this.drawFigure(g.x, g.y, g.facing, COL.guard, COL.guardDark, g.fade, true),
+          this.drawFigure(g.x, g.y, g.facing, COL.guard, COL.guardDark, g.fade, true, g.variant),
       });
     }
 
@@ -394,6 +400,7 @@ export class GoRenderer {
     dark: string,
     alpha: number,
     isGuard = false,
+    variant?: GuardVariant,
   ): void {
     const zoom = this.cam.zoom;
     const tileW = this.iso.tileWidth * zoom;
@@ -420,7 +427,13 @@ export class GoRenderer {
     ]);
 
     // --- Portrait sprite (photorealistic) ---------------------------------
-    const spriteSrc = isGuard ? SPRITE.guardChar : SPRITE.playerChar;
+    const spriteSrc = isGuard
+      ? variant === 'sniper'
+        ? SPRITE.guardSniper
+        : variant === 'machinegunner'
+          ? SPRITE.guardMachinegunner
+          : SPRITE.guardOfficer
+      : SPRITE.playerChar;
     const img = this.sprites.get(spriteSrc);
 
     if (img) {

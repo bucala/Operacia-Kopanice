@@ -208,6 +208,7 @@ export class GoGame {
         facing: g.facing,
         alive: g.alive,
         fade: g.alive ? 1 : 0,
+        variant: g.variant,
       });
     }
   }

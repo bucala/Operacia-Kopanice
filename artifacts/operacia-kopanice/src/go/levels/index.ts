@@ -25,7 +25,7 @@ const zacvik: GoLevel = {
     '........',
   ],
   start: { x: 2, y: 5, facing: 'N' },
-  guards: [{ id: 's1', kind: 'sentry', x: 3, y: 3, facing: 'E', sight: 3 }],
+  guards: [{ id: 's1', kind: 'sentry', x: 3, y: 3, facing: 'E', sight: 3, variant: 'sniper' }],
 };
 
 /** 2 — the takedown. A rotating sentry lights the exit; slip in on its blind beat. */
@@ -70,6 +70,7 @@ const hliadka: GoLevel = {
         [5, 6],
       ],
       sight: 3,
+      variant: 'machinegunner',
     },
   ],
 };
@@ -104,6 +105,7 @@ const terminal: GoLevel = {
         [5, 3],
       ],
       sight: 3,
+      variant: 'machinegunner',
     },
   ],
   terminals: [{ id: 't1', x: 1, y: 3, gate: 'gate1' }],
@@ -180,6 +182,7 @@ const prejazd: GoLevel = {
       facing: 'S',
       rotate: ['S', 'N'],
       sight: 3,
+      variant: 'sniper',
     },
     {
       id: 'patrol1',
@@ -195,6 +198,7 @@ const prejazd: GoLevel = {
         [6, 4],
       ],
       sight: 2,
+      variant: 'machinegunner',
     },
   ],
 };
