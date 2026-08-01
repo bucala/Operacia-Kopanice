@@ -10,6 +10,7 @@
 - Reworked the enemy panel as an interactive, brass-accented responsive strip that remains usable on narrow screens.
 - Hardened the mission recovery controls: turn-boundary snapshots restore player, guards, gates, and phase; Reset starts the current mission cleanly without touching saved progress.
 - Added accessible labels and keyboard-repeat protection for Undo, Reset, Menu, and recovery shortcuts.
+- Replaced the generated menu mark with the supplied Operácia Kopanice logo and derived a matching square PNG application icon.
 - Reworked the Operácia Kopanice GO board toward a snowy village composition with larger isometric cells and compact single-cell character sprites.
 - Added visual terrain distinctions for snow, roads, planks, and mud.
 - Added declarative village decorations for houses, trees, crates, and fences across the existing missions.

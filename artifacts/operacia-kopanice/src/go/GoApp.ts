@@ -383,7 +383,7 @@ function legendItem(swatchClass: string, label: string): HTMLElement {
 function brandMark(): HTMLElement {
   const mark = document.createElement('img');
   mark.className = 'brand-mark';
-  mark.src = `${import.meta.env.BASE_URL}brand/operacia-kopanice-mark.svg`;
+  mark.src = `${import.meta.env.BASE_URL}brand/operacia-kopanice-logo.png`;
   mark.alt = 'Operácia Kopanice';
   mark.draggable = false;
   return mark;

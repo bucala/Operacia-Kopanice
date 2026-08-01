@@ -4,7 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Operácia Kopanice — GO</title>
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="icon" type="image/png" sizes="1024x1024" href="icon.png" />
+    <link rel="apple-touch-icon" sizes="1024x1024" href="icon.png" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#17191c" />
     <style>
       :root {
         color-scheme: dark;
@@ -135,7 +138,14 @@
        .menu::before { content: ""; position: absolute; inset: 0 50%; width: 1px; background: linear-gradient(var(--brass), rgba(199,170,106,.08) 18%, rgba(199,170,106,.08) 82%, var(--brass)); opacity: .72; pointer-events: none; }
        .menu > * { position: relative; z-index: 1; }
        .brand { margin: 0 auto 2px; width: min(100%, 390px); }
-       .brand-mark { display: block; width: 100%; max-height: 156px; }
+       .brand-mark {
+         display: block;
+         width: 100%;
+         max-height: 190px;
+         object-fit: contain;
+         object-position: center;
+         border-radius: 3px;
+       }
        .title { margin: 0; font-size: 30px; letter-spacing: 3px; font-weight: 800; }
        .subtitle { color: #d4cec0; font-size: 14px; margin-top: 6px; text-shadow: 0 1px #000; }
       .menu .btn.big { align-self: center; }
@@ -324,7 +334,7 @@
         .legend { display: none; }
         .hint-intro { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
          .panel { max-height: calc(100vh - 20px); padding: 24px 20px; border-radius: 8px; }
-         .brand-mark { max-height: 120px; }
+          .brand-mark { max-height: 132px; }
          .level-card { min-height: 56px; padding: 7px 10px; }
          .level-num { width: 36px; height: 36px; font-size: 15px; }
          .level-name { font-size: 15px; }
