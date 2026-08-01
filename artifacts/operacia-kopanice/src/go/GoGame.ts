@@ -171,6 +171,8 @@ export class GoGame {
     if (!prev) return;
     this.state = prev;
     this.anim = 'idle';
+    this.highlightedKind = null;
+    this.highlightUntil = 0;
     this.snapVisuals();
     this.log('Ťah vrátený späť.');
     this.activate();

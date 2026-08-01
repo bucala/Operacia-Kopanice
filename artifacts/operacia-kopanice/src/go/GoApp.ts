@@ -70,11 +70,23 @@ export class GoApp {
       class: 'btn ghost',
       text: '↶ Späť',
       onclick: () => this.doUndo(),
+      attrs: {
+        type: 'button',
+        title: 'Vrátiť posledný ťah späť',
+        'aria-label': 'Vrátiť posledný ťah späť',
+        'aria-keyshortcuts': 'U Z',
+      },
     });
     this.restartBtn = el('button', {
       class: 'btn ghost',
-      text: '⟳ Znova',
+      text: '⟳ Reset',
       onclick: () => this.doRestart(),
+      attrs: {
+        type: 'button',
+        title: 'Reštartovať aktuálnu misiu',
+        'aria-label': 'Reštartovať aktuálnu misiu',
+        'aria-keyshortcuts': 'R',
+      },
     });
     this.topbar = this.buildTopbar();
     this.hintbar = this.buildHintbar();
@@ -148,14 +160,20 @@ export class GoApp {
 
   private onKey(e: KeyboardEvent): void {
     const k = e.key.toLowerCase();
+    // Holding a recovery shortcut must not undo/restart multiple times.
+    if (e.repeat && (k === 'u' || k === 'z' || k === 'r')) return;
     if (k === 'escape') {
       if (this.overlayKind === 'menu') return;
+      e.preventDefault();
       this.showMenu();
     } else if (this.overlayKind === 'win' && (k === 'n' || k === 'enter')) {
+      e.preventDefault();
       this.doNext();
     } else if (this.overlayKind !== 'menu' && (k === 'u' || k === 'z')) {
+      e.preventDefault();
       this.doUndo();
     } else if (this.overlayKind !== 'menu' && k === 'r') {
+      e.preventDefault();
       this.doRestart();
     }
   }
@@ -184,7 +202,16 @@ export class GoApp {
     const actions = el('div', { class: 'tb-actions' }, [
       this.undoBtn,
       this.restartBtn,
-      el('button', { class: 'btn', text: '◈ Menu', onclick: () => this.showMenu() }),
+      el('button', {
+        class: 'btn',
+        text: '◈ Menu',
+        onclick: () => this.showMenu(),
+        attrs: {
+          type: 'button',
+          title: 'Vrátiť sa do výberu úrovní',
+          'aria-label': 'Vrátiť sa do výberu úrovní',
+        },
+      }),
     ]);
     return el('header', { class: 'topbar hidden' }, [info, actions]);
   }

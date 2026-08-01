@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { LEVELS } from '../src/go/levels';
 import { GoGrid } from '../src/go/model/grid';
-import { advanceGuards, applyPlayerMove, initState, legalMoves, resolve } from '../src/go/model/logic';
+import { advanceGuards, applyPlayerMove, cloneState, initState, legalMoves, resolve } from '../src/go/model/logic';
 import type { GoLevel, GoState } from '../src/go/model/types';
 
 const MAX_TURNS = 60;
@@ -153,6 +153,40 @@ describe('GO puzzle levels', () => {
 
     expect(Math.max(...sentries.map((guard) => guard.sight))).toBe(4);
     expect(Math.max(...patrols.map((guard) => guard.sight))).toBe(3);
+  });
+
+  it('restores a complete turn-boundary snapshot after a gate interaction and guard response', () => {
+    const level: GoLevel = {
+      name: 'undo snapshot fixture',
+      width: 4,
+      height: 2,
+      cells: ['....', '....'],
+      start: { x: 0, y: 0, facing: 'E' },
+      guards: [
+        {
+          id: 'snapshot-patrol',
+          kind: 'patrol',
+          x: 3,
+          y: 1,
+          facing: 'W',
+          route: [[3, 1], [2, 1]],
+          sight: 2,
+        },
+      ],
+      terminals: [{ id: 'terminal', x: 1, y: 0, gate: 'gate' }],
+      gates: [{ id: 'gate', x: 2, y: 0, open: false }],
+    };
+    const grid = new GoGrid(level);
+    const start = initState(level);
+    const snapshot = cloneState(start);
+    const afterPlayer = applyPlayerMove(grid, start, { kind: 'step', dir: 'E' });
+    const afterTurn = resolve(grid, advanceGuards(grid, afterPlayer));
+
+    expect(afterTurn.turn).toBe(1);
+    expect(afterTurn.gates[0]?.open).toBe(true);
+    expect(afterTurn.guards[0]?.x).toBe(2);
+    expect(snapshot).toEqual(start);
+    expect(snapshot).not.toEqual(afterTurn);
   });
 });
 
