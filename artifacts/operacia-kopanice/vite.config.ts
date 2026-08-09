@@ -4,13 +4,10 @@ import { defineConfig } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
-const rawPort = process.env.PORT;
-
-if (!rawPort) {
-  throw new Error(
-    'PORT environment variable is required but was not provided.',
-  );
-}
+// Only used for server.port/preview.port (`vite dev`/`vite preview`) — a
+// production `vite build` never touches it, so CI/deploy builds shouldn't
+// need it set at all. Override with PORT for local dev.
+const rawPort = process.env.PORT ?? '3000';
 
 const port = Number(rawPort);
 
