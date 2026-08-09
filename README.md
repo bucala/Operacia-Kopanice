@@ -51,7 +51,7 @@
 
 ## 🎯 Čo je Operácia Kopanice?
 
-Operácia Kopanice je taktická hra na uzloch mriežky v štýle **Lara Croft GO** a **Deus Ex GO**. Hráč vedie partizána cez zimnú osadu, číta zorné lúče nepriateľov, načasuje pohyb a vyčistí cestu bez zbytočného poplachu.
+Operácia Kopanice je taktická hra na uzloch mriežky v štýle puzzle GO hier. Hráč vedie partizána cez zimnú osadu, číta zorné lúče nepriateľov, načasuje pohyb a vyčistí cestu bez zbytočného poplachu.
 
 Hra je postavená na jednoduchom, ale prísnom rytme:
 
