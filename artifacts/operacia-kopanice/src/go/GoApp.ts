@@ -57,6 +57,8 @@ export class GoApp {
   private readonly elIntro = el('div', { class: 'hint-intro' });
   private readonly undoBtn: HTMLButtonElement;
   private readonly restartBtn: HTMLButtonElement;
+  private readonly zoomOutBtn: HTMLButtonElement;
+  private readonly zoomInBtn: HTMLButtonElement;
   /** Live card elements keyed by guard kind, updated each HUD frame. */
   private readonly epCards = new Map<string, HTMLElement>();
 
@@ -87,6 +89,18 @@ export class GoApp {
         'aria-label': 'Reštartovať aktuálnu misiu',
         'aria-keyshortcuts': 'R',
       },
+    });
+    this.zoomOutBtn = el('button', {
+      class: 'btn ghost btn-zoom',
+      text: '−',
+      onclick: () => this.game.zoomOut(),
+      attrs: { type: 'button', title: 'Oddialiť', 'aria-label': 'Oddialiť herné pole' },
+    });
+    this.zoomInBtn = el('button', {
+      class: 'btn ghost btn-zoom',
+      text: '+',
+      onclick: () => this.game.zoomIn(),
+      attrs: { type: 'button', title: 'Priblížiť', 'aria-label': 'Priblížiť herné pole' },
     });
     this.topbar = this.buildTopbar();
     this.hintbar = this.buildHintbar();
@@ -186,6 +200,8 @@ export class GoApp {
     this.elGuards.textContent = `Stráže ${m.guardsAlive}/${m.guardsTotal}`;
     this.elIntro.textContent = m.intro;
     this.undoBtn.disabled = !m.canUndo;
+    this.zoomOutBtn.disabled = !this.game.canZoomOut;
+    this.zoomInBtn.disabled = !this.game.canZoomIn;
     this.updateEnemyPanel(m.guardTypes);
   }
 
@@ -200,6 +216,8 @@ export class GoApp {
       this.elGuards,
     ]);
     const actions = el('div', { class: 'tb-actions' }, [
+      this.zoomOutBtn,
+      this.zoomInBtn,
       this.undoBtn,
       this.restartBtn,
       el('button', {
@@ -268,10 +286,7 @@ export class GoApp {
     const cards = LEVELS.map((lvl, i) => this.buildLevelCard(lvl.name, i));
 
     return el('div', { class: 'panel menu' }, [
-      el('div', { class: 'brand' }, [
-        brandMark(),
-        el('div', { class: 'subtitle', text: 'Ťahová taktická hádanka · v štýle Lara Croft GO' }),
-      ]),
+      el('div', { class: 'brand' }, [brandMark()]),
       el('button', {
         class: 'btn primary big',
         text: started ? '▶ Pokračovať' : '▶ Hrať',

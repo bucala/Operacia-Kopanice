@@ -64,6 +64,13 @@ type GuardAnim = GuardView;
 const EASE = 0.3;
 const EPS = 0.02;
 
+/** Zoom is a multiplier on top of the level's fit-to-screen zoom from `frameBoard`. */
+const MIN_ZOOM_MULT = 0.6;
+const MAX_ZOOM_MULT = 2.2;
+const ZOOM_STEP = 0.12;
+/** Wheel deltaY per zoom step; trackpad/pinch deltas are typically smaller than a mouse click-wheel. */
+const WHEEL_UNIT = 80;
+
 /**
  * Turn-based controller for the GO puzzle. The logical state advances instantly
  * through the pure rules in `model/logic.ts`; this class only animates the board
@@ -86,6 +93,11 @@ export class GoGame {
 
   private readonly undoStack: GoState[] = [];
   private readonly logLines: string[] = [];
+
+  /** The level's fit-to-screen zoom, captured after `frameBoard`; see {@link applyZoom}. */
+  private baseZoom = 1;
+  /** User-controlled multiplier on top of {@link baseZoom}, clamped to [MIN_ZOOM_MULT, MAX_ZOOM_MULT]. */
+  private zoomMult = 1;
 
   // Visual (interpolated) actor positions.
   private pv = { x: 0, y: 0 };
@@ -124,7 +136,13 @@ export class GoGame {
     this.canvas.height = height;
     this.cam.viewportWidth = width;
     this.cam.viewportHeight = height;
-    if (this.grid) this.renderer.frameBoard(this.grid);
+    if (this.grid) {
+      // Refit the board to the new viewport, then reapply the player's chosen zoom
+      // level on top of it so resizing the window doesn't discard their zoom.
+      this.renderer.frameBoard(this.grid);
+      this.baseZoom = this.cam.zoom;
+      this.applyZoom();
+    }
   }
 
   // --- Public controls (driven by GoApp) -------------------------------------
@@ -140,6 +158,29 @@ export class GoGame {
   }
   get canUndo(): boolean {
     return this.undoStack.length > 0;
+  }
+  get canZoomIn(): boolean {
+    return this.zoomMult < MAX_ZOOM_MULT - 1e-6;
+  }
+  get canZoomOut(): boolean {
+    return this.zoomMult > MIN_ZOOM_MULT + 1e-6;
+  }
+
+  zoomIn(): void {
+    this.setZoomMult(this.zoomMult * (1 + ZOOM_STEP));
+  }
+  zoomOut(): void {
+    this.setZoomMult(this.zoomMult * (1 - ZOOM_STEP));
+  }
+
+  private setZoomMult(mult: number): void {
+    this.zoomMult = Math.min(MAX_ZOOM_MULT, Math.max(MIN_ZOOM_MULT, mult));
+    this.applyZoom();
+  }
+
+  /** Recompute `cam.zoom` from the current base (fit) zoom and user multiplier. */
+  private applyZoom(): void {
+    this.cam.zoom = this.baseZoom * this.zoomMult;
   }
 
   highlightGuardKind(kind: GuardKind): void {
@@ -205,6 +246,8 @@ export class GoGame {
     this.highlightUntil = 0;
     this.snapVisuals();
     this.renderer.frameBoard(this.grid);
+    this.baseZoom = this.cam.zoom;
+    this.zoomMult = 1;
     this.logLines.length = 0;
     this.log(`Úroveň ${index + 1}/${LEVELS.length}: ${this.level.name}`);
     if (this.level.intro) this.log(this.level.intro);
@@ -327,6 +370,14 @@ export class GoGame {
 
   private handleInput(): void {
     for (const k of this.input.takeKeys()) this.handleKey(k);
+
+    const wheel = this.input.takeWheel();
+    if (wheel !== 0) {
+      // Negative deltaY (scroll up / pinch out) zooms in; scale proportionally so
+      // both coarse mouse-wheel ticks and fine trackpad deltas feel consistent.
+      const steps = -wheel / WHEEL_UNIT;
+      this.setZoomMult(this.zoomMult * (1 + ZOOM_STEP) ** steps);
+    }
 
     const clicks = this.input.takeClicks();
     if (clicks.length && this.anim === 'idle' && this.state.phase === 'await') {
