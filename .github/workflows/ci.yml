@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  operacia-kopanice:
+    name: operacia-kopanice — typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --filter "@workspace/operacia-kopanice..."
+
+      - name: Type-check
+        working-directory: artifacts/operacia-kopanice
+        run: pnpm run typecheck
+
+      - name: Unit tests
+        working-directory: artifacts/operacia-kopanice
+        run: pnpm run test
+
+      - name: Production build
+        working-directory: artifacts/operacia-kopanice
+        env:
+          PORT: '22332'
+          BASE_PATH: '/'
+        run: pnpm run build

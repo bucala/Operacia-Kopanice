@@ -287,7 +287,7 @@ flowchart TB
 | **Controller** | `src/go/GoGame.ts` | Vstup, animované dvojfázové ťahy, undo zásobník, log a callbacky pre HUD. |
 | **UI shell** | `src/go/GoApp.ts` | Menu, odomykanie levelov, localStorage progress, enemy panel a outcome overlay. |
 | **Renderer** | `src/go/GoRenderer.ts` | Izometrické Canvas vykresľovanie mapy, postáv, efektov a interaktívnych objektov. |
-| **Testy** | `test/go.test.ts` | BFS solvability, simulácie interakcií, kolízie, alerty, distraction objekty a undo pravidlá. |
+| **Testy** | `test/go.test.ts`, `test/progress.test.ts` | BFS solvability, simulácie interakcií, kolízie, alerty, distraction objekty, undo pravidlá a odomykanie/best-score. |
 
 ## 📁 Štruktúra projektu
 
@@ -298,16 +298,19 @@ flowchart TB
 │   └── operacia-kopanice/          # hlavný herný web
 │       ├── public/                 # logo, ikony, sprity a verejné assety
 │       ├── src/
-│       │   ├── go/                 # aktuálne GO puzzle jadro
+│       │   ├── go/                 # GO puzzle jadro (celá hra)
 │       │   │   ├── model/          # čisté pravidlá a serializovateľný stav
 │       │   │   ├── levels/         # ručne definované misie
 │       │   │   ├── GoApp.ts        # menu a HUD
 │       │   │   ├── GoGame.ts       # controller a animácie
 │       │   │   └── GoRenderer.ts   # izometrický renderer
-│       │   └── ...                 # zdieľané a staršie herné systémy
-│       ├── test/go.test.ts         # deterministická testovacia sada
+│       │   ├── core/               # zdieľaná izo projekcia, kamera, input
+│       │   ├── App.tsx, main.tsx   # tenký React mount point nad GoApp
+│       │   └── docs/               # GO-DESIGN.md, ASSETS.md
+│       ├── test/                   # go.test.ts, progress.test.ts
 │       ├── index.html              # taktické vizuálne štýly webu
 │       └── vite.config.ts          # BASE_PATH/PORT-aware Vite konfigurácia
+├── .github/workflows/ci.yml        # typecheck + test + build na push/PR
 ├── attached_assets/                # zdrojové artworky a dizajnové podklady
 ├── CHANGELOG.md
 ├── package.json

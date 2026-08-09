@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- Restored CI (`.github/workflows/ci.yml`): typecheck, unit tests, and a production build now run on every push/PR for `@workspace/operacia-kopanice`. There was no CI at all after the pnpm workspace migration.
+- Restored `test/progress.test.ts` (level unlocking, best-turn persistence), which was dropped during the same migration even though `progress.ts` stayed in production.
+- Restored and rewrote `docs/GO-DESIGN.md` and `docs/ASSETS.md` for the current game: 8 levels, village decorations, officer alerts, and the generator/stone/bell distraction mechanics (the old copies only described the original 3-level version and a JSON-manifest sprite pipeline that no longer exists).
+- Documented the workspace layout and the real-time engine's removal in `replit.md` ("Where things live", "Architecture decisions", "Gotchas" — previously placeholders).
+
+### Removed
+
+- Removed the original real-time isometric stealth engine (`src/systems`, `src/game`, `src/ai`, `src/skills`, `src/integrations`, `src/map`, the ECS `src/components` and `src/core/ecs`) — ~9,000 lines, unreachable from the GO game's entry point since the July turn-based transformation and never wired back in. Still available in git history if a real-time mode is revisited.
+- Removed the unused shadcn/ui component library, hooks, and scaffold page (55 files) and ~30 unused npm dependencies (Radix, Tailwind, React Query, react-hook-form, wouter, and others) — none were imported by the shipped game; only `react`/`react-dom` (mounting the vanilla-DOM `GoApp`) were ever used.
+- Removed the sprite/tile/audio/map JSON manifests under `public/assets/` that only the removed engine read; the GO renderer has always loaded its sprite PNGs directly.
+
 ### Changed
 
 - Rebuilt the menu and in-mission interface around the dark tactical, brass-framed Operácia Kopanice visual system.
