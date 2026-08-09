@@ -8,6 +8,8 @@ export class Input {
   private clickBuffer: { x: number; y: number; button: number }[] = [];
   private keyBuffer: string[] = [];
   private readonly down = new Set<string>();
+  /** Accumulated wheel/trackpad-pinch deltaY since the last drain. */
+  private wheelDelta = 0;
 
   attach(canvas: HTMLCanvasElement): void {
     canvas.addEventListener('mousemove', (e) => {
@@ -24,6 +26,15 @@ export class Input {
       e.preventDefault();
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    // Mouse wheel and trackpad pinch (browsers report pinch as ctrl+wheel).
+    canvas.addEventListener(
+      'wheel',
+      (e) => {
+        e.preventDefault();
+        this.wheelDelta += e.deltaY;
+      },
+      { passive: false },
+    );
     window.addEventListener('keydown', (e) => {
       if (!this.down.has(e.key)) this.keyBuffer.push(e.key.toLowerCase());
       this.down.add(e.key);
@@ -43,6 +54,13 @@ export class Input {
     const k = this.keyBuffer;
     this.keyBuffer = [];
     return k;
+  }
+
+  /** Drain accumulated wheel deltaY since last frame (positive = scroll away/zoom out). */
+  takeWheel(): number {
+    const d = this.wheelDelta;
+    this.wheelDelta = 0;
+    return d;
   }
 
   isDown(key: string): boolean {

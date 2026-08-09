@@ -18,15 +18,17 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/bucala/Operacia-Kopanice/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/bucala/Operacia-Kopanice/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white">
   <img alt="Vite" src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white">
   <img alt="Vitest" src="https://img.shields.io/badge/tests-Vitest-6E9F18?logo=vitest&logoColor=white">
+  <img alt="pnpm" src="https://img.shields.io/badge/pnpm-workspace-F69220?logo=pnpm&logoColor=white">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-89744A">
 </p>
 
 ![Gameplay board](attached_assets/Main_gameplay_1785576138157.png)
 
-> **Stav projektu:** hrateľný webový prototyp s ôsmimi ručne navrhnutými GO misiami, deterministickou stealth logikou, izometrickým Canvas rendererom, responzívnym HUD-om a lokálnym ukladaním postupu.
+> **Stav projektu:** hrateľný webový prototyp s ôsmimi ručne navrhnutými GO misiami, deterministickou stealth logikou, izometrickým Canvas rendererom, responzívnym HUD-om a lokálnym ukladaním postupu. Typecheck, testy (53/53) a produkčný build sú vynútené CI na každý push a pull request.
 
 <details>
 <summary><strong>Obsah README</strong></summary>
@@ -266,6 +268,7 @@ Postup a najlepšie výsledky sú uložené v `localStorage` prehliadača. Hra n
 flowchart TB
     React[React App shell<br/>src/App.tsx] --> App[GoApp<br/>menu + HUD + progress]
     App --> Game[GoGame<br/>input + animation + controller]
+    App --> Progress[progress.ts<br/>localStorage unlock + best-turn]
     Game --> Renderer[GoRenderer<br/>Canvas isometric board]
     Game --> Logic[Pure model logic<br/>movement + detection + turns]
     Logic --> Types[Serializable types]
@@ -274,7 +277,10 @@ flowchart TB
     Levels --> Logic
     Tests[Vitest BFS + simulation tests] --> Logic
     Tests --> Levels
+    Tests --> Progress
 ```
+
+Podrobný rozpis pravidiel, zoznam misií a modulovej mapy: [`docs/GO-DESIGN.md`](artifacts/operacia-kopanice/docs/GO-DESIGN.md). Sprite pipeline a ako pridať art: [`docs/ASSETS.md`](artifacts/operacia-kopanice/docs/ASSETS.md).
 
 ### Hlavné vrstvy
 
@@ -287,7 +293,8 @@ flowchart TB
 | **Controller** | `src/go/GoGame.ts` | Vstup, animované dvojfázové ťahy, undo zásobník, log a callbacky pre HUD. |
 | **UI shell** | `src/go/GoApp.ts` | Menu, odomykanie levelov, localStorage progress, enemy panel a outcome overlay. |
 | **Renderer** | `src/go/GoRenderer.ts` | Izometrické Canvas vykresľovanie mapy, postáv, efektov a interaktívnych objektov. |
-| **Testy** | `test/go.test.ts` | BFS solvability, simulácie interakcií, kolízie, alerty, distraction objekty a undo pravidlá. |
+| **Postup** | `src/go/progress.ts` | Čisté funkcie pre odomykanie a best-score + `localStorage` perzistencia, degraduje bezpečne bez úložiska. |
+| **Testy** | `test/go.test.ts`, `test/progress.test.ts` | BFS solvability, simulácie interakcií, kolízie, alerty, distraction objekty, undo pravidlá a odomykanie/best-score. |
 
 ## 📁 Štruktúra projektu
 
@@ -298,16 +305,19 @@ flowchart TB
 │   └── operacia-kopanice/          # hlavný herný web
 │       ├── public/                 # logo, ikony, sprity a verejné assety
 │       ├── src/
-│       │   ├── go/                 # aktuálne GO puzzle jadro
+│       │   ├── go/                 # GO puzzle jadro (celá hra)
 │       │   │   ├── model/          # čisté pravidlá a serializovateľný stav
 │       │   │   ├── levels/         # ručne definované misie
 │       │   │   ├── GoApp.ts        # menu a HUD
 │       │   │   ├── GoGame.ts       # controller a animácie
 │       │   │   └── GoRenderer.ts   # izometrický renderer
-│       │   └── ...                 # zdieľané a staršie herné systémy
-│       ├── test/go.test.ts         # deterministická testovacia sada
+│       │   ├── core/               # zdieľaná izo projekcia, kamera, input
+│       │   ├── App.tsx, main.tsx   # tenký React mount point nad GoApp
+│       │   └── docs/               # GO-DESIGN.md, ASSETS.md
+│       ├── test/                   # go.test.ts, progress.test.ts
 │       ├── index.html              # taktické vizuálne štýly webu
 │       └── vite.config.ts          # BASE_PATH/PORT-aware Vite konfigurácia
+├── .github/workflows/ci.yml        # typecheck + test + build na push/PR
 ├── attached_assets/                # zdrojové artworky a dizajnové podklady
 ├── CHANGELOG.md
 ├── package.json
@@ -343,7 +353,8 @@ Pokryté sú najmä:
 - generátor, kameň a zvon,
 - dosah a jednorazovosť distraction objektov,
 - neplatná aktivácia mimo správnej pozície,
-- stav distraction objektov v BFS kľúči a undo snapshot ochranách.
+- stav distraction objektov v BFS kľúči a undo snapshot ochranách,
+- odomykanie levelov, monotónnosť best-score a bezpečné správanie bez `localStorage` (`test/progress.test.ts`).
 
 Pred odoslaním zmien odporúčame spustiť celú kontrolu:
 
@@ -353,6 +364,8 @@ pnpm --filter @workspace/operacia-kopanice run test
 PORT=22332 BASE_PATH=/ \
   pnpm --filter @workspace/operacia-kopanice run build
 ```
+
+CI (`.github/workflows/ci.yml`) spúšťa presne tieto tri kroky na každý push a pull request — zlyhanie ktoréhokoľvek z nich blokuje merge.
 
 ## 🎨 Vizuálny smer
 
@@ -387,17 +400,38 @@ Dokument opisuje väčšiu kampaň s partizánskou jednotkou, diverznými operá
 - inventár, schopnosti a audio podnety,
 - rozšírený ECS model a cloudovú synchronizáciu.
 
-Aktuálny webový artifact je zámerne užší a sústredí sa na **stabilné, hrateľné GO puzzle jadro**. GDD slúži ako dizajnový kontext a budúca vízia; prvky, ktoré nie sú uvedené v časti [Herná logika](#-herná-logika), nepovažujte za súčasť súčasného webového MVP.
+Aktuálny webový artifact je zámerne užší a sústredí sa na **stabilné, hrateľné GO puzzle jadro**. GDD slúži ako dizajnový kontext a budúca vízia; prvky, ktoré nie sú uvedené v časti [Herná logika](#-herná-logika), nepovažujte za súčasť súčasného webového MVP. Plán postupného prepájania GO misií s naratívom GDD je vo [Fáze 3 roadmapy](#-roadmap).
 
 ## 🧭 Roadmap
 
-Najprirodzenejšie ďalšie rozšírenia sú:
+Roadmap vychádza z priebežného auditu projektu a je rozdelená do fáz podľa naliehavosti — nie je to striktne sekvenčné poradie realizácie, ale poradie priority.
+
+### ✅ Fáza 1 — Bezpečnostná sieť (hotovo)
+
+Cieľ: zastaviť tiché straty (počas migrácie na pnpm workspace zmizlo CI, časť testov aj dokumentácia bez jediného PR review).
+
+- CI (`.github/workflows/ci.yml`): typecheck + testy + build na každý push a pull request.
+- Vrátené testy trvalého stavu hráča (`test/progress.test.ts` — odomykanie, best-score).
+- Aktuálne `docs/GO-DESIGN.md` a `docs/ASSETS.md` namiesto zastaraných/chýbajúcich kópií.
+- Odstránených ~9 000 riadkov nedosiahnuteľného real-time jadra (pôvodný ECS engine, nepoužitá shadcn/ui knižnica) a ~30 nepoužitých závislostí.
+
+### Fáza 2 — Výkon a veľkosť
+
+- zmenšiť/skomprimovať sprite PNG (viaceré cez 5 MB — `trees.png`, `house1.png`, `house2.png`) na skutočnú vykresľovaciu veľkosť; priamy dopad na dobu načítania na mobile,
+- vyčistiť `attached_assets/` — desiatky MB konceptových renderov a duplicitných screenshotov, na ktoré README neodkazuje.
+
+### Fáza 3 — Obsah a identita
+
+- prepojiť GO misie s naratívnym rámcom [GDD](#-historický-a-dizajnový-kontext) — SNP 1944, partizánska brigáda Miloša Uhra — aspoň menom hráčovej postavy a krátkym úvodom pred misiou,
+- zvážiť premenovanie/tematické zoskupenie misií v duchu troch kampaní z GDD,
+- zapnúť pripravený, ale nevyužívaný Claude tactical-hint endpoint (`artifacts/api-server/src/routes/assistant.ts`) ako dobrovoľnú nápovedu pre zaseknutých hráčov.
+
+### Fáza 4 — Rast
 
 - pridať misiu, ktorú možno vyriešiť iba hodením kameňa,
 - zobraziť jasný signál, kedy je okno generátora bezpečne otvorené,
-- pridať viac historických assetov a variantov dediny,
+- vizuálne odlíšiť prostredia misií (dnes takmer identická zasnežená dedina naprieč všetkými ôsmimi),
 - rozšíriť audio a atmosférické feedbacky interakcií,
-- postupne prepájať malé GO misie s väčšou kampaňou z GDD,
 - pridať samostatnú mobilnú vrstvu bez rozbitia deterministického modelu.
 
 ## 🤝 Prispievanie
@@ -410,6 +444,8 @@ Pri pridávaní novej mechaniky:
 4. pridajte simulačné testy do `test/go.test.ts`,
 5. doplňte render a HUD až po overení modelu,
 6. spustite typecheck, Vitest a produkčný build.
+
+CI beží automaticky na každý push a pull request a musí prejsť pred mergnutím — pozri [Testovanie](#-testovanie).
 
 Dôležitý princíp projektu: **herná logika nesmie závisieť od DOM, Canvasu, časovača ani náhody.**
 

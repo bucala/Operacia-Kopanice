@@ -2,6 +2,8 @@
 
 Turn-based stealth puzzle set in a snowy Slovak mountain village during the SNP period. Each mission keeps the GO-style rhythm: make one careful move, let the guards react, and reach the exit unseen.
 
+See [`docs/GO-DESIGN.md`](docs/GO-DESIGN.md) for the rules, level list, and module map, and [`docs/ASSETS.md`](docs/ASSETS.md) for the sprite pipeline.
+
 ## Running locally
 
 From the workspace root:
