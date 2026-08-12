@@ -104,7 +104,8 @@ const _base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const SPRITE = {
   house1: `${_base}/assets/sprites/house1.png`,
   house2: `${_base}/assets/sprites/house2.png`,
-  trees: `${_base}/assets/sprites/trees.png`,
+  tree1: `${_base}/assets/sprites/tree1.png`,
+  tree2: `${_base}/assets/sprites/tree2.png`,
   /** Odbojár / Resister — the player character. */
   playerChar: `${_base}/assets/sprites/player.png`,
   /** German Officer — default enemy guard sprite. */
@@ -394,8 +395,10 @@ export class GoRenderer {
     const tileW = this.iso.tileWidth * zoom;         // e.g. 64 * zoom
     const halfH = (this.iso.tileHeight / 2) * zoom;  // 16 * zoom
 
-    // Scale: house occupies about 2.8× tile width
-    const spriteW = tileW * 2.8;
+    // Scale: kept close to a single tile footprint (with a small roof
+    // overhang) so the sprite doesn't bleed into neighbouring cells that
+    // paint over it later in the depth-sorted draw order.
+    const spriteW = tileW * 1.35;
     const ratio = img.naturalHeight / img.naturalWidth;
     const spriteH = spriteW * ratio;
 
@@ -426,26 +429,35 @@ export class GoRenderer {
     this.ctx.restore();
   }
 
+  /**
+   * Draw a snowy pine sprite on a tree tile, alternating between tree1 and
+   * tree2 for visual variety. Both sprites are pre-isolated, tightly
+   * trimmed single trees (no source-rect cropping needed).
+   */
   private drawTreeSprite(gx: number, gy: number): void {
-    const img = this.sprites.get(SPRITE.trees);
+    const src = (gx + gy) % 2 === 0 ? SPRITE.tree1 : SPRITE.tree2;
+    const img = this.sprites.get(src);
     if (!img) return;
+
+    const zoom = this.cam.zoom;
+    const tileW = this.iso.tileWidth * zoom;
+    const halfH = (this.iso.tileHeight / 2) * zoom;
+
+    // Kept to roughly one tile footprint so the canopy doesn't spill into
+    // neighbouring cells drawn later in the depth-sorted order.
+    const spriteW = tileW * 1.0;
+    const ratio = img.naturalHeight / img.naturalWidth;
+    const spriteH = spriteW * ratio;
+
+    // Trunk base sits at the tile base level.
+    const anchorY = 0.95;
     const base = this.center(gx, gy, 0);
-    const tileW = this.iso.tileWidth * this.cam.zoom;
-    const spriteW = tileW * 1.75;
-    const crop = 0.28;
-    const srcW = img.naturalWidth * crop;
-    const srcH = img.naturalHeight * 0.52;
-    this.ctx.drawImage(
-      img,
-      (gx + gy) % 2 ? 0 : img.naturalWidth * crop,
-      0,
-      srcW,
-      srcH,
-      base.x - spriteW / 2,
-      base.y - spriteW * 1.3,
-      spriteW,
-      spriteW * 1.45,
-    );
+    const tileBaseY = base.y + halfH;
+
+    const drawX = base.x - spriteW / 2;
+    const drawY = tileBaseY - spriteH * anchorY;
+
+    this.ctx.drawImage(img, drawX, drawY, spriteW, spriteH);
   }
 
   private drawRock(gx: number, gy: number): void {
@@ -488,7 +500,11 @@ export class GoRenderer {
     const img = this.sprites.get(src);
     if (!img) return;
     const base = this.center(decor.x, decor.y, 0);
-    const width = this.iso.tileWidth * this.cam.zoom * (decor.scale ?? 1.6);
+    // Level data authors a relative size knob (historically tuned around
+    // ~1.6); scale it down to the same single-tile footprint containment
+    // used for wall-tile houses so background houses don't bleed into
+    // neighbouring cells either.
+    const width = this.iso.tileWidth * this.cam.zoom * (decor.scale ?? 1.6) * 0.8;
     const height = width * (img.naturalHeight / img.naturalWidth);
     this.ctx.drawImage(img, base.x - width / 2, base.y - height * 0.9, width, height);
   }

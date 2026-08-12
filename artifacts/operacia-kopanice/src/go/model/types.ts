@@ -68,8 +68,9 @@ export interface DecorationSpec {
   layer?: number;
   /**
    * Optional logical collision flags for decorative props.
-   * Houses and trees are solid by default; lightweight props remain visual-only
-   * unless a level opts them into collision explicitly.
+   * Every decoration blocks movement by default (a tile occupied by an
+   * object cannot be entered); set `blocksMovement: false` to opt a
+   * specific prop out. Sight-blocking defaults to houses and trees only.
    */
   blocksMovement?: boolean;
   blocksSight?: boolean;

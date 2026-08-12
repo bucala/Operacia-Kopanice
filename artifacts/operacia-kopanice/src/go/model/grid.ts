@@ -55,10 +55,7 @@ export class GoGrid {
   }
 
   decorationBlocksMovement(x: number, y: number): boolean {
-    return this.decorationsAt(x, y).some((decoration) => {
-      if (decoration.blocksMovement !== undefined) return decoration.blocksMovement;
-      return decoration.kind === 'house1' || decoration.kind === 'house2' || decoration.kind === 'tree';
-    });
+    return this.decorationsAt(x, y).some((decoration) => decoration.blocksMovement ?? true);
   }
 
   decorationBlocksSight(x: number, y: number): boolean {

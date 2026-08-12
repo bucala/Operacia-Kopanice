@@ -135,11 +135,14 @@ const terminal: GoLevel = {
 };
 
 /**
- * 4 — Ulička. A narrow alley between two Kopanice houses; a sentry sweeps the
- * corridor from its post at the far end. Time the rotation — the moment it
- * turns away, sprint all five tiles north to the exit.
+ * 4 — Ulička. A narrow alley between two single-file Kopanice house fronts; a
+ * sentry sweeps the corridor from its post at the far end. Time the rotation
+ * — the moment it turns away, sprint all five tiles north to the exit.
  *
- * Layout (9 × 7): two solid house blocks flanking a single-cell alley at x=4.
+ * Layout (9 × 7): a one-cell-wide alley at x=4, flanked on each side by a
+ * single wall column (the house fronts, x=3 and x=5) and then a wooded dead
+ * zone (trees/rocks) filling the outer border out to the map edge — not a
+ * solid block of tiled houses.
  * Solution: N × 5 (no waiting needed when you leave on the first safe beat).
  */
 const ulicka: GoLevel = {
@@ -148,12 +151,12 @@ const ulicka: GoLevel = {
   width: 9,
   height: 7,
   cells: [
-    '####.####', // y=0  sentry post
-    '####X####', // y=1  exit
-    '####.####', // y=2
-    '####.####', // y=3
-    '####.####', // y=4
-    '####.####', // y=5
+    'TRT#.#TRT', // y=0  sentry post at x=4
+    'RTR#X#RTR', // y=1  exit at x=4
+    'TRT#.#TRT', // y=2
+    'RTR#.#RTR', // y=3
+    'TRT#.#TRT', // y=4
+    'RTR#.#RTR', // y=5
     '.........', // y=6  open start area
   ],
   start: { x: 4, y: 6, facing: 'N' },
@@ -171,7 +174,7 @@ const ulicka: GoLevel = {
   decorations: [
     { kind: 'house1', x: 1, y: 2, scale: 1.65 },
     { kind: 'house2', x: 7, y: 3, scale: 1.7 },
-    { kind: 'fence', x: 4, y: 6, scale: 0.7 },
+    { kind: 'fence', x: 5, y: 6, scale: 0.7 },
   ],
 };
 
@@ -283,14 +286,16 @@ const prielom: GoLevel = {
 };
 
 /**
- * 7 — Kameň. A narrow Kopanice alley sealed by walls on both sides. A sentry
- * faces south — directly toward the player — and blocks the only path to the
- * exit. Standing on the alley mouth and facing north throws the stone one cell
- * ahead, distracting the guard into looking east. With its gaze turned, slip
- * north and take it down for a clear run to the exit.
+ * 7 — Kameň. A narrow Kopanice alley sealed by single house fronts on both
+ * sides. A sentry faces south — directly toward the player — and blocks the
+ * only path to the exit. Standing on the alley mouth and facing north throws
+ * the stone one cell ahead, distracting the guard into looking east. With its
+ * gaze turned, slip north and take it down for a clear run to the exit.
  *
  * Requires the stone distraction: guard faces toward the player's only approach
- * (head-on takedown impossible), and the flanking cells are walled off.
+ * (head-on takedown impossible). The alley (x=2) is flanked by one wall column
+ * on each side (x=1, x=3) and a wooded dead zone (trees/rocks) beyond that —
+ * not a solid tiled block of houses.
  * Solution: N N [throw stone] N [takedown] N N (6 actions).
  */
 const kamen: GoLevel = {
@@ -302,9 +307,9 @@ const kamen: GoLevel = {
     '.......',  // y=0
     '..X....',  // y=1  exit at (2,1)
     '.......',  // y=2
-    '##.####', // y=3  walls; gap at x=2 (guard)
-    '##.####', // y=4  walls; gap at x=2 (stone)
-    '##.####', // y=5  walls; gap at x=2 (player throws from here)
+    'R#.#TRT', // y=3  alley at x=2 (guard)
+    'T#.#RTR', // y=4  alley at x=2 (stone)
+    'R#.#TRT', // y=5  alley at x=2 (player throws from here)
     '.......',  // y=6
     '.......',  // y=7  start area
   ],
@@ -322,7 +327,7 @@ const kamen: GoLevel = {
   decorations: [
     { kind: 'house1', x: 0, y: 2, scale: 1.55 },
     { kind: 'house2', x: 6, y: 3, scale: 1.6 },
-    { kind: 'fence', x: 2, y: 7, scale: 0.65 },
+    { kind: 'fence', x: 1, y: 7, scale: 0.65 },
   ],
   distractions: [
     { id: 'stone1', kind: 'stone', x: 2, y: 4, range: 2, direction: 'E' },
@@ -339,7 +344,9 @@ const kamen: GoLevel = {
  *
  * Without the generator the BFS finds no winning line within MAX_TURNS turns.
  *
- * Layout (7 × 8): walls at x∈{0,1,3,4,5,6} for rows y∈{3,4,5}; open south.
+ * Layout (7 × 8): a single-cell alley at x=2, flanked by one wall column each
+ * side (x=1, x=3) for rows y∈{3,4,5}, with a wooded dead zone (trees/rocks)
+ * beyond that out to the map edge — not a solid tiled block of houses.
  * Solution: W N N N [activate generator] N N [takedown] N N  (9 actions).
  */
 const vypadok: GoLevel = {
@@ -352,9 +359,9 @@ const vypadok: GoLevel = {
     '.......', // y=0
     '..X....', // y=1  exit at (2,1)
     '.......', // y=2
-    '##.####', // y=3  guard at (2,3)
-    '##.####', // y=4
-    '##.####', // y=5  generator at (2,5)
+    'R#.#TRT', // y=3  guard at (2,3)
+    'T#.#RTR', // y=4
+    'R#.#TRT', // y=5  generator at (2,5)
     '.......', // y=6
     '.......', // y=7  start area
   ],
@@ -372,7 +379,7 @@ const vypadok: GoLevel = {
   decorations: [
     { kind: 'house1', x: 0, y: 2, scale: 1.55 },
     { kind: 'house2', x: 5, y: 3, scale: 1.6 },
-    { kind: 'fence', x: 3, y: 7, scale: 0.65 },
+    { kind: 'fence', x: 4, y: 7, scale: 0.65 },
   ],
   distractions: [
     { id: 'generator1', kind: 'generator', x: 2, y: 5, range: 3, direction: 'N' },
