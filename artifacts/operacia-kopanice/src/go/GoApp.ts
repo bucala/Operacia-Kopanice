@@ -1,5 +1,6 @@
 import { GoGame, type GoHudModel, type GuardTypeCount } from './GoGame';
 import { LEVELS } from './levels';
+import type { Dir, DistractionKind, DistractionSpec } from './model/types';
 import {
   bestTurns,
   firstPlayable,
@@ -11,7 +12,7 @@ import {
   saveProgress,
 } from './progress';
 
-type OverlayKind = 'none' | 'menu' | 'win' | 'lose';
+type OverlayKind = 'none' | 'menu' | 'win' | 'lose' | 'inventory';
 
 interface ElOpts {
   class?: string;
@@ -57,6 +58,7 @@ export class GoApp {
   private readonly elIntro = el('div', { class: 'hint-intro' });
   private readonly undoBtn: HTMLButtonElement;
   private readonly restartBtn: HTMLButtonElement;
+  private readonly inventoryBtn: HTMLButtonElement;
   private readonly zoomOutBtn: HTMLButtonElement;
   private readonly zoomInBtn: HTMLButtonElement;
   /** Live card elements keyed by guard kind, updated each HUD frame. */
@@ -88,6 +90,17 @@ export class GoApp {
         title: 'Reštartovať aktuálnu misiu',
         'aria-label': 'Reštartovať aktuálnu misiu',
         'aria-keyshortcuts': 'R',
+      },
+    });
+    this.inventoryBtn = el('button', {
+      class: 'btn ghost',
+      text: '▤ Inventár',
+      onclick: () => this.showInventory(),
+      attrs: {
+        type: 'button',
+        title: 'Zobraziť dostupné nástroje a schopnosti',
+        'aria-label': 'Otvoriť inventár',
+        'aria-keyshortcuts': 'I',
       },
     });
     this.zoomOutBtn = el('button', {
@@ -137,6 +150,20 @@ export class GoApp {
     this.game.play(index);
   }
 
+  /** Show the current level's tools/abilities reference; freezes the board without resetting it. */
+  private showInventory(): void {
+    if (this.overlayKind !== 'none') return;
+    this.game.pause();
+    this.overlayKind = 'inventory';
+    this.renderOverlay(this.buildInventory());
+  }
+
+  private closeInventory(): void {
+    this.overlayKind = 'none';
+    this.hideOverlay();
+    this.game.resume();
+  }
+
   private onOutcome(phase: 'won' | 'lost', info: { levelIndex: number; turns: number }): void {
     if (phase === 'won') {
       this.progress = recordWin(this.progress, info.levelIndex, info.turns);
@@ -176,17 +203,25 @@ export class GoApp {
     const k = e.key.toLowerCase();
     // Holding a recovery shortcut must not undo/restart multiple times.
     if (e.repeat && (k === 'u' || k === 'z' || k === 'r')) return;
+    const frozen = this.overlayKind === 'menu' || this.overlayKind === 'inventory';
     if (k === 'escape') {
       if (this.overlayKind === 'menu') return;
       e.preventDefault();
-      this.showMenu();
+      if (this.overlayKind === 'inventory') this.closeInventory();
+      else this.showMenu();
+    } else if (k === 'i' && this.overlayKind === 'none') {
+      e.preventDefault();
+      this.showInventory();
+    } else if (k === 'i' && this.overlayKind === 'inventory') {
+      e.preventDefault();
+      this.closeInventory();
     } else if (this.overlayKind === 'win' && (k === 'n' || k === 'enter')) {
       e.preventDefault();
       this.doNext();
-    } else if (this.overlayKind !== 'menu' && (k === 'u' || k === 'z')) {
+    } else if (!frozen && (k === 'u' || k === 'z')) {
       e.preventDefault();
       this.doUndo();
-    } else if (this.overlayKind !== 'menu' && k === 'r') {
+    } else if (!frozen && k === 'r') {
       e.preventDefault();
       this.doRestart();
     }
@@ -220,6 +255,7 @@ export class GoApp {
       this.zoomInBtn,
       this.undoBtn,
       this.restartBtn,
+      this.inventoryBtn,
       el('button', {
         class: 'btn',
         text: '◈ Menu',
@@ -275,7 +311,7 @@ export class GoApp {
       legendItem('sw-danger', 'smrteľný lúč'),
       legendItem('sw-move', 'možný krok'),
       legendItem('sw-take', 'zozadu = tichá likvidácia'),
-      legendItem('sw-distraction', 'E = generátor'),
+      legendItem('sw-distraction', 'E = interakcia · I = inventár'),
     ]);
     return el('footer', { class: 'hintbar hidden' }, [this.elIntro, legend]);
   }
@@ -296,7 +332,7 @@ export class GoApp {
       el('div', { class: 'level-grid' }, cards),
       el('div', {
         class: 'menu-foot',
-        text: 'Klik/šípky = krok · E = generátor · medzerník = čakaj · U = späť · R = znova · Esc = menu',
+        text: 'Klik/šípky = krok · E = interakcia · I = inventár · medzerník = čakaj · U = späť · R = znova · Esc = menu',
       }),
     ]);
   }
@@ -368,6 +404,40 @@ export class GoApp {
     ]);
   }
 
+  private buildInventory(): HTMLElement {
+    const level = this.game.levelData;
+    const live = this.game.distractionsSnapshot;
+    const items: HTMLElement[] = [
+      buildInvItem('L', 'Tichá likvidácia', null, [
+        'Vojdi do stráže spoza chrbta alebo zboku a potichu ju vyradíš.',
+        'Čelný útok ťa namiesto toho prezradí — skús to zozadu.',
+      ]),
+    ];
+
+    for (const spec of level.distractions ?? []) {
+      const meta = DISTRACTION_META[spec.kind];
+      const state = live.find((d) => d.id === spec.id);
+      items.push(buildInvItem(meta.icon, meta.label, state?.used ?? false, meta.howTo(spec)));
+    }
+
+    for (const t of level.terminals ?? []) {
+      items.push(
+        buildInvItem('T', 'Terminál', null, [
+          `Vojdi naň — prepne prepojenú bránu (id „${t.gate}“).`,
+        ]),
+      );
+    }
+
+    return el('div', { class: 'panel inventory' }, [
+      el('h2', { text: '▤ Inventár' }),
+      el('div', { class: 'inv-sub', text: `${level.name} — dostupné nástroje a schopnosti` }),
+      el('div', { class: 'inv-list' }, items),
+      el('div', { class: 'outcome-actions' }, [
+        el('button', { class: 'btn primary', text: '▶ Pokračovať', onclick: () => this.closeInventory() }),
+      ]),
+    ]);
+  }
+
   // --- Overlay plumbing ------------------------------------------------------
 
   private renderOverlay(panel: HTMLElement): void {
@@ -397,6 +467,54 @@ function legendItem(swatchClass: string, label: string): HTMLElement {
   return el('span', { class: 'legend-item' }, [
     el('span', { class: `swatch ${swatchClass}` }),
     el('span', { text: label }),
+  ]);
+}
+
+const DIR_LABEL: Record<Dir, string> = { N: 'sever', E: 'východ', S: 'juh', W: 'západ' };
+
+/** Icon, name, and a live description generator for each distraction kind. */
+const DISTRACTION_META: Record<
+  DistractionKind,
+  { icon: string; label: string; howTo: (d: DistractionSpec) => string[] }
+> = {
+  generator: {
+    icon: 'G',
+    label: 'Generátor',
+    howTo: (d) => [
+      `Postav sa naň a stlač E. Stráže do ${d.range} polí sa na jeden ťah pozrú na ${DIR_LABEL[d.direction ?? 'N']}.`,
+    ],
+  },
+  stone: {
+    icon: 'K',
+    label: 'Kameň',
+    howTo: (d) => [
+      'Staň si vedľa neho, otoč sa jeho smerom a stlač E — hodíš ho.',
+      `Stráže do ${d.range} polí začujú úder a pozrú sa na ${DIR_LABEL[d.direction ?? 'N']}.`,
+    ],
+  },
+  bell: {
+    icon: 'Z',
+    label: 'Zvon',
+    howTo: (d) => [`Postav sa naň a stlač E. Každá stráž do ${d.range} polí sa otočí smerom k zvonu.`],
+  },
+};
+
+/** Build a single row of the inventory panel. `used: null` means the ability has no used/available state. */
+function buildInvItem(icon: string, name: string, used: boolean | null, lines: string[]): HTMLElement {
+  const status =
+    used === null
+      ? null
+      : el('span', { class: `inv-status${used ? ' used' : ''}`, text: used ? 'použité' : 'pripravené' });
+  return el('div', { class: `inv-item${used ? ' inv-used' : ''}` }, [
+    el('div', { class: 'inv-icon', text: icon }),
+    el('div', { class: 'inv-body' }, [
+      el(
+        'div',
+        { class: 'inv-name' },
+        status ? [el('span', { text: name }), status] : [el('span', { text: name })],
+      ),
+      ...lines.map((line) => el('div', { class: 'inv-desc', text: line })),
+    ]),
   ]);
 }
 

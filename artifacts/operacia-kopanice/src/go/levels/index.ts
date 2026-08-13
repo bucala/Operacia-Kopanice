@@ -92,7 +92,11 @@ const hliadka: GoLevel = {
   ],
 };
 
-/** 3 — Deus Ex GO hacking. A gate seals the exit niche; trip the terminal to open it. */
+/**
+ * 3 — Deus Ex GO hacking. A gate seals the exit niche; trip the terminal to
+ * open it. A stone near the north crossing gives an optional way to turn the
+ * patrol's sightline away before you cut across its route.
+ */
 const terminal: GoLevel = {
   name: 'Terminál',
   intro: 'Východ je zamknutý. Aktivuj terminál, otvor bránu a prekĺzni okolo hliadky.',
@@ -131,6 +135,11 @@ const terminal: GoLevel = {
     { kind: 'house1', x: 7, y: 2, scale: 1.75 },
     { kind: 'house2', x: 7, y: 4, scale: 1.7 },
     { kind: 'fence', x: 3, y: 0, scale: 0.8 },
+  ],
+  distractions: [
+    // Thrown from an adjacent tile, facing it — redirects the patrol's
+    // sightline away from the crossing at the room's north side.
+    { id: 'stone-terminal', kind: 'stone', x: 2, y: 1, range: 3, direction: 'S' },
   ],
 };
 
@@ -181,7 +190,9 @@ const ulicka: GoLevel = {
 /**
  * 5 — Prejazd. A courtyard with a single narrow gate in the south wall; a
  * sentry patrols the north end while a patrol guard paces the inner courtyard.
- * Thread through the gate the moment the patrol clears the corridor.
+ * Thread through the gate the moment the patrol clears the corridor. A bell
+ * in the courtyard's east corner offers a shared distraction — both guards
+ * turn toward it if they're in range, not just one.
  *
  * Layout (9 × 9): perimeter walls with a single gap at (4,6).
  * Solution: N × 5.
@@ -236,6 +247,11 @@ const prejazd: GoLevel = {
     { kind: 'house1', x: 8, y: 0, scale: 1.65 },
     { kind: 'fence', x: 0, y: 7, scale: 0.72 },
     { kind: 'crate', x: 7, y: 7 },
+  ],
+  distractions: [
+    // A village bell: every guard within range turns to face it, not a fixed
+    // direction — placed off the direct sightline of either guard's beam.
+    { id: 'bell-prejazd', kind: 'bell', x: 6, y: 2, range: 3 },
   ],
 };
 

@@ -14,6 +14,7 @@ import {
 import {
   type Dir,
   DIR_VEC,
+  type DistractionState,
   type GoLevel,
   type GoState,
   type GuardKind,
@@ -150,6 +151,14 @@ export class GoGame {
   get index(): number {
     return this.levelIndex;
   }
+  /** The current level's authored data (name, distractions, terminals, …). */
+  get levelData(): GoLevel {
+    return this.level;
+  }
+  /** Live `used` status for each of the current level's distractions. */
+  get distractionsSnapshot(): readonly DistractionState[] {
+    return this.state.distractions;
+  }
   get turns(): number {
     return this.state.turn;
   }
@@ -223,6 +232,13 @@ export class GoGame {
   /** Freeze the board (a menu/overlay is taking over). */
   pause(): void {
     this.active = false;
+  }
+
+  /** Unfreeze the board after a non-resetting overlay (e.g. the inventory) closes. */
+  resume(): void {
+    this.active = true;
+    this.input.takeKeys();
+    this.input.takeClicks(); // drop anything buffered while paused
   }
 
   private activate(): void {
