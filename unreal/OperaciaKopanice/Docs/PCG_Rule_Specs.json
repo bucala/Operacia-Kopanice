@@ -1,0 +1,76 @@
+{
+  "project": "Operacia Kopanice",
+  "engine": "Unreal Engine 5.4",
+  "pcgGraphs": [
+    {
+      "name": "PCG_OK_Myjava_BeechForest",
+      "input": "Landscape surface inside PCG Volume",
+      "rules": [
+        {
+          "prototype": "EuropeanBeech",
+          "densityPer1000SqM": 62.0,
+          "slopeDegrees": [4.0, 34.0],
+          "altitudeMeters": [280.0, 900.0],
+          "scale": [0.75, 1.45],
+          "alignToNormal": true,
+          "randomYaw": true,
+          "nanite": true,
+          "exclusionMasks": ["RoadSplines", "InteriorVolumes", "SettlementClearings", "MissionCriticalSightlines"]
+        },
+        {
+          "prototype": "UnderstoryShrub",
+          "densityPer1000SqM": 140.0,
+          "slopeDegrees": [0.0, 30.0],
+          "altitudeMeters": [260.0, 880.0],
+          "scale": [0.55, 1.15],
+          "alignToNormal": true,
+          "randomYaw": true,
+          "nanite": false,
+          "exclusionMasks": ["RoadSplines", "InteriorVolumes"]
+        }
+      ]
+    },
+    {
+      "name": "PCG_OK_Vrsatec_LimestoneRocks",
+      "input": "Landscape surface plus optional ridge splines",
+      "rules": [
+        {
+          "prototype": "LimestoneVrsatecRock",
+          "densityPer1000SqM": 9.0,
+          "slopeDegrees": [22.0, 58.0],
+          "altitudeMeters": [390.0, 970.0],
+          "scale": [0.55, 2.8],
+          "alignToNormal": true,
+          "randomYaw": true,
+          "nanite": true,
+          "clustering": {
+            "clusterRadiusCm": 2400.0,
+            "anchorChance": 0.22,
+            "secondaryDebrisChance": 0.68
+          },
+          "exclusionMasks": ["RoadSplines", "BuildingFootprints", "GameplayCoverReserved"]
+        }
+      ]
+    }
+  ],
+  "terrainLayers": [
+    {
+      "name": "Paved_Roads_Interiors",
+      "friction": 1.0,
+      "speedModifier": 1.0,
+      "footprints": "None"
+    },
+    {
+      "name": "Autumn_Mud",
+      "friction": 0.6,
+      "speedModifier": 0.5,
+      "footprints": "Temporary decal, 18-25 second fade"
+    },
+    {
+      "name": "Deep_Winter_Snow",
+      "friction": 0.3,
+      "speedModifier": 0.285,
+      "footprints": "Persistent RVT depth track plus AI query footprint"
+    }
+  ]
+}
