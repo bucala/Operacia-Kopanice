@@ -1,0 +1,167 @@
+[
+  {
+    "name": "Cabin",
+    "source": "C:\\Users\\bucal\\OneDrive\\Obr\u00e1zky\\AI\\Game\\png\\3D_models\\Meshy_AI_Snowy_Wooden_Cabin_Di_0915151619_image-to-3d-texture.blend",
+    "mesh": "SM_OK_Cabin",
+    "dimensions_m": [
+      3.299441337585449,
+      3.299999952316284,
+      2.8331902027130127
+    ],
+    "polygons": 3014231,
+    "material_links": [
+      {
+        "from": "Principled BSDF",
+        "output": "BSDF",
+        "to": "Material Output",
+        "input": "Surface"
+      },
+      {
+        "from": "Image Texture",
+        "output": "Color",
+        "to": "Principled BSDF",
+        "input": "Base Color"
+      },
+      {
+        "from": "Separate Color",
+        "output": "Blue",
+        "to": "Principled BSDF",
+        "input": "Metallic"
+      },
+      {
+        "from": "Separate Color",
+        "output": "Green",
+        "to": "Principled BSDF",
+        "input": "Roughness"
+      },
+      {
+        "from": "Image Texture.001",
+        "output": "Color",
+        "to": "Separate Color",
+        "input": "Color"
+      },
+      {
+        "from": "Normal Map",
+        "output": "Normal",
+        "to": "Principled BSDF",
+        "input": "Normal"
+      },
+      {
+        "from": "Image Texture.002",
+        "output": "Color",
+        "to": "Normal Map",
+        "input": "Color"
+      }
+    ]
+  },
+  {
+    "name": "Car",
+    "source": "C:\\Users\\bucal\\OneDrive\\Obr\u00e1zky\\AI\\Game\\png\\3D_models\\Meshy_AI_classic_black_car_0915151432_image-to-3d-texture.blend",
+    "mesh": "SM_OK_Car",
+    "dimensions_m": [
+      5.199999809265137,
+      1.8635244369506836,
+      1.692124366760254
+    ],
+    "polygons": 3064313,
+    "material_links": [
+      {
+        "from": "Principled BSDF",
+        "output": "BSDF",
+        "to": "Material Output",
+        "input": "Surface"
+      },
+      {
+        "from": "Image Texture",
+        "output": "Color",
+        "to": "Principled BSDF",
+        "input": "Base Color"
+      },
+      {
+        "from": "Separate Color",
+        "output": "Blue",
+        "to": "Principled BSDF",
+        "input": "Metallic"
+      },
+      {
+        "from": "Separate Color",
+        "output": "Green",
+        "to": "Principled BSDF",
+        "input": "Roughness"
+      },
+      {
+        "from": "Image Texture.001",
+        "output": "Color",
+        "to": "Separate Color",
+        "input": "Color"
+      },
+      {
+        "from": "Normal Map",
+        "output": "Normal",
+        "to": "Principled BSDF",
+        "input": "Normal"
+      },
+      {
+        "from": "Image Texture.002",
+        "output": "Color",
+        "to": "Normal Map",
+        "input": "Color"
+      }
+    ]
+  },
+  {
+    "name": "Partisan",
+    "source": "C:\\Users\\bucal\\OneDrive\\Obr\u00e1zky\\AI\\Game\\png\\3D_models\\Meshy_AI_Slovak_Partisan_Figur_0915153436_texture.blend",
+    "mesh": "SM_OK_Partisan",
+    "dimensions_m": [
+      0.41358432173728943,
+      0.6767948865890503,
+      1.7999999523162842
+    ],
+    "polygons": 431821,
+    "material_links": [
+      {
+        "from": "Principled BSDF",
+        "output": "BSDF",
+        "to": "Material Output",
+        "input": "Surface"
+      },
+      {
+        "from": "Image Texture",
+        "output": "Color",
+        "to": "Principled BSDF",
+        "input": "Base Color"
+      },
+      {
+        "from": "Separate Color",
+        "output": "Blue",
+        "to": "Principled BSDF",
+        "input": "Metallic"
+      },
+      {
+        "from": "Separate Color",
+        "output": "Green",
+        "to": "Principled BSDF",
+        "input": "Roughness"
+      },
+      {
+        "from": "Image Texture.001",
+        "output": "Color",
+        "to": "Separate Color",
+        "input": "Color"
+      },
+      {
+        "from": "Normal Map",
+        "output": "Normal",
+        "to": "Principled BSDF",
+        "input": "Normal"
+      },
+      {
+        "from": "Image Texture.002",
+        "output": "Color",
+        "to": "Normal Map",
+        "input": "Color"
+      }
+    ]
+  }
+]

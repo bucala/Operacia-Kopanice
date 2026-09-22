@@ -1,0 +1,45 @@
+{
+  "source": "C:/Users/bucal/OneDrive/Obr\u00e1zky/AI/Game/png/3D_models/Meshy_AI_Winter_Forest_Asset_C_0915163054_texture.blend",
+  "assets": [
+    {
+      "mesh": "SM_OK_SnowFir",
+      "source_part": "Mesh_0.002",
+      "polygons": 808468,
+      "dimensions_m": [
+        2.788411855697632,
+        2.607306957244873,
+        4.800000190734863
+      ]
+    },
+    {
+      "mesh": "SM_OK_SnowFirSmall",
+      "source_part": "Mesh_0.007",
+      "polygons": 423277,
+      "dimensions_m": [
+        2.026472330093384,
+        2.103661060333252,
+        3.8000001907348633
+      ]
+    },
+    {
+      "mesh": "SM_OK_SnowShrub",
+      "source_part": "Mesh_0.013",
+      "polygons": 588027,
+      "dimensions_m": [
+        1.469682216644287,
+        1.243509292602539,
+        1.0
+      ]
+    },
+    {
+      "mesh": "SM_OK_ForestRock",
+      "source_part": "Mesh_0.006",
+      "polygons": 59912,
+      "dimensions_m": [
+        2.155031204223633,
+        1.3458397388458252,
+        1.0000001192092896
+      ]
+    }
+  ]
+}

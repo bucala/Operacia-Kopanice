@@ -38,6 +38,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Building")
 	bool bGeneratePorch = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Building")
+	bool bWinterDetails = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Materials")
 	TObjectPtr<UMaterialInterface> LogMaterial = nullptr;
 
@@ -61,5 +64,6 @@ private:
 	TArray<TObjectPtr<UStaticMeshComponent>> GeneratedParts;
 
 	void ClearGeneratedParts();
+	void AddWinterDetails(float Width, float Depth, float PlinthHeight);
 	UStaticMeshComponent* AddBoxPart(FName Name, FVector LocalLocation, FVector LocalScale, UMaterialInterface* Material);
 };

@@ -1,0 +1,1003 @@
+[
+  {
+    "file": "Meshy_AI_classic_black_car_0915151432_image-to-3d-texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 1531892,
+        "polygons": 3064313,
+        "dimensions": [
+          1.8931770324707031,
+          0.6784579753875732,
+          0.616055965423584
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          4096,
+          4096
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          4096,
+          4096
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Olive_Command_Caravan_0915152829_texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 824989,
+        "polygons": 1650595,
+        "dimensions": [
+          0.8235099911689758,
+          1.9006729125976562,
+          1.0005580186843872
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Slovak_Partisan_Figur_0915151716_image-to-3d-texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 1536623,
+        "polygons": 3073346,
+        "dimensions": [
+          1.838621973991394,
+          1.8381690979003906,
+          1.899582028388977
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          4096,
+          4096
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          4096,
+          4096
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Slovak_Partisan_Figur_0915153436_texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 335035,
+        "polygons": 670176,
+        "dimensions": [
+          1.5425519943237305,
+          1.5223000049591064,
+          1.903535008430481
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Slovak_Partisan_Machi_0915155747_texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 540050,
+        "polygons": 1080436,
+        "dimensions": [
+          1.6877789497375488,
+          1.6378679275512695,
+          1.902014970779419
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Slovak_Partisan_Parat_0915161103_texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 718617,
+        "polygons": 1438134,
+        "dimensions": [
+          1.5429160594940186,
+          1.5255661010742188,
+          1.8949759006500244
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Slovak_Partisan_Tank__0915160525_texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 221446,
+        "polygons": 442969,
+        "dimensions": [
+          1.9019379615783691,
+          1.8968830108642578,
+          1.7132480144500732
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Snowbound_Partisan_0915161630_texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 449946,
+        "polygons": 900334,
+        "dimensions": [
+          1.9018149375915527,
+          1.9017319679260254,
+          1.7213120460510254
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Snowy_Wooden_Cabin_Di_0915151619_image-to-3d-texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 1504593,
+        "polygons": 3014231,
+        "dimensions": [
+          1.9021570682525635,
+          1.9024789333343506,
+          1.6333589553833008
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          4096,
+          4096
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          4096,
+          4096
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Winter_Forest_Asset_C_0915163054_texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 2980203,
+        "polygons": 5969758,
+        "dimensions": [
+          1.5067028999328613,
+          1.869894027709961,
+          0.5413749814033508
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          8192,
+          8192
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          4096,
+          4096
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          4096,
+          4096
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Winter_Partisan_Snipe_0915160147_texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 684324,
+        "polygons": 1369116,
+        "dimensions": [
+          1.6624040603637695,
+          1.9026949405670166,
+          1.4121290445327759
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Winterwood_Cabin_0915154730_texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 3822149,
+        "polygons": 7763398,
+        "dimensions": [
+          1.9012210369110107,
+          1.7347180843353271,
+          1.306210994720459
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "Meshy_AI_Ženista_Slovak_Parti_0915155341_texture.blend",
+    "objects": [
+      {
+        "name": "Mesh_0",
+        "vertices": 618789,
+        "polygons": 1238762,
+        "dimensions": [
+          1.9030410051345825,
+          1.8057188987731934,
+          1.8162219524383545
+        ],
+        "location": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "uv_layers": 1,
+        "materials": [
+          "Material_0"
+        ]
+      }
+    ],
+    "images": [
+      {
+        "name": "Image_0",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_1",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      },
+      {
+        "name": "Image_2",
+        "size": [
+          2048,
+          2048
+        ],
+        "packed": true,
+        "path": ""
+      }
+    ],
+    "materials": [
+      {
+        "name": "Material_0",
+        "textures": [
+          {
+            "node": "Image Texture",
+            "image": "Image_0"
+          },
+          {
+            "node": "Image Texture.001",
+            "image": "Image_1"
+          },
+          {
+            "node": "Image Texture.002",
+            "image": "Image_2"
+          }
+        ]
+      }
+    ]
+  }
+]
