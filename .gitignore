@@ -11,6 +11,12 @@ out-tsc
 # dependencies
 node_modules
 
+# Unreal Engine generated files
+**/Binaries/
+**/Intermediate/
+**/Saved/
+**/DerivedDataCache/
+
 # IDEs and editors
 /.idea
 .project
