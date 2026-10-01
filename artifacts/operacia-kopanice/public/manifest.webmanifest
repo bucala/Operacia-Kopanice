@@ -1,0 +1,17 @@
+{
+  "name": "Operácia Kopanice",
+  "short_name": "Kopanice",
+  "description": "Ťahová taktická stealth hra z Kopaníc.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#17191c",
+  "theme_color": "#17191c",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

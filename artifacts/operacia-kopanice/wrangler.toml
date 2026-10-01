@@ -1,0 +1,6 @@
+name = "operacia-kopanice"
+compatibility_date = "2026-08-09"
+
+[assets]
+directory = "./dist/public"
+not_found_handling = "single-page-application"
