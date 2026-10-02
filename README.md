@@ -39,6 +39,8 @@ Spustenie: `unreal/OperaciaKopanice/Start-Demo.ps1 -Build` v PowerShelli.
 Vyžaduje UE 5.8, Windows C++ build tools a `git lfs pull`.
 Ide o editorom hostované demo, nie hotový EXE/APK ani Unreal web build.
 Postavy sú zatiaľ statické modely s provizórnymi pózami, nie rigované animácie.
+Menu uchováva nastavenia kvality grafiky, zorných kužeľov, náhľadu ciest
+a krokovej kamery aj po ďalšom spustení hry.
 
 [Ovládanie a overenie dema](unreal/OperaciaKopanice/PLAY_DEMO.md) ·
 [Architektúra real-time migrácie](unreal/OperaciaKopanice/Docs/REALTIME_STEALTH.md).

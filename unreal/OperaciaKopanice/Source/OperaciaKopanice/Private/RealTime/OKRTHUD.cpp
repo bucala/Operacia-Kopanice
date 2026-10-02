@@ -196,7 +196,7 @@ void AOKRTHUD::DrawHUD()
     Button(TEXT("circle_dot"),X+2*(S+4),Y,S,TEXT("Odlakanie (F)"),[PC](){ PC->Arm(EOKOrder::Distract); },PC->bArmed && PC->ArmedOrder==EOKOrder::Distract);
     Button(TEXT("hand"),X+3*(S+4),Y,S,TEXT("Interakcia (E)"),[G](){ FOKRTOrder O; O.Kind=EOKOrder::Interact; G->Command(O); });
     Button(TEXT("backpack"),X+4*(S+4),Y,S,TEXT("Preniest / polozit telo (B)"),[PC](){ PC->Arm(EOKOrder::Carry); });
-    Button(TEXT("eye"),X+5*(S+4),Y,S,TEXT("Zorne kuzele"),[G](){ G->bCones=!G->bCones; for (AOKRTUnit* U:G->Enemies) U->Vision->bConeVisible=G->bCones; },G->bCones);
+    Button(TEXT("eye"),X+5*(S+4),Y,S,TEXT("Zorne kuzele"),[G](){ G->ToggleCones(); },G->bCones);
     Button(TEXT("menu"),X+6*(S+4),Y,S,TEXT("Menu (Esc)"),[G](){ G->ToggleMenu(); });
     const FName StanceIcons[]={TEXT("footprints"),TEXT("move_right"),TEXT("chevron_down"),TEXT("minus")};
     const TCHAR* StanceNames[]={TEXT("Chodza (W)"),TEXT("Beh (R)"),TEXT("Prikrcenie (C)"),TEXT("Plazenie (V)")};
@@ -221,10 +221,11 @@ void AOKRTHUD::DrawHUD()
         {
             auto Row=[&](FName Name,float DY,const FString& Text,TFunction<void()> Action,bool Active)
             { Button(Name,MX+20,MY+DY,40,Text,MoveTemp(Action),Active); Label(Text,MX+72,MY+DY+12,1); };
-            Row(TEXT("eye"),70,TEXT("Zorne kuzele"),[G](){ G->bCones=!G->bCones; for (AOKRTUnit* U:G->Enemies) U->Vision->bConeVisible=G->bCones; },G->bCones);
-            Row(TEXT("footprints"),118,TEXT("Nahlad cesty"),[G](){ G->bPathPreview=!G->bPathPreview; },G->bPathPreview);
-            Row(TEXT("rotate_cw"),166,TEXT("Kamera po 45 stupnoch"),[G](){ G->bSteppedCamera=!G->bSteppedCamera; },G->bSteppedCamera);
-            Row(TEXT("sun"),214,FString::Printf(TEXT("Kvalita: %d"),G->Quality),[G](){ G->Quality=(G->Quality+1)%4; Scalability::FQualityLevels L; L.SetFromSingleQualityLevel(G->Quality); Scalability::SetQualityLevels(L); },false);
+            Row(TEXT("eye"),70,TEXT("Zorne kuzele"),[G](){ G->ToggleCones(); },G->bCones);
+            Row(TEXT("footprints"),118,TEXT("Nahlad cesty"),[G](){ G->bPathPreview=!G->bPathPreview; G->SavePreferences(); },G->bPathPreview);
+            Row(TEXT("rotate_cw"),166,TEXT("Kamera po 45 stupnoch"),[G](){ G->bSteppedCamera=!G->bSteppedCamera; G->SavePreferences(); },G->bSteppedCamera);
+            const TCHAR* QualityNames[]={TEXT("Nizka"),TEXT("Stredna"),TEXT("Vysoka"),TEXT("Ultra")};
+            Row(TEXT("sun"),214,FString::Printf(TEXT("Kvalita: %s"),QualityNames[FMath::Clamp(G->Quality,0,3)]),[G](){ G->CycleQuality(); },false);
             Button(TEXT("undo_2"),MX+MW-60,MY+252,36,TEXT("Spat"),[G](){ G->bOptions=false; });
         }
         else

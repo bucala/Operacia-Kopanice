@@ -31,6 +31,7 @@
 #include "Scalability.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Misc/ConfigCacheIni.h"
 
 AOKRTGameMode::AOKRTGameMode()
 {
@@ -76,8 +77,48 @@ void AOKRTGameMode::StartPlay()
     Super::StartPlay();
     bSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
     SmokeStarted=StageStarted=FPlatformTime::Seconds();
+    if (!bSmoke) LoadPreferences();
     BuildScene();
+    for (AOKRTUnit* Unit:Enemies) Unit->Vision->bConeVisible=bCones;
     Message=TEXT("Infiltracia zacala.");
+}
+void AOKRTGameMode::LoadPreferences()
+{
+    const TCHAR* Section=TEXT("OperaciaKopanice.RealTime");
+    GConfig->GetBool(Section,TEXT("Cones"),bCones,GGameUserSettingsIni);
+    GConfig->GetBool(Section,TEXT("PathPreview"),bPathPreview,GGameUserSettingsIni);
+    GConfig->GetBool(Section,TEXT("SteppedCamera"),bSteppedCamera,GGameUserSettingsIni);
+    GConfig->GetInt(Section,TEXT("Quality"),Quality,GGameUserSettingsIni);
+    Quality=FMath::Clamp(Quality,0,3);
+    Scalability::FQualityLevels Levels;
+    Levels.SetFromSingleQualityLevel(Quality);
+    Scalability::SetQualityLevels(Levels);
+}
+void AOKRTGameMode::SavePreferences()
+{
+    // Integration fixtures must not overwrite the player's preferences.
+    if (bSmoke) return;
+    const TCHAR* Section=TEXT("OperaciaKopanice.RealTime");
+    GConfig->SetBool(Section,TEXT("Cones"),bCones,GGameUserSettingsIni);
+    GConfig->SetBool(Section,TEXT("PathPreview"),bPathPreview,GGameUserSettingsIni);
+    GConfig->SetBool(Section,TEXT("SteppedCamera"),bSteppedCamera,GGameUserSettingsIni);
+    GConfig->SetInt(Section,TEXT("Quality"),Quality,GGameUserSettingsIni);
+    GConfig->Flush(false,GGameUserSettingsIni);
+    if (!bPathPreview) PreviewSpline->ClearSplinePoints();
+}
+void AOKRTGameMode::ToggleCones()
+{
+    bCones=!bCones;
+    for (AOKRTUnit* Unit:Enemies) Unit->Vision->bConeVisible=bCones;
+    SavePreferences();
+}
+void AOKRTGameMode::CycleQuality()
+{
+    Quality=(Quality+1)%4;
+    Scalability::FQualityLevels Levels;
+    Levels.SetFromSingleQualityLevel(Quality);
+    Scalability::SetQualityLevels(Levels);
+    SavePreferences();
 }
 void AOKRTGameMode::BuildScene()
 {

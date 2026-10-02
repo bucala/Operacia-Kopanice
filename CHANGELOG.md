@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Unreal Demo
+
+- Persist real-time view-cone, path-preview, stepped-camera and graphics-quality
+  preferences between launches in local GameUserSettings.ini.
+- Display named graphics presets instead of numeric quality levels; turning off
+  path preview immediately clears the hover route.
+- Keep integration smoke fixtures isolated from player preference files.
+
 ### Added
 
 - Added mouse-wheel/trackpad-pinch zoom for the game board, plus discoverable −/+ buttons in the top bar; zoom is clamped to a min/max range around each level's fit-to-screen view and survives window resize.

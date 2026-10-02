@@ -33,6 +33,10 @@ public:
     bool Command(FOKRTOrder Order,bool bAppend=false);
     void TogglePause();
     void ToggleMenu();
+    void LoadPreferences();
+    void SavePreferences();
+    void ToggleCones();
+    void CycleQuality();
     void Orbit(float Yaw,float Tilt,float Zoom=0);
     void Pan(float X,float Y);
     void FocusSelected();

@@ -88,7 +88,9 @@ Pausing stops physics, patrols, cooldowns and detection, while selection, target
 camera and queued commands remain usable. Queues are limited to 32 per unit.
 Menu pauses the world separately and preserves an existing tactical pause.
 Options cover cones, path preview, stepped camera and four quality presets;
-these new real-time preferences are session-local.
+these real-time preferences are saved locally in GameUserSettings.ini and restored
+after restarting the mission or game. Smoke fixtures neither load nor overwrite
+player preferences. Quality presets are named Low, Medium, High and Ultra.
 
 When path preview is enabled, selected party members show their queued
 Move/Takedown/Carry destinations as real NavMesh route segments. The active
