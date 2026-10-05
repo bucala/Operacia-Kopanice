@@ -31,6 +31,12 @@ Any party death fails the mission.
 The mission starts in tactical pause once navigation is ready, allowing an initial
 plan before guards begin moving. Resume with Space or the pause icon.
 
+The west guard waits north-facing for 12 seconds, approaches the bridge, watches
+east for 2 seconds, then turns north and returns. The southern east-bank guard
+also alternates patrol and short observation stops. Approach the west bank in a
+crouch, wait for the west guard to return and face north, then cross together.
+Sight and hearing still react to exposed or noisy movement, including during waits.
+
 Two guards patrol continuously. The near zone detects standing units immediately;
 the far zone fills suspicion gradually. Crouching, prone stance and nearby cover
 reduce detection. Walls block sight; running is audible over a larger distance.
@@ -136,9 +142,11 @@ only in the legacy mode; large 48 x 48 and 96 x 96 real-time missions are not au
 No grid, cell moves, turn counter, undo-turn action or turn coordinator drives
 the new mode. Approved physical building/vehicle envelopes are unchanged.
 
-Characters are supplied static meshes, not rigged animated characters.
-Crouch/prone/body poses are explicitly placeholder transforms; production locomotion,
-takedown/carry animation, animation-driven combat and historical uniform review remain.
+Characters use derived 14-bone skinned models with velocity-driven leg/arm cycles
+and smoothed stance transitions. Players and guards have a shared 180 cm standing
+height. See `Docs/CHARACTER_MOTION.md` for measurements and the Blender pipeline.
+Prone/body poses still include placeholder transforms; dedicated production
+takedown/carry clips, foot IK, cloth and historical uniform review remain.
 AI uses a native finite-state controller with Sight/Hearing perception, not a
 Behavior Tree asset. Collision proxies currently cover the playable banks,
 bridge, main cabin and cover crate; imported decorative meshes remain collision-free.

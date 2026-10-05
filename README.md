@@ -38,7 +38,11 @@ Jedna misia zahŕňa získanie TNT, prechod dvojice cez most, sabotáž a spolo�
 Spustenie: `unreal/OperaciaKopanice/Start-Demo.ps1 -Build` v PowerShelli.
 Vyžaduje UE 5.8, Windows C++ build tools a `git lfs pull`.
 Ide o editorom hostované demo, nie hotový EXE/APK ani Unreal web build.
-Postavy sú zatiaľ statické modely s provizórnymi pózami, nie rigované animácie.
+Postavy aj hliadky používajú odvodené modely s kostrou a procedurálnou animáciou
+chôdze podľa rýchlosti. Výška je zjednotená na 180 cm; animácie útoku a prenášania
+tiel zostávajú provizórne.
+Prvá misia má časované hliadky: pri moste vojak čaká 12 sekúnd otočený na sever
+a následne most krátko kontroluje. Test celej misie prechádza so zapnutou AI.
 Menu uchováva nastavenia kvality grafiky, zorných kužeľov, náhľadu ciest
 a krokovej kamery aj po ďalšom spustení hry.
 

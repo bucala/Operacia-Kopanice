@@ -151,10 +151,33 @@ Seven supplied base materials were saved with Nanite usage enabled via
 prepare_realtime_materials.py; subsequent rendered runs no longer reported missing
 Nanite usage or failed material compilation.
 
-## Not Verified
+## Mission Playability Fixture
+
+Run `./Start-Demo.ps1 -MissionSmokeTest` after building. This separate rendered
+fixture leaves both guard brains, sight, hearing, patrol routes and damage active.
+It checks patrol reachability, waits at the unmodified spawn for 40 simulation
+seconds, measures bridge observation/crossing windows, and issues normal stance,
+movement and interaction orders through TNT pickup, sabotage and extraction.
+It fails on combat, death, disabled guards or an unreachable objective. It never
+teleports actors or neutralizes guards to complete the route.
+
+On 2026-10-05, the rendered 1280 x 720 run passed all 14 checks. Both guards
+remained active. The unmodified spawn stayed at zero suspicion for 40 seconds;
+the party then collected TNT, crossed together, destroyed the bridge and reached
+extraction at simulation time 67.24 seconds with 100 health each. Evidence:
+`OKRT_MissionWin.png`; local log `DemoSmoke-65a9f1d8b65a42009567546001a3ee23.log`.
+The broader 1920 x 1080 fixture then passed 77/77 checks, including animations,
+pause/queues, selection, takedown/carry/hide, hearing, sabotage, victory and combat
+loss, with no material compilation failures (`DemoSmoke-0bf6ad780a80445a9aedd1c72ca55f60.log`).
+Measured gait offsets remained 0.0000 cm lateral / 0.5992 cm vertical.
+The 480 x 800 HUD/animation fixture also passed earlier on the same date, before
+the patrol revision (`DemoSmoke-5bb1b3aa3b944c92a2ba21b0a408050b.log`).
+
+## Remaining Verification Limits
 
 No packaged Windows build, Android device/APK, browser port, multiplayer,
 shipping configuration or manual complete mouse/touch playthrough is certified.
-No rigged animation exists on the supplied static character meshes.
+Derived skinned character models now use procedural locomotion; production
+animation clips, foot IK and cloth simulation remain unimplemented.
 Real-time large missions and production-grade terrain/interior collision remain
 future work. Screenshots are actual prototype output, not reference-quality parity.

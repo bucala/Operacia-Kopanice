@@ -2,12 +2,17 @@ param(
     [string]$EngineRoot = 'D:\Hry\Epic\UE_5.8',
     [switch]$Build,
     [switch]$SmokeTest,
+    [switch]$MissionSmokeTest,
     [switch]$CabinReview,
     [switch]$LegacyGridDemo,
     [ValidateRange(480,3840)][int]$Width = 1280,
     [ValidateRange(480,2160)][int]$Height = 720
 )
 $ErrorActionPreference = 'Stop'
+if ($MissionSmokeTest) {
+    if ($LegacyGridDemo) { throw 'MissionSmokeTest requires the real-time demo.' }
+    $SmokeTest = $true
+}
 $Project = Join-Path $PSScriptRoot 'OperaciaKopanice.uproject'
 $Editor = Join-Path $EngineRoot 'Engine/Binaries/Win64/UnrealEditor.exe'
 if (!(Test-Path -LiteralPath $Editor)) { throw "Unreal Editor not found: $Editor" }
@@ -29,7 +34,7 @@ $Map = if ($LegacyGridDemo) { '/Engine/Maps/Entry?game=/Script/OperaciaKopanice.
 $Arguments = @($Project, $Map, '-game', '-Windowed', "-ResX=$Width", "-ResY=$Height", '-NoSplash')
 if ($SmokeTest) {
     $SmokeLog = Join-Path $PSScriptRoot ('Saved/Logs/DemoSmoke-' + [guid]::NewGuid().ToString('N') + '.log')
-    $SmokeFlag = if ($LegacyGridDemo) { '-OKDemoSmoke' } else { '-OKRTSmoke' }
+    $SmokeFlag = if ($MissionSmokeTest) { '-OKRTMissionSmoke' } elseif ($LegacyGridDemo) { '-OKDemoSmoke' } else { '-OKRTSmoke' }
     $Arguments += @($SmokeFlag, '-RenderOffscreen', '-Unattended', '-NoSound', '-ForceRes', "-AbsLog=$SmokeLog")
 }
 if ($CabinReview) { $Arguments += '-OKCabinReview' }
@@ -44,7 +49,7 @@ if ($SmokeTest) {
 if ($Process.ExitCode -ne 0) { throw "Demo exited with code $($Process.ExitCode)" }
 if ($SmokeTest) {
     $LogText = Get-Content -LiteralPath $SmokeLog -Raw
-    $Pass = if ($LegacyGridDemo) { 'OK_DEMO_SMOKE: PASS' } else { 'OK_RT_SMOKE: PASS' }
+    $Pass = if ($MissionSmokeTest) { 'OK_RT_MISSION: PASS' } elseif ($LegacyGridDemo) { 'OK_DEMO_SMOKE: PASS' } else { 'OK_RT_SMOKE: PASS' }
     if ($LogText -notmatch $Pass -or $LogText -match 'Failed to compile Material') {
         throw "Rendered smoke test failed. See $SmokeLog"
     }

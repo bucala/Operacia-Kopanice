@@ -4,6 +4,20 @@
 
 ### Unreal Demo
 
+- Replan Mission 1 patrols with authored watch directions and dwell times. The west
+  guard faces away from the party for 12 seconds, watches the bridge for 2 seconds,
+  then turns north before returning. The east guard patrols the southern bank.
+- Add a live-AI mission fixture covering a 40-second safe start, TNT collection,
+  timed bridge crossing, sabotage and extraction without disabling guards.
+- Add lightweight 14-bone derivatives of the supplied Partisan and Officer models
+  for all party members and guards, normalized to 180 cm with shared textures.
+- Drive limb animation from real-time movement and smooth stance changes. Apply
+  pelvis offsets in component centimetres to prevent FBX scale/axis amplification;
+  cap cadence and test lateral stability and vertical bob over a complete cycle.
+- Blend snow into road edges, add shallow-water shoreline colour and wood snow dust.
+- Make menu labels clickable, add mission restart, hover feedback, inventory/order
+  icons, real-time status and armed-ability feedback.
+
 - Persist real-time view-cone, path-preview, stepped-camera and graphics-quality
   preferences between launches in local GameUserSettings.ini.
 - Display named graphics presets instead of numeric quality levels; turning off

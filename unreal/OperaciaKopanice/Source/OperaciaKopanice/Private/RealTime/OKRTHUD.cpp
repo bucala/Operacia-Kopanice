@@ -38,7 +38,9 @@ void AOKRTHUD::Icon(FName Name,float X,float Y,float Size,FLinearColor Color)
 }
 void AOKRTHUD::Button(FName Name,float X,float Y,float Size,const FString& Tip,TFunction<void()> Action,bool Active)
 {
-    DrawRect(Active ? FLinearColor(.35f,.31f,.18f,.95f) : FLinearColor(.035f,.04f,.045f,.88f),X,Y,Size,Size);
+    float MX=0,MY=0;
+    const bool Hover=PlayerOwner->GetMousePosition(MX,MY) && MX>=X && MY>=Y && MX<X+Size && MY<Y+Size;
+    DrawRect(Active ? FLinearColor(.35f,.31f,.18f,.95f) : Hover ? FLinearColor(.14f,.18f,.18f,.96f) : FLinearColor(.035f,.04f,.045f,.88f),X,Y,Size,Size);
     Icon(Name,X+8,Y+8,Size-16,FLinearColor(.91f,.8f,.52f));
     Buttons.Add({FBox2D(FVector2D(X,Y),FVector2D(X+Size,Y+Size)),MoveTemp(Action),Tip});
 }
@@ -114,7 +116,10 @@ void AOKRTHUD::DrawHUD()
         Label(Unit->DisplayName,X+7,Y+Card,Compact ? 1 : 1.15f,FLinearColor(.91f,.8f,.52f));
         DrawRect(FLinearColor(.15f,.15f,.15f),X+7,Y+Card+23,Card-14,4);
         DrawRect(FLinearColor(.35f,.66f,.45f),X+7,Y+Card+23,(Card-14)*Unit->Health/100,4);
-        Label(FString::Printf(TEXT("%d | %d"),Unit->Distractions,Unit->QueueSize()),X+7,Y+Card+29,.85f);
+        Icon(TEXT("circle_dot"),X+7,Y+Card+29,14,FLinearColor(.8f,.83f,.8f));
+        Label(FString::FromInt(Unit->Distractions),X+23,Y+Card+29,.85f);
+        Icon(TEXT("move_right"),X+37,Y+Card+29,14,FLinearColor(.8f,.83f,.8f));
+        Label(FString::FromInt(Unit->QueueSize()),X+53,Y+Card+29,.85f);
         if (Active) Icon(TEXT("crosshair"),X+Card-23,Y+Card+29,16,FLinearColor(.91f,.8f,.52f));
         const FBox2D Bounds(FVector2D(X,Y),FVector2D(X+Card,Y+Card+48));
         Panels.Add(Bounds); Buttons.Add({Bounds,[G,PC,I](){ G->Select(I,PC->IsInputKeyDown(EKeys::LeftShift) || PC->IsInputKeyDown(EKeys::RightShift)); },
@@ -125,7 +130,8 @@ void AOKRTHUD::DrawHUD()
     DrawRect(FLinearColor(.025f,.03f,.035f,.83f),W-ObjectiveWidth-16,18,ObjectiveWidth,86);
     Panels.Add(FBox2D(FVector2D(W-ObjectiveWidth-16,18),FVector2D(W-16,104)));
     Wrap(G->Objective(),W-ObjectiveWidth-6,28,ObjectiveWidth-20,Compact ? .95f : 1.2f);
-    if (G->bTacticalPause) Label(TEXT("PAUZA"),W-ObjectiveWidth-6,80,1,FLinearColor(.91f,.8f,.52f));
+    Label(G->bTacticalPause ? TEXT("TAKTICKA PAUZA") : TEXT("REALNY CAS"),W-ObjectiveWidth-6,80,.9f,
+        G->bTacticalPause ? FLinearColor(.91f,.8f,.52f) : FLinearColor(.55f,.83f,.65f));
     for (AOKRTUnit* Enemy:G->Enemies)
     {
         if (!Enemy->IsAlive()) continue;
@@ -209,31 +215,43 @@ void AOKRTHUD::DrawHUD()
     const float MessageY=Compact ? Y-52 : H-68;
     DrawRect(FLinearColor(.025f,.03f,.035f,.82f),16,MessageY,MessageW,44);
     Panels.Add(FBox2D(FVector2D(16,MessageY),FVector2D(16+MessageW,MessageY+44)));
-    Wrap(Unit->Cooldown>0 ? FString::Printf(TEXT("%s | %.1fs"),*G->Message,Unit->Cooldown) : G->Message,24,MessageY+10,MessageW-16,.95f);
+    const FString Feedback=PC->bArmed ? PC->ArmedOrder==EOKOrder::Takedown ? TEXT("Tichy utok: vyber hliadku") :
+        PC->ArmedOrder==EOKOrder::Carry ? TEXT("Preniest telo: vyber ciel") : TEXT("Odlakanie: vyber miesto") : G->Message;
+    Wrap(Unit->Cooldown>0 ? FString::Printf(TEXT("%s | %.1fs"),*Feedback,Unit->Cooldown) : Feedback,24,MessageY+10,MessageW-16,.95f);
     if (G->bMenu || G->bWon || G->bLost)
     {
         DrawRect(FLinearColor(0,0,0,.55f),0,0,W,H);
         Buttons.Reset(); Panels.Reset(); Panels.Add(FBox2D(FVector2D(0,0),FVector2D(W,H)));
-        const float MW=FMath::Min(400.f,W-40),MX=(W-MW)/2,MY=FMath::Max(20.f,(H-300)/2);
-        DrawRect(FLinearColor(.03f,.035f,.04f,.98f),MX,MY,MW,300);
+        const float MW=FMath::Min(400.f,W-40),MX=(W-MW)/2,MY=FMath::Max(20.f,(H-350)/2);
+        DrawRect(FLinearColor(.03f,.035f,.04f,.98f),MX,MY,MW,350);
+        DrawRect(FLinearColor(.81f,.68f,.36f),MX,MY,MW,3);
         Label(G->bOptions ? TEXT("Nastavenia") : G->bWon ? TEXT("Misia splnena") : G->bLost ? TEXT("Misia zlyhala") : TEXT("Operacia Kopanice"),MX+20,MY+20,1.5f,FLinearColor(.91f,.8f,.52f));
         if (G->bOptions)
         {
             auto Row=[&](FName Name,float DY,const FString& Text,TFunction<void()> Action,bool Active)
-            { Button(Name,MX+20,MY+DY,40,Text,MoveTemp(Action),Active); Label(Text,MX+72,MY+DY+12,1); };
+            { Button(Name,MX+20,MY+DY,40,Text,MoveTemp(Action),Active);
+              Buttons.Last().Bounds.Max.X=MX+MW-20;
+              Label(Text,MX+72,MY+DY+12,1); };
             Row(TEXT("eye"),70,TEXT("Zorne kuzele"),[G](){ G->ToggleCones(); },G->bCones);
             Row(TEXT("footprints"),118,TEXT("Nahlad cesty"),[G](){ G->bPathPreview=!G->bPathPreview; G->SavePreferences(); },G->bPathPreview);
             Row(TEXT("rotate_cw"),166,TEXT("Kamera po 45 stupnoch"),[G](){ G->bSteppedCamera=!G->bSteppedCamera; G->SavePreferences(); },G->bSteppedCamera);
             const TCHAR* QualityNames[]={TEXT("Nizka"),TEXT("Stredna"),TEXT("Vysoka"),TEXT("Ultra")};
             Row(TEXT("sun"),214,FString::Printf(TEXT("Kvalita: %s"),QualityNames[FMath::Clamp(G->Quality,0,3)]),[G](){ G->CycleQuality(); },false);
-            Button(TEXT("undo_2"),MX+MW-60,MY+252,36,TEXT("Spat"),[G](){ G->bOptions=false; });
+            Button(TEXT("undo_2"),MX+MW-60,MY+292,36,TEXT("Spat"),[G](){ G->bOptions=false; });
         }
         else
         {
             const bool Ended=G->bWon || G->bLost;
-            Button(TEXT("play"),MX+20,MY+80,44,Ended ? TEXT("Nova misia") : TEXT("Pokracovat"),[G,Ended](){ if (Ended) G->Restart(); else G->ToggleMenu(); }); Label(Ended ? TEXT("Nova misia") : TEXT("Pokracovat"),MX+80,MY+93,1.1f);
-            Button(TEXT("settings"),MX+20,MY+140,44,TEXT("Nastavenia"),[G](){ G->bOptions=true; }); Label(TEXT("Nastavenia"),MX+80,MY+153,1.1f);
-            Button(TEXT("menu"),MX+20,MY+200,44,TEXT("Ukoncit hru"),[PC](){ PC->ConsoleCommand(TEXT("quit")); }); Label(TEXT("Ukoncit"),MX+80,MY+213,1.1f);
+            auto MenuRow=[&](FName Name,float DY,const TCHAR* Text,TFunction<void()> Action)
+            {
+                Button(Name,MX+20,MY+DY,44,Text,MoveTemp(Action));
+                Buttons.Last().Bounds.Max.X=MX+MW-20;
+                Label(Text,MX+80,MY+DY+13,1.1f);
+            };
+            MenuRow(TEXT("play"),76,Ended ? TEXT("Nova misia") : TEXT("Pokracovat"),[G,Ended](){ if (Ended) G->Restart(); else G->ToggleMenu(); });
+            MenuRow(TEXT("settings"),136,TEXT("Nastavenia"),[G](){ G->bOptions=true; });
+            MenuRow(TEXT("rotate_ccw"),196,TEXT("Restart misie"),[G](){ G->Restart(); });
+            MenuRow(TEXT("menu"),256,TEXT("Ukoncit hru"),[PC](){ PC->ConsoleCommand(TEXT("quit")); });
         }
     }
     float MouseX,MouseY;

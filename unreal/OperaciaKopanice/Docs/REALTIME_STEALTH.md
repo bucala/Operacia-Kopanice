@@ -43,6 +43,16 @@ elevation and authored interiors are introduced.
 
 ## Perception
 
+Patrol routes contain `FOKRTPatrolStop` entries (world position, facing yaw and
+wait seconds). Controllers first reach the stop, rotate at 90 degrees/second,
+then start its observation timer. Failed paths retry without consuming a stop;
+investigation interrupts the timer and returns to the pending stop afterward.
+`PatrolWaitRemaining()` exposes the current stop timer to Blueprint/debug tooling.
+Mission 1 starts south of the west patrol. Its north-facing rest lasts 12 seconds,
+its east-facing bridge watch 2 seconds, and an explicit north-facing turn stop
+keeps the returning cone away from the spawn. The east patrol stays on the
+southern bank with an 8-second rest and a 2-second westward watch.
+
 Sight/Hearing configurations are registered on the guard controller and character
 Sight stimuli register on units. Hearing callbacks start investigation at the
 stimulus location, with a reduced occluded hearing reach. Noise event maximum
@@ -141,8 +151,9 @@ The default mode is OKRTGameMode; the old game mode is available through a
 
 ## Remaining Migration
 
-Rig supplied characters and add locomotion/stance/takedown/carry animations.
-Replace static render-pose approximations without changing command contracts.
+Supplied characters now have lightweight derived rigs and procedural locomotion.
+Refine skin weights, add foot IK and authored prone/takedown/carry animations.
+See CHARACTER_MOTION.md for the scale comparison and current animation limits.
 Move the native guard FSM into optional Behavior Tree/Blackboard assets if
 designer iteration requires it; do not connect the old turn-perception bridge.
 Add authored large missions, persistence, proper objective components, audio/VFX,

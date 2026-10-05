@@ -84,8 +84,13 @@ private:
     AStaticMeshActor* Place(const TCHAR* Path,FVector Location,float Scale=1);
     void UpdateCamera();
     void SmokeTick();
+    void MissionSmokeTick(float Delta);
     void SmokeSelectionTests();
     bool bSmoke=false;
+    bool bMissionSmoke=false;
+    bool bMissionSawBridge=false;
+    float MissionAwayTime=0;
+    float MissionLongestAway=0;
     bool bInitialPausePending=true;
     int32 SmokeStage=0;
     double SmokeStarted=0;

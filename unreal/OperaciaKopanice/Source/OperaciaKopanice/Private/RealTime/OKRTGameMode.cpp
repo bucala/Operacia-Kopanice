@@ -75,7 +75,8 @@ UBoxComponent* AOKRTGameMode::Collider(FVector Center,FVector Extent,FName Tag)
 void AOKRTGameMode::StartPlay()
 {
     Super::StartPlay();
-    bSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
+    bMissionSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTMissionSmoke"));
+    bSmoke=bMissionSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
     SmokeStarted=StageStarted=FPlatformTime::Seconds();
     if (!bSmoke) LoadPreferences();
     BuildScene();
@@ -127,6 +128,7 @@ void AOKRTGameMode::BuildScene()
     Sun->GetLightComponent()->SetIntensity(5.2f);
     Sun->GetLightComponent()->SetLightColor(FLinearColor(1,.96f,.89f));
     auto* SunComponent=CastChecked<UDirectionalLightComponent>(Sun->GetLightComponent());
+    SunComponent->SetForwardShadingPriority(1);
     SunComponent->LightSourceAngle=5; SunComponent->SetAtmosphereSunLight(true);
     auto* Fill=GetWorld()->SpawnActor<ADirectionalLight>(FVector(0,0,1500),FRotator(-45,140,0));
     Fill->GetLightComponent()->SetIntensity(.65f);
@@ -190,16 +192,19 @@ void AOKRTGameMode::BuildScene()
     for (int32 I=0;I<4;++I)
     {
         const bool Enemy=I>=2;
-        const FVector Location=I==0 ? FVector(180,1260,100) : I==1 ? FVector(360,1260,100) : I==2 ? FVector(720,720,100) : FVector(1620,900,100);
+        const FVector Location=I==0 ? FVector(300,1380,100) : I==1 ? FVector(480,1380,100) : I==2 ? FVector(660,700,100) : FVector(1740,1200,100);
         FActorSpawnParameters Params; Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        auto* Unit=GetWorld()->SpawnActor<AOKRTUnit>(Location,FRotator(0,Enemy ? 90 : 0,0),Params);
+        auto* Unit=GetWorld()->SpawnActor<AOKRTUnit>(Location,FRotator(0,I==2 ? -90 : Enemy ? 90 : 0,0),Params);
         Unit->Initialize(Enemy,I!=0);
         if (Enemy)
         {
             Enemies.Add(Unit);
             auto* AI=CastChecked<AOKRTGuardController>(Unit->GetController());
-            AI->PatrolRoute=I==2 ? TArray<FVector>{FVector(720,720,0),FVector(720,1080,0),FVector(540,1080,0),FVector(540,720,0)} :
-                TArray<FVector>{FVector(1620,900,0),FVector(1620,1260,0),FVector(1440,1260,0),FVector(1440,900,0)};
+            // Turn north before returning west, so the cone never sweeps the party spawn.
+            AI->PatrolRoute=I==2 ? TArray<FOKRTPatrolStop>{
+                {FVector(660,700,0),-90,12}, {FVector(840,700,0),0,2}, {FVector(840,700,0),-90,1}} :
+                TArray<FOKRTPatrolStop>{
+                {FVector(1740,1200,0),90,8}, {FVector(1740,1020,0),180,2}, {FVector(1740,1020,0),0,1}};
             AI->bBrainEnabled=false;
         }
         else Party.Add(Unit);
@@ -375,7 +380,7 @@ void AOKRTGameMode::Tick(float Delta)
         bInitialPausePending=false;
         for (AOKRTUnit* Guard:Enemies)
         {
-            CastChecked<AOKRTGuardController>(Guard->GetController())->bBrainEnabled=!bSmoke;
+            CastChecked<AOKRTGuardController>(Guard->GetController())->bBrainEnabled=!bSmoke || bMissionSmoke;
             Guard->Vision->Refresh();
         }
         TogglePause();
@@ -395,5 +400,6 @@ void AOKRTGameMode::Tick(float Delta)
         if ((bWon || bLost) && !UGameplayStatics::IsGamePaused(GetWorld()))
         { UGameplayStatics::SetGamePaused(GetWorld(),true); }
     }
-    if (bSmoke) SmokeTick();
+    if (bMissionSmoke) MissionSmokeTick(Delta);
+    else if (bSmoke) SmokeTick();
 }

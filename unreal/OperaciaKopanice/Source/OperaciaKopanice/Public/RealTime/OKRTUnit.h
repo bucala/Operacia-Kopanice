@@ -6,6 +6,7 @@
 
 class UOKRTVisionComponent;
 class UStaticMeshComponent;
+class UPoseableMeshComponent;
 class UAIPerceptionStimuliSourceComponent;
 
 UCLASS()
@@ -38,6 +39,8 @@ public:
     UPROPERTY(BlueprintReadOnly) bool bHiddenBody=false;
     UPROPERTY(BlueprintReadOnly) FString DisplayName;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly) TObjectPtr<UStaticMeshComponent> Visual;
+    UPROPERTY(VisibleAnywhere,BlueprintReadOnly) TObjectPtr<UPoseableMeshComponent> AnimatedVisual;
+    float GetVisualHeight() const { return VisualHeight; }
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly) TObjectPtr<UOKRTVisionComponent> Vision;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UAIPerceptionStimuliSourceComponent> Stimuli;
     UPROPERTY() TWeakObjectPtr<AOKRTUnit> CarriedBody;
@@ -47,6 +50,13 @@ private:
     bool bSelected=false;
     bool bOrderStarted=false;
     float NoiseClock=0;
+    float VisualHeight=180;
+    float GaitPhase=0;
+    float SmoothedSpeed=0;
+    float MotionBlend=0;
+    float CrouchBlend=0;
+    float ProneBlend=0;
+    void UpdateAnimation(float Delta);
     void FinishOrder();
     bool ValidateOrder(const FOKRTOrder& Order,bool bExecuting,bool bKeepQueue,FString& Reason) const;
     void UpdateOrders();

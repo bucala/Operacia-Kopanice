@@ -4,6 +4,9 @@
 #include "RealTime/OKRTVisionComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PoseableMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
@@ -30,6 +33,11 @@ AOKRTUnit::AOKRTUnit()
     Visual->SetupAttachment(GetRootComponent());
     Visual->SetCollisionProfileName(TEXT("NoCollision"));
     Visual->SetCanEverAffectNavigation(false);
+    AnimatedVisual=CreateDefaultSubobject<UPoseableMeshComponent>(TEXT("AnimatedCharacter"));
+    AnimatedVisual->SetupAttachment(Visual);
+    AnimatedVisual->SetCollisionProfileName(TEXT("NoCollision"));
+    AnimatedVisual->SetCanEverAffectNavigation(false);
+    AnimatedVisual->SetBoundsScale(1.6f);
     Vision=CreateDefaultSubobject<UOKRTVisionComponent>(TEXT("VisionCone"));
     Vision->SetupAttachment(GetRootComponent());
     Stimuli=CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("SightStimulus"));
@@ -42,6 +50,24 @@ void AOKRTUnit::Initialize(bool Guard,bool Officer)
     const TCHAR* Path=Officer ? TEXT("/Game/Kopanice/Supplied/Officer/SM_OK_Officer.SM_OK_Officer") :
         TEXT("/Game/Kopanice/Supplied/Partisan/SM_OK_Partisan.SM_OK_Partisan");
     Visual->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,Path));
+    const TCHAR* RigPath=Officer ? TEXT("/Game/Kopanice/Animated/Officer/SK_OK_Officer.SK_OK_Officer") :
+        TEXT("/Game/Kopanice/Animated/Partisan/SK_OK_Partisan.SK_OK_Partisan");
+    if (auto* Rig=LoadObject<USkeletalMesh>(nullptr,RigPath))
+    {
+        AnimatedVisual->SetSkinnedAssetAndUpdate(Rig);
+        const FBoxSphereBounds Bounds=Rig->GetBounds();
+        const float Scale=180.f/FMath::Max(1.f,float(Bounds.BoxExtent.Z*2));
+        AnimatedVisual->SetRelativeScale3D(FVector(Scale));
+        AnimatedVisual->SetRelativeLocation(FVector(0,0,-(Bounds.Origin.Z-Bounds.BoxExtent.Z)*Scale));
+        VisualHeight=Bounds.BoxExtent.Z*2*Scale;
+        Visual->SetVisibility(false,false);
+    }
+    else
+    {
+        AnimatedVisual->SetVisibility(false);
+        UE_LOG(LogTemp,Warning,TEXT("OK_RT_ANIMATION: missing rig for %s; static fallback"),*DisplayName);
+    }
+    UE_LOG(LogTemp,Display,TEXT("OK_RT_SIZE: %s enemy=%d height=%.1f cm"),*DisplayName,bEnemy,VisualHeight);
     SetStance(EOKStance::Walk);
     Vision->bConeVisible=Guard;
     Stimuli->RegisterWithPerceptionSystem();
@@ -76,9 +102,11 @@ void AOKRTUnit::SetStance(EOKStance Value)
     if (CarriedBody.IsValid()) Speed=FMath::Min(Speed,100.f);
     GetCharacterMovement()->MaxWalkSpeed=Speed;
     GetCharacterMovement()->MaxWalkSpeedCrouched=Speed;
-    Visual->SetRelativeLocation(FVector(Value==EOKStance::Prone ? -75 : 0,0,-GetCapsuleComponent()->GetScaledCapsuleHalfHeight()+3));
-    // Imported assets are static meshes: these poses are placeholders until rigged animations exist.
-    Visual->SetRelativeRotation(FRotator(Value==EOKStance::Prone ? 85 : Value==EOKStance::Crouch ? 18 : 0,0,0));
+    if (!AnimatedVisual->GetSkinnedAsset())
+    {
+        Visual->SetRelativeLocation(FVector(Value==EOKStance::Prone ? -75 : 0,0,-GetCapsuleComponent()->GetScaledCapsuleHalfHeight()+3));
+        Visual->SetRelativeRotation(FRotator(Value==EOKStance::Prone ? 85 : Value==EOKStance::Crouch ? 18 : 0,0,0));
+    }
 }
 float AOKRTUnit::VisibilityFactor() const
 {
@@ -244,7 +272,7 @@ void AOKRTUnit::Tick(float Delta)
     Cooldown=FMath::Max(0.f,Cooldown-Delta);
     bInCover=Game->IsCover(Feet()) && (Stance==EOKStance::Crouch || Stance==EOKStance::Prone);
     if (!bEnemy) UpdateOrders();
-    Visual->SetRelativeLocation(FVector(Stance==EOKStance::Prone ? -75 : 0,0,-GetCapsuleComponent()->GetScaledCapsuleHalfHeight()+3));
+    UpdateAnimation(Delta);
     NoiseClock+=Delta;
     if (!bEnemy && GetVelocity().Size2D()>20 && NoiseClock>.85f)
     {

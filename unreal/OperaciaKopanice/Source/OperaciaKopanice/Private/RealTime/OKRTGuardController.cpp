@@ -34,6 +34,11 @@ FGenericTeamId AOKRTGuardController::GetGenericTeamId() const
     auto* Unit=Cast<AOKRTUnit>(GetPawn());
     return FGenericTeamId(Unit && Unit->bEnemy ? 2 : 1);
 }
+float AOKRTGuardController::PatrolWaitRemaining() const
+{
+    return AlertState==EOKAlert::Patrol && bAtPatrolStop && PatrolRoute.IsValidIndex(PatrolIndex) ?
+        FMath::Max(0.f,PatrolRoute[PatrolIndex].WaitSeconds-Wait) : 0.f;
+}
 void AOKRTGuardController::Perceived(AActor* Actor,FAIStimulus Stimulus)
 {
     auto* Unit=Cast<AOKRTUnit>(GetPawn());
@@ -51,6 +56,7 @@ void AOKRTGuardController::Investigate(FVector Location)
 {
     if (AlertState==EOKAlert::Combat) return;
     AlertState=EOKAlert::Investigate; LastKnown=Location;
+    bAtPatrolStop=false;
     Suspicion=FMath::Max(Suspicion,.3f); Wait=0;
     MoveToLocation(Location,65,false,true,true,false,nullptr,false);
 }
@@ -60,6 +66,7 @@ void AOKRTGuardController::Alert(AOKRTUnit* Target,bool bBroadcast)
     if (!Unit || !Unit->IsAlive() || !Target || !Target->IsAlive()) return;
     const bool bNew=AlertState!=EOKAlert::Combat;
     AlertState=EOKAlert::Combat; Suspicion=1; CombatTarget=Target; LastKnown=Target->Feet();
+    bAtPatrolStop=false;
     LostSight=0;
     if (bNew) ShotClock=-.65f;
     if (bNew && bBroadcast)
@@ -142,18 +149,30 @@ void AOKRTGuardController::Tick(float Delta)
         return;
     }
     if (GetMoveStatus()!=EPathFollowingStatus::Idle) return;
-    Wait+=Delta;
     if (AlertState==EOKAlert::Investigate)
     {
+        Wait+=Delta;
         Unit->AddActorWorldRotation(FRotator(0,Delta*32,0));
         if (Wait<4) return;
         AlertState=EOKAlert::Patrol; Suspicion=.15f; Wait=0;
     }
-    if (PatrolRoute.Num() && Wait>1)
+    if (PatrolRoute.IsEmpty()) return;
+    PatrolIndex%=PatrolRoute.Num();
+    const FOKRTPatrolStop& Stop=PatrolRoute[PatrolIndex];
+    if (FVector::Dist2D(Unit->Feet(),Stop.Location)>35)
     {
-        Wait=0;
-        PatrolIndex%=PatrolRoute.Num();
-        MoveToLocation(PatrolRoute[PatrolIndex],25,false,true,true,false,nullptr,false);
-        PatrolIndex=(PatrolIndex+1)%PatrolRoute.Num();
+        bAtPatrolStop=false; Wait=0;
+        // A failed/aborted path is retried, never counted as arrival at a watch post.
+        if (MoveRetry<=0)
+        { MoveToLocation(Stop.Location,20,false,true,true,false,nullptr,false); MoveRetry=1; }
+        return;
     }
+    if (!bAtPatrolStop) { bAtPatrolStop=true; Wait=0; }
+    const FRotator Facing(0,Stop.FacingYaw,0);
+    Unit->SetActorRotation(FMath::RInterpConstantTo(Unit->GetActorRotation(),Facing,Delta,90));
+    // Observation time starts only after the visible turn has finished.
+    if (FMath::Abs(FMath::FindDeltaAngleDegrees(Unit->GetActorRotation().Yaw,Stop.FacingYaw))>2) return;
+    Wait+=Delta;
+    if (Wait>=FMath::Max(0.f,Stop.WaitSeconds))
+    { PatrolIndex=(PatrolIndex+1)%PatrolRoute.Num(); bAtPatrolStop=false; Wait=0; MoveRetry=0; }
 }
