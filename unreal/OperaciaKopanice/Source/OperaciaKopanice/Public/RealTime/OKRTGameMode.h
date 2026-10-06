@@ -43,8 +43,9 @@ public:
     void Restart();
     void Noise(AOKRTUnit* Source,FVector Location,float Loudness,float Range,FName Tag);
     void Alarm(AOKRTUnit* Target,AOKRTUnit* Source);
-    void Interact(AOKRTUnit* Unit);
+    void Interact(AOKRTUnit* Unit,EOKInteraction Kind=EOKInteraction::Nearby);
     bool Distract(AOKRTUnit* Unit,FVector Destination);
+    EOKInteraction FindInteractionAt(FVector PickedLocation,FVector& Destination) const;
     bool IsCover(FVector Location) const;
     void Preview(FVector Destination);
     bool HasCompletePath(FVector From,FVector To) const;
@@ -87,6 +88,7 @@ private:
     void SmokeTick();
     void MissionSmokeTick(float Delta);
     void SmokeSelectionTests();
+    void SmokeControlsTests();
     bool bSmoke=false;
     bool bMissionSmoke=false;
     bool bMissionSawBridge=false;

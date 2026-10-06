@@ -240,14 +240,17 @@ void AOKRTGameMode::BuildScene()
 }
 void AOKRTGameMode::Select(int32 Index,bool Append)
 {
-    if (!Party.IsValidIndex(Index)) return;
+    if (bMenu || bWon || bLost || !Party.IsValidIndex(Index) || !Party[Index]->IsAlive()) return;
     if (!Append) for (AOKRTUnit* Unit:Party) Unit->Select(false);
     Party[Index]->Select(true); ActiveMember=Index;
     PreviewSpline->ClearSplinePoints();
 }
 void AOKRTGameMode::SelectAll()
 {
-    for (AOKRTUnit* Unit:Party) Unit->Select(true);
+    if (bMenu || bWon || bLost) return;
+    for (AOKRTUnit* Unit:Party) Unit->Select(Unit->IsAlive());
+    if (!Party.IsValidIndex(ActiveMember) || !Party[ActiveMember]->IsAlive())
+        for (int32 I=0;I<Party.Num();++I) if (Party[I]->IsAlive()) { ActiveMember=I; break; }
 }
 bool AOKRTGameMode::Command(FOKRTOrder Order,bool Append)
 {
@@ -257,13 +260,15 @@ bool AOKRTGameMode::Command(FOKRTOrder Order,bool Append)
         return Party.IsValidIndex(ActiveMember) && Party[ActiveMember]->IsSelected() && Party[ActiveMember]->Submit(Order,Append);
     bool Accepted=false;
     int32 Index=0;
-    const int32 Count=Party.FilterByPredicate([](const auto& U){ return U->IsSelected(); }).Num();
+    const int32 Count=Party.FilterByPredicate([](const auto& U){ return U->IsSelected() && U->IsAlive(); }).Num();
     for (AOKRTUnit* Unit:Party)
         if (Unit->IsSelected() && Unit->IsAlive())
         {
             auto Individual=Order;
             if (Count>1 && Order.Kind==EOKOrder::Move) Individual.Location.Y+=(Index++==0 ? -45 : 45);
-            Accepted=Unit->Submit(Individual,Append) || Accepted;
+            const bool Promoted=Order.Kind==EOKOrder::Move && Order.bRunToDestination &&
+                (Append || bTacticalPause || Unit->QueueSize()==1) && Unit->PromoteLastMoveToRun(Individual.Location);
+            Accepted=Promoted || Unit->Submit(Individual,Append) || Accepted;
         }
     return Accepted;
 }
@@ -330,13 +335,32 @@ bool AOKRTGameMode::Distract(AOKRTUnit* Unit,FVector Destination)
     { Message=TEXT("Prekazka blokuje hod."); return false; }
     Noise(Unit,Destination,1,1500,TEXT("Distraction")); Message=TEXT("Odputanie pozornosti."); return true;
 }
-void AOKRTGameMode::Interact(AOKRTUnit* Unit)
+EOKInteraction AOKRTGameMode::FindInteractionAt(FVector PickedLocation,FVector& Destination) const
 {
-    if (Unit->CarriedBody.IsValid() && FVector::Dist2D(Unit->Feet(),HideLocation)<170)
+    if (!Party.IsValidIndex(ActiveMember) || !Party[ActiveMember]->IsAlive()) return EOKInteraction::Nearby;
+    float Nearest=140.f;
+    EOKInteraction Found=EOKInteraction::Nearby;
+    auto Candidate=[&](FVector Location,EOKInteraction Kind)
+    {
+        const float Distance=FVector::Dist2D(PickedLocation,Location);
+        if (Distance<Nearest) { Nearest=Distance; Destination=Location; Found=Kind; }
+    };
+    if (!bHasTNT) Candidate(TNTLocation,EOKInteraction::CollectTNT);
+    // Resolve future objectives while planning; prerequisites are checked on arrival.
+    if (!bBridgeDestroyed) Candidate(DetonatorLocation,EOKInteraction::DetonateBridge);
+    Candidate(HideLocation,EOKInteraction::HideBody);
+    return Found;
+}
+void AOKRTGameMode::Interact(AOKRTUnit* Unit,EOKInteraction Kind)
+{
+    if ((Kind==EOKInteraction::Nearby || Kind==EOKInteraction::HideBody) &&
+        Unit->CarriedBody.IsValid() && FVector::Dist2D(Unit->Feet(),HideLocation)<170)
     { Unit->DropBody(true); Message=TEXT("Telo ukryte."); return; }
-    if (!bHasTNT && FVector::Dist2D(Unit->Feet(),TNTLocation)<140)
+    if ((Kind==EOKInteraction::Nearby || Kind==EOKInteraction::CollectTNT) &&
+        !bHasTNT && FVector::Dist2D(Unit->Feet(),TNTLocation)<140)
     { bHasTNT=true; if (TNTMarker) TNTMarker->SetActorHiddenInGame(true); Message=TEXT("TNT ziskane."); return; }
-    if (bHasTNT && !bBridgeDestroyed && FVector::Dist2D(Unit->Feet(),DetonatorLocation)<140)
+    if ((Kind==EOKInteraction::Nearby || Kind==EOKInteraction::DetonateBridge) &&
+        bHasTNT && !bBridgeDestroyed && FVector::Dist2D(Unit->Feet(),DetonatorLocation)<140)
     {
         if (Party.IsEmpty() || PartyMembersOnSafeBank()!=Party.Num())
         { Message=TEXT("Najprv presunte cely tim na vychodny breh."); return; }

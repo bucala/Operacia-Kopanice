@@ -82,7 +82,7 @@ void AOKRTUnit::GetQueuedLocations(TArray<FVector>& Locations) const
     Locations.Reset();
     for (const FOKRTOrder& Order:Orders)
     {
-        if (Order.Kind==EOKOrder::Move) Locations.Add(Order.Location);
+        if (Order.Kind==EOKOrder::Move || (Order.Kind==EOKOrder::Interact && Order.bApproachInteraction)) Locations.Add(Order.Location);
         else if ((Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Carry) && Order.Target.IsValid())
             Locations.Add(Order.Target->Feet());
     }
@@ -170,6 +170,15 @@ void AOKRTUnit::FinishOrder()
     if (Orders.Num()) Orders.RemoveAt(0);
     bOrderStarted=false;
 }
+bool AOKRTUnit::PromoteLastMoveToRun(FVector Destination)
+{
+    if (!IsAlive() || Orders.IsEmpty() || Orders.Last().Kind!=EOKOrder::Move ||
+        FVector::Dist2D(Orders.Last().Location,Destination)>60) return false;
+    Orders.Last().bRunToDestination=true;
+    // Reapply pace once on execution/resume, including an already-started move.
+    if (Orders.Num()==1) bOrderStarted=false;
+    return true;
+}
 void AOKRTUnit::CancelOrders()
 {
     Orders.Reset(); bOrderStarted=false;
@@ -192,14 +201,19 @@ void AOKRTUnit::UpdateOrders()
         if (Game->Distract(this,Order.Location)) { --Distractions; Cooldown=6; }
         FinishOrder(); return;
     }
-    if (Order.Kind==EOKOrder::Interact) { Game->Interact(this); FinishOrder(); return; }
+    if (Order.Kind==EOKOrder::Interact && !Order.bApproachInteraction)
+    { Game->Interact(this,Order.Interaction); FinishOrder(); return; }
     if (Order.Kind==EOKOrder::Carry && Order.Target.IsExplicitlyNull()) { DropBody(); FinishOrder(); return; }
     const bool bTargetOrder=Order.Kind==EOKOrder::Carry || Order.Kind==EOKOrder::Takedown;
     auto* Target=Order.Target.Get();
     const FVector Destination=bTargetOrder ? Target->Feet() : Order.Location;
-    const float Acceptance=bTargetOrder ? 100.f : 25.f;
+    const float Acceptance=bTargetOrder ? 100.f : Order.Kind==EOKOrder::Interact ? 75.f : 25.f;
     if (!bOrderStarted)
     {
+        if (Order.Kind==EOKOrder::Move)
+        {
+            if (Order.bRunToDestination) SetStance(EOKStance::Run);
+        }
         const auto Result=bTargetOrder ? AI->MoveToActor(Target,Acceptance,false,true,true,nullptr,false) :
             AI->MoveToLocation(Destination,Acceptance,false,true,true,false,nullptr,false);
         bOrderStarted=true;
@@ -226,6 +240,7 @@ void AOKRTUnit::UpdateOrders()
         Target->SetActorRelativeLocation(FVector(-35,0,50));
         SetStance(Stance);
     }
+    if (Order.Kind==EOKOrder::Interact) Game->Interact(this,Order.Interaction);
     FinishOrder();
 }
 void AOKRTUnit::TakeHit(float Damage)

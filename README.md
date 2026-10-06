@@ -30,6 +30,11 @@
 
 ## Unreal Real-Time Prototype
 
+Unreal režim je **stealth real-time tactics (RTT)** v štýle Commandos, nie adventúra
+point-and-click: ľavý klik vyberá jednotky, pravý vydáva kontextové rozkazy a dvojklik
+na terén vyžiada beh. Ctrl+A vyberie tím, Tab prepne aktívnu postavu a Space umožní
+plánovať rozkazy počas taktickej pauzy. Schopnosti používa iba aktívna postava.
+
 Nový predvolený Unreal režim používa NavMesh, súvislé hliadky, zorné kužele,
 AI Sight/Hearing, prikrčenie a plazenie, odlákanie, tichý útok, prenášanie tiel
 a front príkazov pri taktickej pauze. Zachováva dodané 3D assety zimnej osady.

@@ -10,6 +10,8 @@ UENUM(BlueprintType)
 enum class EOKAlert : uint8 { Patrol, Investigate, Combat };
 UENUM(BlueprintType)
 enum class EOKOrder : uint8 { Move, Interact, Takedown, Distract, Carry, Stance };
+UENUM(BlueprintType)
+enum class EOKInteraction : uint8 { Nearby, CollectTNT, DetonateBridge, HideBody };
 
 USTRUCT(BlueprintType)
 struct FOKRTOrder
@@ -19,4 +21,7 @@ struct FOKRTOrder
     UPROPERTY(EditAnywhere,BlueprintReadWrite) FVector Location=FVector::ZeroVector;
     UPROPERTY(EditAnywhere,BlueprintReadWrite) TWeakObjectPtr<AOKRTUnit> Target;
     UPROPERTY(EditAnywhere,BlueprintReadWrite) EOKStance Stance=EOKStance::Walk;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) bool bRunToDestination=false;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) bool bApproachInteraction=false;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) EOKInteraction Interaction=EOKInteraction::Nearby;
 };

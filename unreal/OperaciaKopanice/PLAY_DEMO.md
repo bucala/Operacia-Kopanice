@@ -1,7 +1,9 @@
-# Operacia Kopanice: Real-Time Stealth Prototype
+# Operacia Kopanice: Stealth Real-Time Tactics (RTT)
 
 Editor-hosted single-player UE 5.8.2 Windows prototype, now using continuous
-NavMesh movement and active pause instead of turns. The winter settlement,
+NavMesh movement and active pause instead of turns, with Commandos-like unit
+selection and contextual orders. This is stealth RTT, not a point-and-click adventure.
+The winter settlement,
 original supplied characters, cabins, forest, vehicle and animated river are retained.
 
 ## Start
@@ -50,35 +52,48 @@ to nearby guards and deals real-time damage.
 
 | Action | Input |
 | --- | --- |
-| Select Partisan / Officer / both | 1 / 2 / 3; portraits or click a party member |
+| Select Partisan / Officer / both | 1 / 2 / 3 or Ctrl+A; portraits or left-click a party member |
+| Cycle active specialist | Tab; keeps a multi-unit selection intact |
 | Box selection / add to selection | Left-mouse drag / Shift + drag; Shift + portrait also adds |
-| Move | Right-click terrain; left-click or single touch also works |
-| Append a move | Shift + terrain click |
+| Move in current stance | Right-click terrain; left-click terrain never moves |
+| Run to destination | Right double-click terrain; changes pace only when order executes |
+| Append a move | Shift + right-click terrain |
 | Active pause / resume | Space or pause icon |
 | Queue orders | Issue orders during active pause, then resume |
-| Cancel selected units' orders / armed targeting | X or lower-right minus icon |
+| Stop selected units / clear orders | S / X or lower-right minus icon |
+| Cancel armed targeting without stopping movement | Right-click world or Escape |
 | Walk / run / crouch / prone | W / R / C / V or stance icons |
-| Silent takedown | T or swords icon, then click guard; approach from behind |
+| Silent takedown | Right-click living guard, or T then left-click guard; approach from behind |
 | Distraction | F or circle icon, then click ground; 5 charges, 6 s cooldown |
-| Interact: TNT / detonator / hide carried body | E or hand icon, within range |
-| Carry body / drop carried body | B or backpack icon; click a dead guard |
-| Toggle one guard's cone | Right-click that guard |
+| Approach TNT / detonator / hide carried body | Right-click near its world marker; active member approaches and interacts |
+| Interact immediately at current position | E or hand icon, within range |
+| Carry body / drop carried body | Right-click dead guard; B or backpack icon also targets pickup/drops a carried body |
+| Toggle one guard's cone | Left-click that guard; no attack is issued |
 | Toggle all cones | Eye icon / Options |
 | Rotate | Q / right bracket or rotate icons |
-| Pan | Middle-mouse drag |
+| Pan | Arrow keys or middle-mouse drag; also available during tactical pause |
 | Continuous orbit and tilt | Disable stepped camera in Options; Alt + right drag |
 | Zoom / focus active unit | Mouse wheel / Home |
 | Menu / restart | Escape / F5 |
 
-Interaction happens at the unit's current position, not at the cursor.
-Unarmed left-click world actions occur on release; moving at least 8 screen pixels starts
+Right-click world orders use a visibility raycast and complete NavMesh paths.
+An interaction order stores its approach destination, then executes within range;
+E and the hand icon retain immediate interaction at the active member's feet.
+Double-click promotes the last matching movement order instead of duplicating it
+in a paused or Shift-appended queue. Ordinary moves preserve the current stance;
+use W/C/V to leave running after a double-click. Invalid orders preserve existing paths.
+Interactions remember the chosen marker, so a hide order cannot collect nearby TNT.
+Detonator and hide orders may be planned before TNT/pickup; prerequisites are checked
+on arrival. A failed prerequisite ends that interaction with feedback, not a retry loop.
+Unarmed left-click selection occurs on release; moving at least 8 screen pixels starts
 a selection rectangle instead. Drag in either direction. Empty rectangles keep
 the existing selection and never issue movement. Units are selected by their
 projected capsule centres; dead units, guards and centres underneath HUD panels
 are excluded. Starting on HUD never starts a drag. Leaving the viewport, opening
 the menu, right-clicking or pressing X cancels a pending drag.
 Touch input is release-based: a tap shorter than 24 screen pixels activates the
-same UI/world click as the mouse; a finger slide is ignored as a gesture and does
+UI, party selection or enemy inspection, and terrain taps issue contextual commands.
+It does not inherit the desktop left-click-only selection rule. A finger slide is ignored as a gesture and does
 not move a unit. Two fingers pan the camera and change zoom by pinch. This keeps
 the current Android interaction safe while leaving single-finger camera orbit
 available for a later pass.
@@ -91,7 +106,8 @@ Takedown and carry commands navigate to their target first.
 Movement and stance apply to the selected group; abilities and interaction use
 only the active portrait. Attack/throw commands wait for their cooldown instead
 of being discarded. Invalid targets leave existing movement intact and keep
-targeting armed; X cancels targeting. Carry can be queued after a takedown of the
+targeting armed; right-click or Escape cancels only targeting, while S/X also clears
+selected command queues. Carry can be queued after a takedown of the
 same guard. Friendly units are never valid takedown targets.
 Pausing stops physics, patrols, cooldowns and detection, while selection, targeting,
 camera and queued commands remain usable. Queues are limited to 32 per unit.
@@ -102,9 +118,9 @@ after restarting the mission or game. Smoke fixtures neither load nor overwrite
 player preferences. Quality presets are named Low, Medium, High and Ultra.
 
 When path preview is enabled, selected party members show their queued
-Move/Takedown/Carry destinations as real NavMesh route segments. The active
+Move/approach-Interact/Takedown/Carry destinations as real NavMesh route segments. The active
 member's route is gold and other selected members' routes are green; rings mark
-the queued destinations. Stance, interact and distraction orders do not create
+the queued destinations. Stance, immediate interaction and distraction orders do not create
 fake route segments.
 
 ## Verification
@@ -121,6 +137,9 @@ Command regressions also cover friendly/invalid targets, unchanged movement on
 rejection, takedown-then-carry planning, stale-target path cancellation, cooldown
 waiting, empty inventory, active-member skills, queue capacity and menu gating.
 AI checks verify stable pursuit requests and last-seen search after losing sight.
+RTT control checks cover left-click selection versus right-click orders, contextual
+TNT/guard/body targeting, paused double-click promotion, preserved stealth stance,
+group formations, Ctrl+A/Tab/S/Escape, UI gating and separate touch-tap behavior.
 Selection checks exercise the native pointer handlers with real projected party
 coordinates, including reversed/additive drags, empty/dead/enemy rejection, HUD
 exclusion, cancellation, small-motion clicks and pause-enabled input bindings.

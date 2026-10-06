@@ -1,4 +1,4 @@
-# Real-Time Stealth Migration
+# Stealth Real-Time Tactics Migration
 
 ## Boundaries
 
@@ -94,7 +94,16 @@ management. No tiny time-dilation approximation is used.
 Orders are Move, Interact, Takedown, Distract, Carry and Stance.
 Move and target approach use complete UE navigation paths.
 Unpaused replacement interrupts current movement; Shift appends.
-Paused submissions append to a bounded queue; X clears it explicitly.
+Paused submissions append to a bounded queue; S/X clears it explicitly.
+Contextual Interact orders carry a world-space destination, `EOKInteraction` identity
+and `bApproachInteraction`; they navigate first and interact only after reaching
+range. E/HUD-hand interaction remains immediate. Typed interactions cannot
+accidentally activate a different nearby marker. Detonator
+and hide destinations can be planned before TNT/pickup; prerequisites are checked
+at execution, not inferred from the state at mouse-click time.
+`bRunToDestination` applies pace once when a Move begins; ordinary orders retain
+the current stance. `PromoteLastMoveToRun` upgrades a matching
+last move on double-click, avoiding duplicate orders while paused/Shift-appending.
 A queued interaction occurs after preceding movement. Failed paths end an order
 with feedback rather than teleporting or crossing water.
 Takedowns check range, approach direction, cooldown and obstruction at execution.
@@ -109,16 +118,31 @@ Friendly takedowns and carrying living/hidden/already-carried guards are rejecte
 A carry may be queued behind a takedown of the same guard, but still requires a
 dead body when executed. Cooldowns retain the pending attack/throw; empty inventory,
 invalid targets and blocked/out-of-range throws produce feedback and end the order.
-Invalid armed targeting remains armed for correction; X cancels it. Right-clicking
+Invalid armed targeting remains armed for correction; Escape/right-click cancels
+only targeting, while S/X also stops the selected units. Right-clicking
 HUD controls does not activate them, and menu/outcome screens block skill arming.
 
 ## Selection Input
 
+Desktop input is Commandos-like stealth RTT, not adventure point-and-click.
+Left-click selects a living ally or inspects a living enemy's cone; terrain left-click
+does not move. Right-click orders movement, takedown of a living guard, pickup of a
+dead guard or approach/interaction at available TNT, detonator and body-hiding markers.
+Friendly right-click is ignored. Double right-click runs to a terrain destination
+without repeating target interactions. Shift appends world orders and adds selection.
+1/2 select living specialists, 3/Ctrl+A selects the living party and Tab cycles the
+active specialist without dropping an existing group. Arrow keys and middle drag pan
+the camera while running or paused; Alt+right drag is reserved for continuous orbit.
+The first drag frame records the pointer before applying deltas, preventing camera jumps.
+Hover cursor and preview distinguish navigable terrain, interactions and body targets.
+
 The controller's BeginPointer/UpdatePointer/EndPointer handlers separate a mouse
 click from a box selection with an 8-pixel threshold. Left mouse press and release
 bindings execute while paused. HUD and armed-skill clicks are handled on press;
-ordinary world clicks wait for release. Touch retains its existing single-tap
-path and is not converted into a drag gesture in this pass.
+ordinary selection waits for release. `CommandAt` and `TapAt` route through the same
+target resolver with explicit command/touch intents. Touch taps select allies,
+inspect enemies and command terrain contextually, rather than pretending to be
+desktop left clicks. Armed abilities retain their separate left/tap targeting path.
 
 Box selection uses projected living party capsule centres and normalized screen
 bounds, excludes HUD-covered centres, preserves selection on an empty rectangle,

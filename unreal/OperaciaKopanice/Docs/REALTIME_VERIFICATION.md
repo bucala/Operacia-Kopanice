@@ -1,5 +1,42 @@
 # Real-Time Prototype Verification
 
+## Commandos-Like RTT Controls: 2026-10-06
+
+UE 5.8.2 Win64 Development Editor build succeeded. Existing MSVC preferred-version
+and engine/input deprecation warnings remain; this is not UE 5.4 certification.
+
+| Run | Checks | Local Saved/Logs evidence |
+| --- | --- | --- |
+| Rendered 1920 x 1080 | 114/114 PASS | DemoSmoke-455600351db44aafa4e66741768ace5b.log |
+| Rendered 480 x 800 | 114/114 PASS | DemoSmoke-16fd3c900b024db48f2ab234738fa3b9.log |
+| Live-AI mission 1280 x 720 | 15/15 PASS | DemoSmoke-2399c44ecde044c6b8f460c851e8e2bf.log |
+
+All runs exited zero with no failed checks, fatal errors or material compilation
+failures. Desktop and portrait pause screenshots were inspected for nonblank
+scene rendering, clear HUD separation, route rings and sharp paused camera output.
+
+Thirty-three additional checks use the production pointer/command/tap handlers,
+real screen projection and collision hit tests. They cover selection-only terrain
+left clicks, captured Shift selection, right-click contextual orders, group
+formation, double-click promotion without duplicate paused orders, run on resume,
+preserved crouch, friendly/HUD/menu exclusion, cone inspection, body pickup,
+typed interactions, planning future detonator/hide orders, active-only abilities
+and separate touch intents. Ctrl+A, Tab, S and Escape are dispatched through the
+native InputKey/PlayerInput stack while paused; the double-click binding is checked.
+The complete fixture also navigates to and executes typed hide/TNT interactions.
+
+The live-AI fixture now acquires TNT through the controller's screen-targeted
+contextual approach command, not a separate Move plus immediate Interact. Both
+guards remain active, the spawn stays safe for 40 seconds, and both party members
+extract at simulation time 67.26 seconds with 100 health. No guards are killed or
+disabled and no actors are teleported to complete that mission.
+
+An OS mouse playthrough was attempted in a native demo window but stopped before
+input execution when the tool reported concurrent user input. Physical desktop
+double-click timing therefore remains a manual verification gap. The portrait
+run tests Windows layout and touch-handler routing, not an Android device build.
+No assets, legacy web rules or web deployment changed in this control pass.
+
 ## Crisp Zoom During Tactical Pause: 2026-10-01
 
 The native real-time and legacy cameras now override motion blur to zero. This

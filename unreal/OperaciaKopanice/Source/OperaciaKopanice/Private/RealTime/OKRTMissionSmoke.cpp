@@ -2,6 +2,7 @@
 #include "RealTime/OKRTUnit.h"
 #include "RealTime/OKRTGuardController.h"
 #include "RealTime/OKRTVisionComponent.h"
+#include "RealTime/OKRTPlayerController.h"
 #include "Engine/World.h"
 #include "UnrealClient.h"
 
@@ -84,7 +85,15 @@ void AOKRTGameMode::MissionSmokeTick(float Delta)
         Require(true,TEXT("idle spawn remains safe for forty real-time seconds"));
         for (AOKRTUnit* Unit:Party)
         { FOKRTOrder Order; Order.Kind=EOKOrder::Stance; Order.Stance=EOKStance::Crouch; Unit->Submit(Order); }
-        Move(Party[0],TNTLocation); Interact(Party[0]); Move(Party[0],FVector(900,950,0),true);
+        {
+            auto* PC=CastChecked<AOKRTPlayerController>(GetWorld()->GetFirstPlayerController());
+            FVector2D Target;
+            Select(0);
+            Require(PC->ProjectWorldLocationToScreen(TNTLocation,Target) && PC->CommandAt(Target),
+                TEXT("live mission accepts contextual TNT approach from screen targeting"));
+            if (SmokeStage<0) return;
+        }
+        Move(Party[0],FVector(900,950,0),true);
         Move(Party[1],FVector(820,950,0));
         Next(); break;
     case 2:

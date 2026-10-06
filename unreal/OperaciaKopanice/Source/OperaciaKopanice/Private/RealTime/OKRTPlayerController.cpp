@@ -12,7 +12,7 @@ AOKRTPlayerController::AOKRTPlayerController()
     bShowMouseCursor=true;
     bShouldPerformFullTickWhenPaused=true;
     PrimaryActorTick.bTickEvenWhenPaused=true;
-    DefaultMouseCursor=EMouseCursor::Crosshairs;
+    DefaultMouseCursor=EMouseCursor::Default;
 }
 AOKRTGameMode* AOKRTPlayerController::Game() const { return GetWorld()->GetAuthGameMode<AOKRTGameMode>(); }
 void AOKRTPlayerController::SetupInputComponent()
@@ -23,10 +23,13 @@ void AOKRTPlayerController::SetupInputComponent()
     Bind(EKeys::LeftMouseButton,&AOKRTPlayerController::LeftClick);
     InputComponent->BindKey(EKeys::LeftMouseButton,IE_Released,this,&AOKRTPlayerController::LeftRelease).bExecuteWhenPaused=true;
     Bind(EKeys::RightMouseButton,&AOKRTPlayerController::RightClick);
+    InputComponent->BindKey(EKeys::RightMouseButton,IE_DoubleClick,this,&AOKRTPlayerController::RightDoubleClick).bExecuteWhenPaused=true;
     Bind(EKeys::SpaceBar,&AOKRTPlayerController::Pause);
     Bind(EKeys::Escape,&AOKRTPlayerController::Menu);
     Bind(EKeys::One,&AOKRTPlayerController::One); Bind(EKeys::Two,&AOKRTPlayerController::Two);
     Bind(EKeys::Three,&AOKRTPlayerController::All);
+    InputComponent->BindKey(FInputChord(EKeys::A,false,true,false,false),IE_Pressed,this,&AOKRTPlayerController::All).bExecuteWhenPaused=true;
+    Bind(EKeys::Tab,&AOKRTPlayerController::NextUnit);
     Bind(EKeys::E,&AOKRTPlayerController::Interact);
     Bind(EKeys::W,&AOKRTPlayerController::Walk); Bind(EKeys::R,&AOKRTPlayerController::Run);
     Bind(EKeys::C,&AOKRTPlayerController::Crouch); Bind(EKeys::V,&AOKRTPlayerController::Prone);
@@ -36,40 +39,62 @@ void AOKRTPlayerController::SetupInputComponent()
     Bind(EKeys::Q,&AOKRTPlayerController::RotateLeft); Bind(EKeys::RightBracket,&AOKRTPlayerController::RotateRight);
     Bind(EKeys::Home,&AOKRTPlayerController::Focus); Bind(EKeys::F5,&AOKRTPlayerController::Restart);
     Bind(EKeys::X,&AOKRTPlayerController::Cancel);
+    Bind(EKeys::S,&AOKRTPlayerController::Cancel);
     InputComponent->BindTouch(IE_Pressed,this,&AOKRTPlayerController::Touch).bExecuteWhenPaused=true;
     InputComponent->BindTouch(IE_Repeat,this,&AOKRTPlayerController::TouchMove).bExecuteWhenPaused=true;
     InputComponent->BindTouch(IE_Released,this,&AOKRTPlayerController::TouchRelease).bExecuteWhenPaused=true;
 }
-void AOKRTPlayerController::ClickAt(float X,float Y,bool Right)
+bool AOKRTPlayerController::CommandAt(FVector2D Position,bool bRun,bool bAppend)
+{ return ClickAt(Position,EPointerIntent::Command,bAppend,bRun); }
+bool AOKRTPlayerController::TapAt(FVector2D Position)
+{ return ClickAt(Position,EPointerIntent::Touch); }
+bool AOKRTPlayerController::ClickAt(FVector2D Position,EPointerIntent Intent,bool bAppend,bool bRun)
 {
-    auto* G=Game(); if (!G) return;
+    auto* G=Game(); if (!G || !IsOnViewport(Position)) return false;
+    const bool bCommand=Intent==EPointerIntent::Command;
     if (auto* UI=Cast<AOKRTHUD>(GetHUD()))
     {
-        if (Right && UI->OverUI(FVector2D(X,Y))) return;
-        if (!Right && UI->Click(FVector2D(X,Y))) return;
+        if (bCommand && UI->OverUI(Position)) return false;
+        if (!bCommand && UI->Click(Position)) return true;
     }
-    if (G->bMenu || G->bWon || G->bLost) return;
+    if (!IsGameplayInputAllowed()) return false;
+    if (bCommand && bArmed)
+    { bArmed=false; return true; }
     FHitResult Hit;
-    if (!GetHitResultAtScreenPosition(FVector2D(X,Y),ECC_Visibility,false,Hit)) return;
+    if (!GetHitResultAtScreenPosition(Position,ECC_Visibility,false,Hit)) return false;
     auto* Unit=Cast<AOKRTUnit>(Hit.GetActor());
-    const bool Append=IsShiftDown();
     if (bArmed)
     {
         FOKRTOrder Order; Order.Kind=ArmedOrder; Order.Location=Hit.ImpactPoint; Order.Target=Unit;
         if (Order.Kind==EOKOrder::Distract || Unit)
-        { if (G->Command(Order,Append)) bArmed=false; }
+        { if (G->Command(Order,bAppend)) { bArmed=false; return true; } }
         else G->Message=TEXT("Vyber ciel schopnosti.");
-        return;
+        return false;
     }
     if (Unit)
     {
-        if (!Unit->bEnemy) G->Select(G->Party.IndexOfByKey(Unit),Append);
-        else if (Right) Unit->Vision->bConeVisible=!Unit->Vision->bConeVisible;
-        return;
+        if (!bCommand)
+        {
+            if (!Unit->bEnemy && Unit->IsAlive()) G->Select(G->Party.IndexOfByKey(Unit),bAppend);
+            else if (Unit->bEnemy && Unit->IsAlive()) Unit->Vision->bConeVisible=!Unit->Vision->bConeVisible;
+            return true;
+        }
+        if (!Unit->bEnemy || bRun) return false;
+        FOKRTOrder Order; Order.Kind=Unit->IsAlive() ? EOKOrder::Takedown : EOKOrder::Carry;
+        Order.Target=Unit; Order.Location=Unit->Feet();
+        return G->Command(Order,bAppend);
     }
+    if (Intent==EPointerIntent::Selection) return false;
     FOKRTOrder Order; Order.Location=Hit.ImpactPoint;
-    // Both mouse buttons move on terrain, permitting the same action on touch screens.
-    G->Command(Order,Append);
+    FVector Interaction;
+    Order.Interaction=G->FindInteractionAt(Hit.ImpactPoint,Interaction);
+    if (Order.Interaction!=EOKInteraction::Nearby)
+    {
+        if (bRun) return false;
+        Order.Kind=EOKOrder::Interact; Order.Location=Interaction; Order.bApproachInteraction=true;
+    }
+    else Order.bRunToDestination=bRun;
+    return G->Command(Order,bAppend);
 }
 bool AOKRTPlayerController::IsGameplayInputAllowed() const
 { const auto* G=Game(); return G && !G->bMenu && !G->bWon && !G->bLost; }
@@ -88,7 +113,7 @@ void AOKRTPlayerController::BeginPointer(FVector2D Position,bool bAppend)
     if (auto* UI=Cast<AOKRTHUD>(GetHUD())) if (UI->Click(Position)) return;
     if (!IsGameplayInputAllowed()) return;
     // Armed abilities retain click targeting; they never start a selection drag.
-    if (bArmed) { ClickAt(Position.X,Position.Y,false); return; }
+    if (bArmed) { ClickAt(Position,EPointerIntent::Selection,bAppend); return; }
     bPointerDown=true; bAppendSelection=bAppend;
     PointerStart=PointerEnd=Position;
 }
@@ -135,7 +160,7 @@ void AOKRTPlayerController::EndPointer(FVector2D Position)
     else
     {
         const auto* UI=Cast<AOKRTHUD>(GetHUD());
-        if (!UI || !UI->OverUI(Position)) ClickAt(Position.X,Position.Y,false);
+        if (!UI || !UI->OverUI(Position)) ClickAt(Position,EPointerIntent::Selection,bAppendSelection);
     }
     CancelPointer();
 }
@@ -143,7 +168,17 @@ void AOKRTPlayerController::LeftClick() { float X,Y; if (GetMousePosition(X,Y)) 
 void AOKRTPlayerController::LeftRelease()
 { float X,Y; if (GetMousePosition(X,Y)) EndPointer(FVector2D(X,Y)); else CancelPointer(); }
 void AOKRTPlayerController::RightClick()
-{ CancelPointer(); float X,Y; if (!IsInputKeyDown(EKeys::LeftAlt) && GetMousePosition(X,Y)) ClickAt(X,Y,true); }
+{
+    CancelPointer(); float X,Y;
+    if (!IsInputKeyDown(EKeys::LeftAlt) && !IsInputKeyDown(EKeys::RightAlt) && GetMousePosition(X,Y))
+        CommandAt(FVector2D(X,Y),false,IsShiftDown());
+}
+void AOKRTPlayerController::RightDoubleClick()
+{
+    CancelPointer(); float X,Y;
+    if (!IsInputKeyDown(EKeys::LeftAlt) && !IsInputKeyDown(EKeys::RightAlt) && GetMousePosition(X,Y))
+        CommandAt(FVector2D(X,Y),true,IsShiftDown());
+}
 int32 AOKRTPlayerController::TouchSlot(ETouchIndex::Type Finger) const
 {
     if (Finger==ETouchIndex::Touch1) return 0;
@@ -190,7 +225,7 @@ void AOKRTPlayerController::TouchRelease(ETouchIndex::Type Finger,FVector Locati
     const bool bTap=Slot==0 && TouchDown[1]==false && !bTouchGesture &&
         IsOnViewport(End) && FVector2D::Distance(TouchStart,End)<24.f;
     TouchDown[Slot]=false;
-    if (bTap) ClickAt(End.X,End.Y,false);
+    if (bTap) TapAt(End);
     if (!TouchDown[0] && !TouchDown[1]) ResetTouchState();
 }
 void AOKRTPlayerController::Arm(EOKOrder Order)
@@ -209,10 +244,29 @@ void AOKRTPlayerController::SetPartyStance(EOKStance Stance)
 { if (auto* G=Game()) { FOKRTOrder Order; Order.Kind=EOKOrder::Stance; Order.Stance=Stance; G->Command(Order); } }
 void AOKRTPlayerController::Interact() { if (auto* G=Game()) { FOKRTOrder Order; Order.Kind=EOKOrder::Interact; G->Command(Order); } }
 void AOKRTPlayerController::Pause() { if (auto* G=Game()) G->TogglePause(); }
-void AOKRTPlayerController::Menu() { CancelPointer(); ResetTouchState(); bArmed=false; if (auto* G=Game()) G->ToggleMenu(); }
-void AOKRTPlayerController::One() { if (auto* G=Game()) G->Select(0); }
-void AOKRTPlayerController::Two() { if (auto* G=Game()) G->Select(1); }
+void AOKRTPlayerController::Menu()
+{
+    const bool bCancelTarget=bArmed || bPointerDown;
+    CancelPointer(); ResetTouchState(); bArmed=false;
+    if (!bCancelTarget) if (auto* G=Game()) G->ToggleMenu();
+}
+void AOKRTPlayerController::One() { if (auto* G=Game()) G->Select(0,IsShiftDown()); }
+void AOKRTPlayerController::Two() { if (auto* G=Game()) G->Select(1,IsShiftDown()); }
 void AOKRTPlayerController::All() { if (auto* G=Game()) G->SelectAll(); }
+void AOKRTPlayerController::NextUnit()
+{
+    auto* G=Game(); if (!G || !IsGameplayInputAllowed()) return;
+    TArray<int32> Selected;
+    for (int32 I=0;I<G->Party.Num();++I)
+        if (G->Party[I]->IsAlive() && G->Party[I]->IsSelected()) Selected.Add(I);
+    const int32 Current=Selected.IndexOfByKey(G->ActiveMember);
+    if (Selected.Num()>1) { G->Select(Selected[(Current+1)%Selected.Num()],true); return; }
+    for (int32 Offset=1;Offset<=G->Party.Num();++Offset)
+    {
+        const int32 Index=(G->ActiveMember+Offset)%G->Party.Num();
+        if (G->Party[Index]->IsAlive()) { G->Select(Index); return; }
+    }
+}
 void AOKRTPlayerController::Walk() { SetPartyStance(EOKStance::Walk); }
 void AOKRTPlayerController::Run() { SetPartyStance(EOKStance::Run); }
 void AOKRTPlayerController::Crouch() { SetPartyStance(EOKStance::Crouch); }
@@ -235,12 +289,24 @@ void AOKRTPlayerController::PlayerTick(float Delta)
 {
     Super::PlayerTick(Delta);
     auto* G=Game(); if (!G) return;
+    const float CameraDelta=FMath::Clamp(IsPaused() ? float(FApp::GetDeltaTime()) : Delta,0.f,.05f);
+    if (IsGameplayInputAllowed())
+    {
+        const float Horizontal=float(IsInputKeyDown(EKeys::Right))-float(IsInputKeyDown(EKeys::Left));
+        const float Vertical=float(IsInputKeyDown(EKeys::Up))-float(IsInputKeyDown(EKeys::Down));
+        if (Horizontal || Vertical) G->Pan(Horizontal*1000*CameraDelta,Vertical*1000*CameraDelta);
+    }
     float X=0,Y=0;
-    if (!GetMousePosition(X,Y)) { CancelPointer(); G->PreviewSpline->ClearSplinePoints(); return; }
+    if (!GetMousePosition(X,Y))
+    { CancelPointer(); bWasPanning=bWasOrbiting=false; G->PreviewSpline->ClearSplinePoints(); return; }
     UpdatePointer(FVector2D(X,Y));
-    if (IsInputKeyDown(EKeys::MiddleMouseButton)) G->Pan((LastMouse.X-X)*3,(Y-LastMouse.Y)*3);
-    if (!G->bSteppedCamera && IsInputKeyDown(EKeys::LeftAlt) && IsInputKeyDown(EKeys::RightMouseButton))
+    const bool bPanning=IsGameplayInputAllowed() && IsInputKeyDown(EKeys::MiddleMouseButton);
+    const bool bOrbiting=IsGameplayInputAllowed() && !G->bSteppedCamera &&
+        (IsInputKeyDown(EKeys::LeftAlt) || IsInputKeyDown(EKeys::RightAlt)) && IsInputKeyDown(EKeys::RightMouseButton);
+    if (bPanning && bWasPanning) G->Pan((LastMouse.X-X)*3,(Y-LastMouse.Y)*3);
+    if (bOrbiting && bWasOrbiting)
         G->Orbit((X-LastMouse.X)*.25f,(Y-LastMouse.Y)*.2f);
+    bWasPanning=bPanning; bWasOrbiting=bOrbiting;
     LastMouse=FVector2D(X,Y);
     PreviewClock+=IsPaused() ? FApp::GetDeltaTime() : Delta;
     if (PreviewClock>.15f)
@@ -248,7 +314,17 @@ void AOKRTPlayerController::PlayerTick(float Delta)
         PreviewClock=0;
         auto* UI=Cast<AOKRTHUD>(GetHUD());
         FHitResult Hit;
-        if (!bBoxSelecting && (!UI || !UI->OverUI(LastMouse)) && GetHitResultAtScreenPosition(LastMouse,ECC_Visibility,false,Hit)) G->Preview(Hit.ImpactPoint);
+        CurrentMouseCursor=EMouseCursor::Default;
+        if (IsGameplayInputAllowed() && !bBoxSelecting && (!UI || !UI->OverUI(LastMouse)) &&
+            GetHitResultAtScreenPosition(LastMouse,ECC_Visibility,false,Hit))
+        {
+            const auto* Unit=Cast<AOKRTUnit>(Hit.GetActor());
+            FVector Destination=Hit.ImpactPoint;
+            const bool bInteraction=!Unit && G->FindInteractionAt(Destination,Destination)!=EOKInteraction::Nearby;
+            CurrentMouseCursor=bInteraction ? EMouseCursor::Hand : Unit && !Unit->IsAlive() ? EMouseCursor::GrabHand : EMouseCursor::Crosshairs;
+            if (Unit && !Unit->bEnemy) G->PreviewSpline->ClearSplinePoints();
+            else G->Preview(Unit ? Unit->Feet() : Destination);
+        }
         else G->PreviewSpline->ClearSplinePoints();
     }
 }

@@ -200,6 +200,8 @@ void AOKRTGameMode::SmokeTick()
             Enemies[0]->SetActorLocation(GuardLocation); Enemies[0]->SetActorRotation(GuardRotation);
             Party[0]->SetActorLocation(PartyLocation);
         }
+        SmokeControlsTests();
+        if (SmokeStage<0) return;
         Preview(FVector(720,1260,0));
         FScreenshotRequest::RequestScreenshot(TEXT("OKRT_Start.png"),false,false);
         bObservedPatrolMove=false; Enemies[1]->Vision->FarRange=0;
@@ -258,7 +260,8 @@ void AOKRTGameMode::SmokeTick()
     case 5:
         if (Party[0]->QueueSize()) return;
         Require(Party[0]->CarriedBody==Enemies[0],TEXT("body carrying"));
-        Move(Party[0],HideLocation); Order(Party[0],EOKOrder::Interact);
+        { FOKRTOrder O; O.Kind=EOKOrder::Interact; O.Location=HideLocation; O.bApproachInteraction=true;
+          O.Interaction=EOKInteraction::HideBody; Party[0]->Submit(O); }
         Next(); break;
     case 6:
         if (Party[0]->QueueSize()) return;
@@ -273,7 +276,8 @@ void AOKRTGameMode::SmokeTick()
         Require(GuardAI->AlertState==EOKAlert::Investigate,TEXT("AI hearing investigates distraction"));
         Require(FVector::Dist2D(Enemies[1]->Feet(),FVector(1740,1200,0))>20,TEXT("guard investigation uses continuous movement"));
         GuardAI->bBrainEnabled=false; GuardAI->StopMovement();
-        Move(Party[0],TNTLocation); Order(Party[0],EOKOrder::Interact);
+        { FOKRTOrder O; O.Kind=EOKOrder::Interact; O.Location=TNTLocation; O.bApproachInteraction=true;
+          O.Interaction=EOKInteraction::CollectTNT; Party[0]->Submit(O); }
         Move(Party[0],DetonatorLocation+FVector(0,-45,0),true);
         Move(Party[1],DetonatorLocation+FVector(0,45,0));
         Next(); break;

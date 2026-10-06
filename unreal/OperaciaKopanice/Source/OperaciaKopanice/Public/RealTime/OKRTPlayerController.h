@@ -20,6 +20,8 @@ public:
     void UpdatePointer(FVector2D Position);
     void EndPointer(FVector2D Position);
     void CancelPointer();
+    bool CommandAt(FVector2D Position,bool bRun=false,bool bAppend=false);
+    bool TapAt(FVector2D Position);
     bool GetSelectionBounds(FBox2D& Bounds) const;
     bool bArmed=false;
     EOKOrder ArmedOrder=EOKOrder::Move;
@@ -28,10 +30,12 @@ private:
     void LeftClick();
     void LeftRelease();
     void RightClick();
+    void RightDoubleClick();
     void Interact();
     void Pause();
     void Menu();
     void One(); void Two(); void All();
+    void NextUnit();
     void Walk(); void Run(); void Crouch(); void Prone();
     void Takedown(); void Throw(); void Carry();
     void ZoomIn(); void ZoomOut(); void RotateLeft(); void RotateRight();
@@ -40,7 +44,8 @@ private:
     void Touch(ETouchIndex::Type Finger,FVector Location);
     void TouchMove(ETouchIndex::Type Finger,FVector Location);
     void TouchRelease(ETouchIndex::Type Finger,FVector Location);
-    void ClickAt(float X,float Y,bool bRight);
+    enum class EPointerIntent : uint8 { Selection, Command, Touch };
+    bool ClickAt(FVector2D Position,EPointerIntent Intent,bool bAppend=false,bool bRun=false);
     bool IsGameplayInputAllowed() const;
     bool IsShiftDown() const;
     bool IsOnViewport(FVector2D Position) const;
@@ -61,4 +66,6 @@ private:
     void ResetTouchState();
     float PreviewClock=0;
     FVector2D LastMouse=FVector2D::ZeroVector;
+    bool bWasPanning=false;
+    bool bWasOrbiting=false;
 };

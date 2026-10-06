@@ -4,6 +4,14 @@
 
 ### Unreal Demo
 
+- Make desktop controls Commandos-like stealth RTT: left-click/drag selects units,
+  right-click issues contextual movement/takedown/body orders and approaches TNT,
+  detonator or body cover before interacting. Retain separate touch-tap behavior.
+- Add double-right-click running with paused/Shift queue promotion, Ctrl+A living
+  party selection, Tab specialist cycling, S stop and Escape/right-click target cancel.
+  Preserve crouch/prone during ordinary movement and isolate skills to the active unit.
+- Add arrow-key camera pan and suppress stale pointer deltas on camera drag start;
+  provide contextual cursor/path previews and rendered RTT input regression checks.
 - Block bridge sabotage until both living party members have completely cleared
   the span onto the east bank. Rejected detonations preserve the bridge, NavMesh
   route and noise state; the objective now reports the party's crossing progress.

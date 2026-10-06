@@ -19,6 +19,7 @@ public:
     virtual void GetActorEyesViewPoint(FVector& Location,FRotator& Rotation) const override;
     void Initialize(bool bGuard,bool bOfficer);
     UFUNCTION(BlueprintCallable) bool Submit(const FOKRTOrder& Order,bool bAppend=false);
+    bool PromoteLastMoveToRun(FVector Destination);
     UFUNCTION(BlueprintCallable) void CancelOrders();
     UFUNCTION(BlueprintCallable) void SetStance(EOKStance Value);
     void TakeHit(float Damage);
