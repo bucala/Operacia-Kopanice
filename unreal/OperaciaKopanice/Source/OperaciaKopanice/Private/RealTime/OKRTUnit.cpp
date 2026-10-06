@@ -11,6 +11,8 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "NavigationSystem.h"
+#include "NavigationPath.h"
 #include "Engine/World.h"
 
 AOKRTUnit::AOKRTUnit()
@@ -150,7 +152,7 @@ bool AOKRTUnit::Submit(const FOKRTOrder& Order,bool bAppend)
     auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
     const bool bKeepQueue=bAppend || (Game && Game->bTacticalPause);
     FString Reason;
-    if (!ValidateOrder(Order,false,bKeepQueue,Reason))
+    if (!ValidateOrder(Order,false,bKeepQueue,Reason) || !CanNavigateOrder(Order,bKeepQueue,Reason))
     { if (Game) Game->Message=Reason; return false; }
     if (Order.Kind==EOKOrder::Stance && (!Game || !Game->bTacticalPause))
     { SetStance(Order.Stance); return true; }
@@ -164,6 +166,40 @@ bool AOKRTUnit::Submit(const FOKRTOrder& Order,bool bAppend)
     Orders.Add(Order);
     return true;
 }
+bool AOKRTUnit::CanNavigateOrder(const FOKRTOrder& Order,bool bFromQueue,FString& Reason)
+{
+    const bool bTargetOrder=Order.Kind==EOKOrder::Takedown || (Order.Kind==EOKOrder::Carry && Order.Target.IsValid());
+    if (Order.Kind!=EOKOrder::Move && !(Order.Kind==EOKOrder::Interact && Order.bApproachInteraction) && !bTargetOrder) return true;
+    const FVector Destination=bTargetOrder ? Order.Target->Feet() : Order.Location;
+    FVector From=Feet();
+    if (bFromQueue)
+    {
+        TArray<FVector> Locations; GetQueuedLocations(Locations);
+        if (!Locations.IsEmpty()) From=Locations.Last();
+    }
+    const float Tolerance=bTargetOrder ? 100.f : Order.Kind==EOKOrder::Interact ? 75.f : 30.f;
+    auto Reject=[&Reason]()
+    { Reason=TEXT("Ciel nema pristupnu cestu. Povodne prikazy zostali zachovane."); return false; };
+    // Identical endpoints can produce an empty UE path. They still need a real
+    // navigable point, including a pickup planned immediately after a takedown.
+    if (From.Equals(Destination,1.f))
+    {
+        auto* Nav=FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+        FNavLocation Projected;
+        if (Nav && Nav->ProjectPointToNavigation(Destination,Projected,FVector(Tolerance,Tolerance,75),
+            &GetCharacterMovement()->GetNavAgentPropertiesRef()) &&
+            FVector::Dist2D(Projected.Location,Destination)<=Tolerance && FMath::Abs(Projected.Location.Z-Destination.Z)<=75) return true;
+        return Reject();
+    }
+    const auto* Path=UNavigationSystemV1::FindPathToLocationSynchronously(GetWorld(),From,Destination,this);
+    // UE may project an off-mesh goal onto a nearby bank or floor. Do not accept
+    // that projected route as reaching a different clicked destination.
+    if (!Path || !Path->IsValid() || Path->IsPartial() || Path->PathPoints.IsEmpty() ||
+        FVector::Dist2D(Path->PathPoints.Last(),Destination)>Tolerance ||
+        FMath::Abs(Path->PathPoints.Last().Z-Destination.Z)>75)
+        return Reject();
+    return true;
+}
 void AOKRTUnit::FinishOrder()
 {
     if (auto* AI=Cast<AAIController>(GetController())) AI->StopMovement();
@@ -174,6 +210,9 @@ bool AOKRTUnit::PromoteLastMoveToRun(FVector Destination)
 {
     if (!IsAlive() || Orders.IsEmpty() || Orders.Last().Kind!=EOKOrder::Move ||
         FVector::Dist2D(Orders.Last().Location,Destination)>60) return false;
+    FOKRTOrder Requested=Orders.Last(); Requested.Location=Destination;
+    FString Reason;
+    if (!CanNavigateOrder(Requested,true,Reason)) return false;
     Orders.Last().bRunToDestination=true;
     // Reapply pace once on execution/resume, including an already-started move.
     if (Orders.Num()==1) bOrderStarted=false;
@@ -210,6 +249,10 @@ void AOKRTUnit::UpdateOrders()
     const float Acceptance=bTargetOrder ? 100.f : Order.Kind==EOKOrder::Interact ? 75.f : 25.f;
     if (!bOrderStarted)
     {
+        // Recheck once when a queued approach begins; topology may have changed
+        // during tactical pause. Active paths remain owned by UE path following.
+        if (!CanNavigateOrder(Order,false,Reason))
+        { Game->Message=TEXT("Cesta k cielu uz nie je dostupna."); FinishOrder(); return; }
         if (Order.Kind==EOKOrder::Move)
         {
             if (Order.bRunToDestination) SetStance(EOKStance::Run);
@@ -223,12 +266,18 @@ void AOKRTUnit::UpdateOrders()
     if (AI->GetMoveStatus()!=EPathFollowingStatus::Idle) return;
     if (FVector::Dist2D(Feet(),Destination)>Acceptance+45)
     { Game->Message=TEXT("Prikaz nedosiahol ciel."); FinishOrder(); return; }
+    if (bTargetOrder)
+    {
+        FHitResult Hit; FCollisionQueryParams Params(SCENE_QUERY_STAT(OKRTReach),false,this); Params.AddIgnoredActor(Target);
+        if (FMath::Abs(Feet().Z-Target->Feet().Z)>75 ||
+            GetWorld()->LineTraceSingleByChannel(Hit,GetActorLocation(),Target->GetActorLocation(),ECC_Visibility,Params))
+        { Game->Message=TEXT("Prekazka blokuje pristup k cielu."); FinishOrder(); return; }
+    }
     if (Order.Kind==EOKOrder::Takedown && Target)
     {
         if (Cooldown>0) return;
         const float Behind=FVector::DotProduct(Target->GetActorForwardVector(),(Feet()-Target->Feet()).GetSafeNormal2D());
-        FHitResult Hit; FCollisionQueryParams Params(SCENE_QUERY_STAT(OKRTMelee),false,this); Params.AddIgnoredActor(Target);
-        if (Behind<.1f && !GetWorld()->LineTraceSingleByChannel(Hit,GetActorLocation(),Target->GetActorLocation(),ECC_Visibility,Params))
+        if (Behind<.1f)
         { Target->TakeHit(100); Cooldown=3; Game->Message=TEXT("Hliadka neutralizovana."); }
         else Game->Message=TEXT("Tichy utok vyzaduje pristup zozadu.");
     }

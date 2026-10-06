@@ -112,9 +112,24 @@ Body carrying reduces speed; hide interaction unregisters the hidden Sight stimu
 Move and Stance apply to all selected units. Interact, Distract, Takedown and Carry
 apply only to the active portrait, so group selection cannot spend two charges or
 send two carriers to one body. Submit returns whether the order was accepted.
-Invalid submissions leave the previous queue and movement intact. Targets are
-validated again at execution; stale targets cancel their own approach path.
+Invalid submissions leave the previous queue and movement intact. Navigational
+orders are checked against complete agent-specific NavMesh routes before queue mutation.
+Movement endpoints must stay within 30 cm horizontally of the requested goal;
+approach interactions allow 75 cm and guard/body approaches 100 cm. All reject
+projection to a floor more than 75 cm away vertically. River/interior/disconnected
+goals therefore cannot replace an otherwise valid active path. Appended commands
+query from the last queued approach/movement destination instead of current feet.
+The route is checked again once when execution starts, not on every moving tick.
+If a queued approach becomes unreachable, only that order is removed and later
+orders remain available. UE path following owns active route invalidation/replanning.
+Identical endpoints use bounded NavMesh point projection, preserving same-position
+moves and takedown-then-pickup plans without admitting points in water. Double-click
+run promotion also validates the new click before modifying an existing move.
+Targets are validated again at execution; stale targets cancel their own approach path.
 Friendly takedowns and carrying living/hidden/already-carried guards are rejected.
+Both takedown and pickup check vertical reach and a Visibility trace at arrival;
+the body cannot be attached through a wall just because it is inside AI MoveTo's
+acceptance radius. These checks do not introduce automatic rear-approach routing.
 A carry may be queued behind a takedown of the same guard, but still requires a
 dead body when executed. Cooldowns retain the pending attack/throw; empty inventory,
 invalid targets and blocked/out-of-range throws produce feedback and end the order.

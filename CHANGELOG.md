@@ -4,6 +4,13 @@
 
 ### Unreal Demo
 
+- Validate complete agent-specific navigation routes before accepting movement,
+  guard/body approaches or contextual interactions. Reject inaccessible water,
+  interiors, elevated targets and disconnected banks without cancelling prior orders.
+- Check appended routes from the last queued destination and recheck navigation
+  once when execution starts; retain later orders if a target becomes unreachable.
+- Require vertical reach and line of sight for body pickup as well as takedown,
+  preventing attachments through walls; add rendered navigation/reach regressions.
 - Make desktop controls Commandos-like stealth RTT: left-click/drag selects units,
   right-click issues contextual movement/takedown/body orders and approaches TNT,
   detonator or body cover before interacting. Retain separate touch-tap behavior.

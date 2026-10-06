@@ -60,5 +60,6 @@ private:
     void UpdateAnimation(float Delta);
     void FinishOrder();
     bool ValidateOrder(const FOKRTOrder& Order,bool bExecuting,bool bKeepQueue,FString& Reason) const;
+    bool CanNavigateOrder(const FOKRTOrder& Order,bool bFromQueue,FString& Reason);
     void UpdateOrders();
 };

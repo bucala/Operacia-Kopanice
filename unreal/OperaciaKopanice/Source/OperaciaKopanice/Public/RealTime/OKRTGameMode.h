@@ -89,6 +89,7 @@ private:
     void MissionSmokeTick(float Delta);
     void SmokeSelectionTests();
     void SmokeControlsTests();
+    void SmokeNavigationTests();
     bool bSmoke=false;
     bool bMissionSmoke=false;
     bool bMissionSawBridge=false;

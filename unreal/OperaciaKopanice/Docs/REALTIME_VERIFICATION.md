@@ -1,5 +1,37 @@
 # Real-Time Prototype Verification
 
+## Safe Navigation and Body Reach: 2026-10-06
+
+UE 5.8.2 Win64 Development Editor build succeeded. Existing preferred-MSVC and
+engine/input deprecation warnings remain; this is not UE 5.4 certification.
+
+| Run | Checks | Local Saved/Logs evidence |
+| --- | --- | --- |
+| Rendered 1920 x 1080 | 136/136 PASS | DemoSmoke-1620deb643354d65b14ca7a558304f8c.log |
+| Rendered 480 x 800 | 136/136 PASS | DemoSmoke-eac1861610464ce49068cf0d7d465d00.log |
+| Live-AI mission 1280 x 720 | 15/15 PASS | DemoSmoke-2b9d1a9232004ac7ad9520c897fa707d.log |
+
+All three final runs exited zero with no failed checks, fatal errors or material
+compilation failures. Desktop and portrait pause screenshots were inspected for
+nonblank sharp rendering, visible routes and nonoverlapping HUD elements.
+The log still reports missing optional CabinAlt/CommandVan meshes; no assets were
+added in this pass. Logs and screenshots remain local, not release payloads.
+
+Twenty-two added checks exercise production command submission and native path
+following. They cover rejecting water, off-mesh banks, cabin interiors, elevated
+goals, target approaches and contextual interactions without replacing valid
+orders; double-click promotion cannot bypass validation. Appended paused routes
+start from the last queued destination, identical endpoints remain valid on the
+NavMesh, and an unreachable resumed approach preserves the following stance order.
+Body pickup fails through a visibility-only wall and succeeds after its removal.
+After bridge destruction, a disconnected-bank order preserves a reachable move.
+
+The separate live-AI mission still completes contextual TNT pickup, timed crossing,
+sabotage and extraction with both guards active, no killed guards and no damage
+to either party member. This pass uses rendered Windows fixtures, not physical
+mouse timing, an Android device or a packaged Windows executable. The legacy web
+game and its deployment are unchanged.
+
 ## Commandos-Like RTT Controls: 2026-10-06
 
 UE 5.8.2 Win64 Development Editor build succeeded. Existing MSVC preferred-version

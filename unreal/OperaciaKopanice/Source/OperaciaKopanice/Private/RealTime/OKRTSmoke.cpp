@@ -200,6 +200,8 @@ void AOKRTGameMode::SmokeTick()
             Enemies[0]->SetActorLocation(GuardLocation); Enemies[0]->SetActorRotation(GuardRotation);
             Party[0]->SetActorLocation(PartyLocation);
         }
+        SmokeNavigationTests();
+        if (SmokeStage<0) return;
         SmokeControlsTests();
         if (SmokeStage<0) return;
         Preview(FVector(720,1260,0));
@@ -307,6 +309,18 @@ void AOKRTGameMode::SmokeTick()
         if (Now-StageStarted<3) return;
         Require(bBridgeDestroyed,TEXT("sabotage objective"));
         Require(!HasCompletePath(FVector(720,720,0),FVector(1440,720,0)),TEXT("destroyed bridge invalidates NavMesh"));
+        {
+            FOKRTOrder Exit; Exit.Location=ExitLocation;
+            Require(Party[0]->Submit(Exit),TEXT("east-bank route remains available after sabotage"));
+            Party[0]->Tick(0);
+            const auto* AI=CastChecked<AOKRTGuardController>(Party[0]->GetController());
+            const auto Request=AI->GetPathFollowingComponent()->GetCurrentRequestId();
+            FOKRTOrder Across; Across.Location=FVector(720,720,0);
+            Require(!Party[0]->Submit(Across) && Party[0]->QueueSize()==1 &&
+                AI->GetPathFollowingComponent()->GetCurrentRequestId()==Request,
+                TEXT("destroyed bridge crossing is rejected without cancelling extraction"));
+            Party[0]->CancelOrders();
+        }
         Move(Party[0],ExitLocation+FVector(0,-40,0)); Move(Party[1],ExitLocation+FVector(0,40,0));
         Next(); break;
     case 10:

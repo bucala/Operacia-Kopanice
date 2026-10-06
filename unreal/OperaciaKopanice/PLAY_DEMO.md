@@ -85,6 +85,11 @@ use W/C/V to leave running after a double-click. Invalid orders preserve existin
 Interactions remember the chosen marker, so a hide order cannot collect nearby TNT.
 Detonator and hide orders may be planned before TNT/pickup; prerequisites are checked
 on arrival. A failed prerequisite ends that interaction with feedback, not a retry loop.
+An unreachable terrain/approach order is rejected before changing existing orders.
+Water, blocked interiors and disconnected banks after sabotage cannot cancel a
+valid route. Appended routes are checked from the last queued destination and
+checked again on execution; a stale approach ends without clearing later orders.
+Body pickup and takedown also require unobstructed reach at arrival.
 Unarmed left-click selection occurs on release; moving at least 8 screen pixels starts
 a selection rectangle instead. Drag in either direction. Empty rectangles keep
 the existing selection and never issue movement. Units are selected by their
@@ -140,6 +145,9 @@ AI checks verify stable pursuit requests and last-seen search after losing sight
 RTT control checks cover left-click selection versus right-click orders, contextual
 TNT/guard/body targeting, paused double-click promotion, preserved stealth stance,
 group formations, Ctrl+A/Tab/S/Escape, UI gating and separate touch-tap behavior.
+Navigation checks cover preserved active paths after invalid replacements, paused
+queue integrity, same-position orders, execution-time target reachability, bridge
+disconnection and wall-blocked versus unobstructed body pickup.
 Selection checks exercise the native pointer handlers with real projected party
 coordinates, including reversed/additive drags, empty/dead/enemy rejection, HUD
 exclusion, cancellation, small-motion clicks and pause-enabled input bindings.
