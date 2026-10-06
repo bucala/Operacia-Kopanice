@@ -83,6 +83,7 @@ private:
     UBoxComponent* Collider(FVector Center,FVector Extent,FName Tag);
     AStaticMeshActor* Place(const TCHAR* Path,FVector Location,float Scale=1);
     void UpdateCamera();
+    int32 PartyMembersOnSafeBank() const;
     void SmokeTick();
     void MissionSmokeTick(float Delta);
     void SmokeSelectionTests();

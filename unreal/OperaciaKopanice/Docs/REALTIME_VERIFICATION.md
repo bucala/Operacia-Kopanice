@@ -173,7 +173,21 @@ Measured gait offsets remained 0.0000 cm lateral / 0.5992 cm vertical.
 The 480 x 800 HUD/animation fixture also passed earlier on the same date, before
 the patrol revision (`DemoSmoke-5bb1b3aa3b944c92a2ba21b0a408050b.log`).
 
-## Remaining Verification Limits
+## Sabotage Safety: 2026-10-06
+
+The rendered 1920 x 1080 integration fixture passed 81/81 checks after the
+detonator lock was added (`DemoSmoke-1e1c81abdbe84b77abb899e502302973.log`).
+New cases attempt sabotage with a teammate still west and with its capsule
+overlapping the east end of the span. Both preserve the bridge and noise state;
+the west-bank attempt also preserves a complete cross-river NavMesh path.
+The objective reports partial crossing and unlocks detonator activation only
+after both members fully clear the span. Normal sabotage, extraction and the
+separate combat/loss fixture still pass. Material compilation reported no failures.
+The 1280 x 720 live-AI mission fixture also passed 14/14 checks with the new lock
+(`DemoSmoke-fae9d6e112d94f26b944751bf19b9bee.log`). Both units extracted at
+simulation time 67.25 seconds with full health and both guards active.
+
+## Current Verification Limits
 
 No packaged Windows build, Android device/APK, browser port, multiplayer,
 shipping configuration or manual complete mouse/touch playthrough is certified.

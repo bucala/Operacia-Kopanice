@@ -36,6 +36,10 @@ because StaticMeshComponent can restore default collision when re-registered.
 NavigationSystem obtains valid component bounds. RuntimeGeneration is Dynamic.
 Bridge destruction removes the physical bridge surface and updates navigation;
 the existing viaduct also supplies a NavAreaNull gap obstacle.
+Mission 1 permits sabotage only when every living party member's capsule clears
+the east end of the physical span. A rejected interaction leaves geometry,
+navigation and noise unchanged. HUD objectives count safe members during the
+crossing and switch to detonator activation once the entire party is across.
 Commands disallow partial paths. Hover preview uses the same synchronous
 NavigationSystem path points, stored in a world-space spline and projected by HUD.
 Production Landscape/mesh collision should replace flat proxies when terrain

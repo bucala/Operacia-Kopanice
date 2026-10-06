@@ -4,6 +4,9 @@
 
 ### Unreal Demo
 
+- Block bridge sabotage until both living party members have completely cleared
+  the span onto the east bank. Rejected detonations preserve the bridge, NavMesh
+  route and noise state; the objective now reports the party's crossing progress.
 - Replan Mission 1 patrols with authored watch directions and dwell times. The west
   guard faces away from the party for 12 seconds, watches the bridge for 2 seconds,
   then turns north before returning. The east guard patrols the southern bank.

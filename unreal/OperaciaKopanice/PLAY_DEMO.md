@@ -26,7 +26,10 @@ a separate legacy GO prototype, not a browser build of this Unreal refactor.
 Lead both the Partisan and Officer through the winter settlement.
 Collect the marked TNT, bring both across the only bridge, reach the eastern
 detonator and interact to destroy the bridge. Extract both at the northeast exit.
-Destroying the bridge early can strand a party member; restart is then necessary.
+The detonator remains locked until both living members have fully cleared the
+bridge onto the east bank. An early interaction leaves the bridge intact and
+shows a message; retry after the second member crosses. The objective reports
+crossing progress and changes to detonator activation when the team is safe.
 Any party death fails the mission.
 The mission starts in tactical pause once navigation is ready, allowing an initial
 plan before guards begin moving. Resume with Space or the pause icon.

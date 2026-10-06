@@ -43,6 +43,8 @@ chôdze podľa rýchlosti. Výška je zjednotená na 180 cm; animácie útoku a 
 tiel zostávajú provizórne.
 Prvá misia má časované hliadky: pri moste vojak čaká 12 sekúnd otočený na sever
 a následne most krátko kontroluje. Test celej misie prechádza so zapnutou AI.
+Detonátor sa odomkne až po úplnom prechode oboch členov tímu na východný breh;
+cieľ misie priebežne zobrazuje počet členov v bezpečí.
 Menu uchováva nastavenia kvality grafiky, zorných kužeľov, náhľadu ciest
 a krokovej kamery aj po ďalšom spustení hry.
 

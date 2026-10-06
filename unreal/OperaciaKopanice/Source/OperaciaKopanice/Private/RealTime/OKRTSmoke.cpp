@@ -7,6 +7,8 @@
 #include "ECS/OKTurnCoordinatorSubsystem.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/PoseableMeshComponent.h"
+#include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "UnrealClient.h"
@@ -279,6 +281,23 @@ void AOKRTGameMode::SmokeTick()
         if (Party[0]->QueueSize() || Party[1]->QueueSize()) return;
         Require(bHasTNT,TEXT("TNT pickup"));
         Require(Party[0]->Feet().X>1195 && Party[1]->Feet().X>1195,TEXT("both party members cross actual bridge path"));
+        {
+            const FTransform Saved=Party[1]->GetActorTransform();
+            const int32 Pulses=NoisePulses.Num();
+            Party[1]->SetActorLocation(FVector(720,1260,Saved.GetLocation().Z));
+            Interact(Party[0]);
+            Require(!bBridgeDestroyed && NoisePulses.Num()==Pulses &&
+                HasCompletePath(FVector(720,720,0),DetonatorLocation),
+                TEXT("sabotage cannot strand a teammate on the west bank or emit an explosion"));
+            Require(Objective()==TEXT("Prejdite most: 1/2 v bezpeci"),TEXT("objective reports partial party crossing"));
+            const float Radius=Party[1]->GetCapsuleComponent()->GetScaledCapsuleRadius();
+            Party[1]->SetActorLocation(FVector(BridgeFloor->Bounds.GetBox().Max.X+Radius-1,720,Saved.GetLocation().Z));
+            Interact(Party[0]);
+            Require(!bBridgeDestroyed && NoisePulses.Num()==Pulses,
+                TEXT("sabotage waits until the entire teammate capsule clears the span"));
+            Party[1]->SetActorTransform(Saved);
+            Require(Objective()==TEXT("Aktivujte detonator"),TEXT("detonator objective unlocks when both members are safe"));
+        }
         Order(Party[0],EOKOrder::Interact); Next(); break;
     case 9:
         if (Now-StageStarted<3) return;

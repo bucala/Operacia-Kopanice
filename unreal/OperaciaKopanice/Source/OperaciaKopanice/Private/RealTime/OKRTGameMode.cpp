@@ -10,6 +10,7 @@
 #include "Navigation/OKViaductActor.h"
 #include "Navigation/OKDynamicNavObstacleComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/SplineComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/DirectionalLightComponent.h"
@@ -337,6 +338,8 @@ void AOKRTGameMode::Interact(AOKRTUnit* Unit)
     { bHasTNT=true; if (TNTMarker) TNTMarker->SetActorHiddenInGame(true); Message=TEXT("TNT ziskane."); return; }
     if (bHasTNT && !bBridgeDestroyed && FVector::Dist2D(Unit->Feet(),DetonatorLocation)<140)
     {
+        if (Party.IsEmpty() || PartyMembersOnSafeBank()!=Party.Num())
+        { Message=TEXT("Najprv presunte cely tim na vychodny breh."); return; }
         bBridgeDestroyed=true; Bridge->DestroySpan();
         TArray<UStaticMeshComponent*> Parts; Bridge->GetComponents(Parts);
         for (auto* Part:Parts) { Part->SetCollisionProfileName(TEXT("NoCollision")); Part->SetCanEverAffectNavigation(false); }
@@ -366,11 +369,26 @@ void AOKRTGameMode::Preview(FVector Destination)
         for (const auto& Point:Path->PathPoints) PreviewSpline->AddSplinePoint(Point+FVector(0,0,8),ESplineCoordinateSpace::World,false);
     PreviewSpline->UpdateSpline();
 }
+int32 AOKRTGameMode::PartyMembersOnSafeBank() const
+{
+    if (!BridgeFloor) return 0;
+    // Mission 1 extracts east: the entire capsule must clear the disappearing span.
+    const double SpanEnd=BridgeFloor->Bounds.GetBox().Max.X;
+    int32 Count=0;
+    for (const AOKRTUnit* Unit:Party)
+        if (Unit && Unit->IsAlive() && Unit->Feet().X-Unit->GetCapsuleComponent()->GetScaledCapsuleRadius()>SpanEnd)
+            ++Count;
+    return Count;
+}
 FString AOKRTGameMode::Objective() const
 {
     if (bLost) return TEXT("Misia zlyhala");
     if (bWon) return TEXT("Misia splnena");
-    return !bHasTNT ? TEXT("Ziskajte TNT") : !bBridgeDestroyed ? TEXT("Prejdite most a aktivujte detonator") : TEXT("Dosiahnite vychod s oboma clenmi");
+    if (!bHasTNT) return TEXT("Ziskajte TNT");
+    if (bBridgeDestroyed) return TEXT("Dosiahnite vychod s oboma clenmi");
+    const int32 SafeMembers=PartyMembersOnSafeBank();
+    return SafeMembers==Party.Num() && !Party.IsEmpty() ? TEXT("Aktivujte detonator") :
+        FString::Printf(TEXT("Prejdite most: %d/%d v bezpeci"),SafeMembers,Party.Num());
 }
 void AOKRTGameMode::Tick(float Delta)
 {
