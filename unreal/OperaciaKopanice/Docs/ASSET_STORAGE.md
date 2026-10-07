@@ -25,9 +25,9 @@ The repository does not commit these generated folders:
 `Binaries/`, `Intermediate/`, `Saved/`, `DerivedDataCache/` and `node_modules/`.
 They are local build products and can be regenerated after cloning.
 
-On 2026-10-07 the upload checkout's tracked/staged runtime, source and documentation
-payload measured approximately 695 MiB after the functional-forest and party-marker
-updates. These add code/docs and about 7.2 MiB of verification captures, no new asset
-packages. This excludes `.git` history/LFS cache,
+On 2026-10-08 the upload checkout's tracked/staged runtime, source and documentation
+payload measured approximately 695 MiB after the functional-forest, party-marker
+and order-planning updates. These add code/docs and about 7.7 MiB of verification
+captures, no new asset packages. This excludes `.git` history/LFS cache,
 ignored build products and high-resolution external originals; it is not the
 size of a packaged Windows game. Git LFS downloads the current asset versions.

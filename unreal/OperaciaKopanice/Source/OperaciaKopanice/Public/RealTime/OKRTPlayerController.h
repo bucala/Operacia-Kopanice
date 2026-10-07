@@ -16,6 +16,7 @@ public:
     virtual void PlayerTick(float Delta) override;
     void Arm(EOKOrder Order);
     void SetPartyStance(EOKStance Stance);
+    void UndoLastOrder();
     void BeginPointer(FVector2D Position,bool bAppend);
     void UpdatePointer(FVector2D Position);
     void EndPointer(FVector2D Position);

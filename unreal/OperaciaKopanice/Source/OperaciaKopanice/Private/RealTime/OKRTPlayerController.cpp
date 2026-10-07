@@ -40,6 +40,7 @@ void AOKRTPlayerController::SetupInputComponent()
     Bind(EKeys::Home,&AOKRTPlayerController::Focus); Bind(EKeys::F5,&AOKRTPlayerController::Restart);
     Bind(EKeys::X,&AOKRTPlayerController::Cancel);
     Bind(EKeys::S,&AOKRTPlayerController::Cancel);
+    Bind(EKeys::BackSpace,&AOKRTPlayerController::UndoLastOrder);
     InputComponent->BindTouch(IE_Pressed,this,&AOKRTPlayerController::Touch).bExecuteWhenPaused=true;
     InputComponent->BindTouch(IE_Repeat,this,&AOKRTPlayerController::TouchMove).bExecuteWhenPaused=true;
     InputComponent->BindTouch(IE_Released,this,&AOKRTPlayerController::TouchRelease).bExecuteWhenPaused=true;
@@ -293,6 +294,15 @@ void AOKRTPlayerController::Cancel()
     CancelPointer(); ResetTouchState(); bArmed=false;
     if (!IsGameplayInputAllowed()) return;
     if (auto* G=Game()) for (AOKRTUnit* U:G->Party) if (U->IsSelected()) U->CancelOrders();
+}
+void AOKRTPlayerController::UndoLastOrder()
+{
+    auto* G=Game();
+    if (!IsGameplayInputAllowed() || !G->Party.IsValidIndex(G->ActiveMember)) return;
+    auto* Unit=G->Party[G->ActiveMember].Get();
+    if (!Unit->IsSelected() || !Unit->UndoLastOrder()) return;
+    CancelPointer(); bArmed=false;
+    G->Message=Unit->DisplayName+TEXT(": posledny cakajuci rozkaz zruseny.");
 }
 void AOKRTPlayerController::PlayerTick(float Delta)
 {

@@ -114,6 +114,22 @@ Orders are Move, Interact, Takedown, Distract, Carry and Stance.
 Move and target approach use complete UE navigation paths.
 Unpaused replacement interrupts current movement; Shift appends.
 Paused submissions append to a bounded queue; S/X clears it explicitly.
+`GetQueuedOrder` returns a copy for read-only HUD inspection. `OKRTOrderQueue`
+shows five typed, numbered orders per page and resets/clamps pages after changing
+specialist or queue length. Existing bitmap icons carry action/stance identity;
+hover/tap inspection changes feedback only. The whole tray blocks world picking,
+including disabled arrow/undo controls, and is omitted if it would intersect the
+portrait/action/message HUD on a short viewport.
+
+`UndoLastOrder` requires both tactical pause and a truly paused world, a living
+friendly unit, no menu/outcome, and a waiting queue tail. `HasStartedOrder` also
+checks UE path-following status, so double-click pace promotion cannot expose an
+active path as a pending order. Removing a waiting tail does not stop/reissue the
+retained navigation request, alter resources or affect another member. The
+pause-enabled Backspace binding and HUD undo act only on the selected active
+specialist. This is plan editing, not undo of actions already executed; S/X is
+still the explicit selected-group stop.
+
 Contextual Interact orders carry a world-space destination, `EOKInteraction` identity
 and `bApproachInteraction`; they navigate first and interact only after reaching
 range. E/HUD-hand interaction remains immediate. Typed interactions cannot

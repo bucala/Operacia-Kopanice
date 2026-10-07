@@ -1,5 +1,48 @@
 # Real-Time Prototype Verification
 
+## Tactical Order Planning: 2026-10-08
+
+The UE 5.8.2 Win64 Development Editor build succeeded with the new order tray and
+fixtures. Final DLL hashes match across build stage, development and upload trees;
+all 98 source/config/project files match between development and upload checkouts.
+Existing preferred-MSVC, optional SDK and engine/input deprecation warnings remain.
+
+| Run | Result | Local log |
+| --- | --- | --- |
+| Final original regression 1920 x 1080 | 197/197 PASS | DemoSmoke-862be4d9148b4100aad508cd9cac2f1a.log |
+| Final original regression 480 x 800 | 197/197 PASS | DemoSmoke-ad50679688474b25b2d3ca8a5c1a4376.log |
+| Campaign 1920 x 1080 | Both forest missions PASS; 336 PASS events | DemoSmoke-4ed214ad8cf442a38ea8e59f62c8398f.log |
+| Campaign 480 x 800 | Both forest missions PASS; 453 PASS events | DemoSmoke-3acee97cb37d499eb1e13828114684da.log |
+| Upload original live-AI mission 1280 x 720 | 15/15 PASS | DemoSmoke-21aa6f1c69474131996cb2c344b0c6e0.log |
+
+Logs remain local in each project's Saved/Logs. Original/campaign regressions
+used the development checkout; the live-AI run used C:/GitHub/Operacia-Kopanice.
+All runs exited successfully without failed assertions, fatal errors, material
+compile failures or default-material substitutions. Campaign events include
+repeated layout checks, not that many distinct cases. Campaign runs preceded the
+compact portrait's redundant-crosshair removal; final original regressions and
+the upload live-AI run cover that cosmetic delta.
+
+Forty additional smoke assertions cover read-only typed order snapshots, invalid
+indices, pause/menu/outcome/dead/enemy gates, waiting-tail removal, resource
+preservation and protection of a started UE movement request, including pace
+promotion. Rendered HUD checks exercise inspection, panel input blocking, touch
+undo, the 32-order limit, all seven pages, pause-enabled Backspace, page clamping
+after removal, specialist switching and restoration of the original mission plan.
+The isolated path fixture explicitly invokes a zero-delta unit tick while paused,
+then restores the queue; it does not complete objectives or move actors to targets.
+
+Both forest missions and the original viaduct retain successful two-member
+extraction at full health with guards alive and brains active. Planning stays
+real-time with true tactical pause, not turn execution or action rewind.
+
+Full HD/portrait plan and portrait capacity captures were inspected for rendered
+assets, readable counters, page indices and nonoverlapping controls. Only the
+roughly 0.5 MiB Evidence/2026-10-08/Order-Plan-480x800.png is committed; the other
+captures remain local under Saved. No runtime asset packages were added. OS mouse
+timing, physical Android devices and packaged Windows/Android builds remain gaps.
+This is the native editor-hosted Windows demo; the legacy web game is unchanged.
+
 ## Party Selection Through Scenery: 2026-10-07
 
 The UE 5.8.2 Win64 Development Editor build succeeded with the two new marker

@@ -28,6 +28,10 @@ public:
     float VisibilityFactor() const;
     FVector Feet() const;
     int32 QueueSize() const { return Orders.Num(); }
+    bool GetQueuedOrder(int32 Index,FOKRTOrder& Order) const;
+    bool HasStartedOrder() const;
+    bool CanUndoLastOrder() const;
+    UFUNCTION(BlueprintCallable) bool UndoLastOrder();
     void GetQueuedLocations(TArray<FVector>& Locations) const;
     bool IsSelected() const { return bSelected; }
     void Select(bool bValue) { bSelected=bValue; }

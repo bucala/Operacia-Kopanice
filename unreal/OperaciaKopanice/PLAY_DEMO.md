@@ -73,6 +73,7 @@ to nearby guards and deals real-time damage.
 | Active pause / resume | Space or pause icon |
 | Queue orders | Issue orders during active pause, then resume |
 | Stop selected units / clear orders | S / X or lower-right minus icon |
+| Undo last waiting order of active specialist | Backspace or order-tray undo icon, during tactical pause only |
 | Cancel armed targeting without stopping movement | Right-click world or Escape |
 | Walk / run / crouch / prone | W / R / C / V or stance icons |
 | Silent takedown | Right-click living guard, or T then left-click guard; approach from behind |
@@ -99,6 +100,15 @@ and disappear for offscreen/dead/hidden units. Portraits and hotkeys remain
 available when no unobstructed screen position fits. Options > Rozhranie > Znacky
 timu toggles both rendering and hit targets and is saved with other preferences.
 These markers are an ally-selection aid, not an enemy-visibility or AI-cover rule.
+
+The order tray shows the active specialist's plan, five numbered actions per page,
+up to the existing 32-order limit. Arrows page through the plan; hover or tap an
+action to inspect its type. The started movement/approach is highlighted and
+remains in the plan when undo removes a later waiting action. Undo is disabled
+outside tactical pause or when only a started order remains. It never changes
+another specialist's plan, spends ammunition or rewinds an executed action.
+S/X still stops all selected units explicitly. Empty queues have no tray, and
+short viewports suppress the tray if it would overlap existing HUD controls.
 
 Right-click world orders use a visibility raycast and complete NavMesh paths.
 An interaction order stores its approach destination, then executes within range;

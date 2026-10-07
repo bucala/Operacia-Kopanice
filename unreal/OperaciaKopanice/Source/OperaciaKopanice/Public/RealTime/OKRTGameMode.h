@@ -112,6 +112,9 @@ private:
     void MissionSmokeTick(float Delta);
     void SmokeSelectionTests();
     void SmokeMarkerTests();
+    void SmokeOrderTests();
+    bool SmokeOrderHUDTests();
+    int32 OrderHUDSmokeStage=0;
     void SmokeControlsTests();
     void SmokeNavigationTests();
     void CampaignSmokeTick();

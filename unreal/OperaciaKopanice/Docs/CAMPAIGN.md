@@ -67,6 +67,12 @@ Their screen-space hit regions select only; they cannot route movement or skills
 through scenery. Neighbouring markers separate and avoid HUD panels; portraits
 and hotkeys remain available at occluded screen edges. The interface settings
 include a persisted Znacky timu toggle. No enemy positions are exposed by it.
+The active specialist's order tray shows five numbered actions per page, with
+inspection, execution highlighting and pause-only tail undo. Backspace/undo
+removes only a waiting action, not an already-started path or another member's
+plan; S/X remains the full selected-group stop. The tray is omitted for empty
+queues or if a short viewport leaves no room. The compact portrait keeps its gold active edge
+without the redundant bottom crosshair, leaving room for double-digit counts.
 
 Preferences and completed-operation flags are saved in local GameUserSettings.
 They are not a mid-mission save system: closing or restarting loses the active
@@ -110,3 +116,5 @@ These are in-engine captures, not the target-art reference:
 
 [Party markers, 1920 x 1080](Evidence/2026-10-07/Party-Markers-1920x1080.png) /
 [Party markers, 480 x 800](Evidence/2026-10-07/Party-Markers-480x800.png)
+
+[Tactical order plan, 480 x 800](Evidence/2026-10-08/Order-Plan-480x800.png)

@@ -4,6 +4,11 @@
 
 ### Unreal Demo
 
+- Add a paged tactical order tray for the active specialist, with typed action/
+  stance icons, ordinal numbers, execution state and order inspection on tap.
+- Add pause-only tail undo via Backspace or the undo icon, preserving an already
+  started path and the other specialist's plan. Disabled controls consume clicks
+  without passing orders through to terrain; full selected-unit stop remains S/X.
 - Add small numbered party markers rendered over scenery, with distinct active/
   selected colours, hover names, desktop/Shift selection and touch selection.
   Marker clicks never issue terrain orders or consume armed abilities.

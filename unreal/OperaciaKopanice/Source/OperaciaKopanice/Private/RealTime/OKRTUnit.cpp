@@ -89,6 +89,28 @@ void AOKRTUnit::GetQueuedLocations(TArray<FVector>& Locations) const
             Locations.Add(Order.Target->Feet());
     }
 }
+bool AOKRTUnit::GetQueuedOrder(int32 Index,FOKRTOrder& Order) const
+{
+    if (!Orders.IsValidIndex(Index)) return false;
+    Order=Orders[Index]; return true;
+}
+bool AOKRTUnit::CanUndoLastOrder() const
+{
+    const auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
+    return Game && Game->bTacticalPause && GetWorld()->IsPaused() && !Game->bMenu && !Game->bWon && !Game->bLost &&
+        IsAlive() && !bEnemy && !Orders.IsEmpty() && (Orders.Num()>1 || !HasStartedOrder());
+}
+bool AOKRTUnit::HasStartedOrder() const
+{
+    const auto* AI=Cast<AAIController>(GetController());
+    return !Orders.IsEmpty() && (bOrderStarted || (AI && AI->GetMoveStatus()!=EPathFollowingStatus::Idle));
+}
+bool AOKRTUnit::UndoLastOrder()
+{
+    if (!CanUndoLastOrder()) return false;
+    // Only the waiting tail is editable. Never restart or stop a retained path.
+    Orders.Pop(EAllowShrinking::No); return true;
+}
 void AOKRTUnit::GetActorEyesViewPoint(FVector& Location,FRotator& Rotation) const
 {
     const float Height=!IsAlive() ? 20 : Stance==EOKStance::Prone ? 30 : Stance==EOKStance::Crouch ? 95 : 145;

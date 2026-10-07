@@ -36,13 +36,14 @@ void AOKRTHUD::Icon(FName Name,float X,float Y,float Size,FLinearColor Color)
 {
     if (auto* T=Texture(Name)) DrawTexture(T,X,Y,Size,Size,0,0,1,1,Color,BLEND_Translucent);
 }
-void AOKRTHUD::Button(FName Name,float X,float Y,float Size,const FString& Tip,TFunction<void()> Action,bool Active)
+void AOKRTHUD::Button(FName Name,float X,float Y,float Size,const FString& Tip,TFunction<void()> Action,bool Active,bool Enabled)
 {
     float MX=0,MY=0;
-    const bool Hover=PlayerOwner->GetMousePosition(MX,MY) && MX>=X && MY>=Y && MX<X+Size && MY<Y+Size;
+    const bool Hover=Enabled && PlayerOwner->GetMousePosition(MX,MY) && MX>=X && MY>=Y && MX<X+Size && MY<Y+Size;
     DrawRect(Active ? FLinearColor(.35f,.31f,.18f,.95f) : Hover ? FLinearColor(.14f,.18f,.18f,.96f) : FLinearColor(.035f,.04f,.045f,.88f),X,Y,Size,Size);
-    Icon(Name,X+8,Y+8,Size-16,FLinearColor(.91f,.8f,.52f));
+    Icon(Name,X+8,Y+8,Size-16,Enabled ? FLinearColor(.91f,.8f,.52f) : FLinearColor(.4f,.44f,.43f));
     Buttons.Add({FBox2D(FVector2D(X,Y),FVector2D(X+Size,Y+Size)),MoveTemp(Action),Tip});
+    Buttons.Last().bEnabled=Enabled;
 }
 bool AOKRTHUD::OverUI(FVector2D Point) const
 {
@@ -53,7 +54,8 @@ bool AOKRTHUD::OverUI(FVector2D Point) const
 bool AOKRTHUD::Click(FVector2D Point)
 {
     // Copy the callback: restarting can invalidate HUD state on the following frame.
-    for (const auto& B:Buttons) if (B.Bounds.IsInsideOrOn(Point)) { auto Action=B.Action; Action(); return true; }
+    for (const auto& B:Buttons) if (B.Bounds.IsInsideOrOn(Point))
+    { if (B.bEnabled) { auto Action=B.Action; Action(); } return true; }
     return OverUI(Point);
 }
 bool AOKRTHUD::ValidateLayout() const
@@ -127,7 +129,7 @@ void AOKRTHUD::DrawHUD()
         Label(FString::FromInt(Unit->Distractions),X+23,Y+Card+29,.85f);
         Icon(TEXT("move_right"),X+37,Y+Card+29,14,FLinearColor(.8f,.83f,.8f));
         Label(FString::FromInt(Unit->QueueSize()),X+53,Y+Card+29,.85f);
-        if (Active) Icon(TEXT("crosshair"),X+Card-23,Y+Card+29,16,FLinearColor(.91f,.8f,.52f));
+        if (Active && !Compact) Icon(TEXT("crosshair"),X+Card-23,Y+Card+29,16,FLinearColor(.91f,.8f,.52f));
         const FBox2D Bounds(FVector2D(X,Y),FVector2D(X+Card,Y+Card+48));
         Panels.Add(Bounds); Buttons.Add({Bounds,[G,PC,I](){ G->Select(I,PC->IsInputKeyDown(EKeys::LeftShift) || PC->IsInputKeyDown(EKeys::RightShift)); },
             Unit->DisplayName+(Active ? TEXT(" (aktivna)") : TEXT(""))+(Unit->bInCover ? TEXT(" / v kryte") : TEXT(""))});
@@ -230,6 +232,7 @@ void AOKRTHUD::DrawHUD()
     const FString Feedback=PC->bArmed ? PC->ArmedOrder==EOKOrder::Takedown ? TEXT("Tichy utok: vyber hliadku") :
         PC->ArmedOrder==EOKOrder::Carry ? TEXT("Preniest telo: vyber ciel") : TEXT("Odlakanie: vyber miesto") : G->Message;
     Wrap(Unit->Cooldown>0 ? FString::Printf(TEXT("%s | %.1fs"),*Feedback,Unit->Cooldown) : Feedback,24,MessageY+10,MessageW-16,.95f);
+    DrawOrderQueue(G,FVector2D(Compact ? 16 : X,(Compact ? MessageY : Y)-78),Compact ? W-32 : 7*(S+4)-4);
     DrawPartyMarkers();
     float MouseX,MouseY;
     if (PC->GetMousePosition(MouseX,MouseY))

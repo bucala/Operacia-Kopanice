@@ -239,10 +239,13 @@ void AOKRTGameMode::SmokeTick()
         if (SmokeStage<0) return;
         SmokeMarkerTests();
         if (SmokeStage<0) return;
+        SmokeOrderTests();
+        if (SmokeStage<0) return;
         Orbit(45,0); Orbit(-45,0);
         FScreenshotRequest::RequestScreenshot(TEXT("OKRT_Pause.png"),false,false);
         Next(); break;
     case 3:
+        if (!SmokeOrderHUDTests() || SmokeStage<0) return;
         // Leave pause visible for a rendered frame before resuming the queued mission.
         if (bTacticalPause)
         {
