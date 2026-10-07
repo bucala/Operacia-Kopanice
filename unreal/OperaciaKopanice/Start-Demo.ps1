@@ -3,12 +3,19 @@ param(
     [switch]$Build,
     [switch]$SmokeTest,
     [switch]$MissionSmokeTest,
+    [switch]$CampaignSmokeTest,
+    [ValidateRange(0,2)][int]$Mission = 0,
     [switch]$CabinReview,
     [switch]$LegacyGridDemo,
     [ValidateRange(480,3840)][int]$Width = 1280,
     [ValidateRange(480,2160)][int]$Height = 720
 )
 $ErrorActionPreference = 'Stop'
+if ($CampaignSmokeTest) {
+    if ($LegacyGridDemo -or $MissionSmokeTest) { throw 'CampaignSmokeTest requires the real-time campaign.' }
+    if ($Mission -eq 0) { $Mission = 1 }
+    $SmokeTest = $true
+}
 if ($MissionSmokeTest) {
     if ($LegacyGridDemo) { throw 'MissionSmokeTest requires the real-time demo.' }
     $SmokeTest = $true
@@ -31,10 +38,10 @@ if ($Build -or !(Test-Path -LiteralPath $Module)) {
     Write-Host "Build files retained in $Stage"
 }
 $Map = if ($LegacyGridDemo) { '/Engine/Maps/Entry?game=/Script/OperaciaKopanice.OKDemoGameMode' } else { '/Engine/Maps/Entry' }
-$Arguments = @($Project, $Map, '-game', '-Windowed', "-ResX=$Width", "-ResY=$Height", '-NoSplash')
+$Arguments = @($Project, $Map, '-game', '-Windowed', "-ResX=$Width", "-ResY=$Height", '-NoSplash', "-OKMission=$Mission")
 if ($SmokeTest) {
     $SmokeLog = Join-Path $PSScriptRoot ('Saved/Logs/DemoSmoke-' + [guid]::NewGuid().ToString('N') + '.log')
-    $SmokeFlag = if ($MissionSmokeTest) { '-OKRTMissionSmoke' } elseif ($LegacyGridDemo) { '-OKDemoSmoke' } else { '-OKRTSmoke' }
+    $SmokeFlag = if ($CampaignSmokeTest) { '-OKRTCampaignSmoke' } elseif ($MissionSmokeTest) { '-OKRTMissionSmoke' } elseif ($LegacyGridDemo) { '-OKDemoSmoke' } else { '-OKRTSmoke' }
     $Arguments += @($SmokeFlag, '-RenderOffscreen', '-Unattended', '-NoSound', '-ForceRes', "-AbsLog=$SmokeLog")
 }
 if ($CabinReview) { $Arguments += '-OKCabinReview' }
@@ -44,13 +51,13 @@ $Process = Start-Process -FilePath $Editor -ArgumentList $QuotedArguments -Windo
 # Wait for the editor process, not persistent child services such as the DDC server.
 $null = $Process.Handle
 if ($SmokeTest) {
-    if (!$Process.WaitForExit(240000)) { Stop-Process -Id $Process.Id; throw "Smoke timeout: $SmokeLog" }
+    if (!$Process.WaitForExit($(if ($CampaignSmokeTest) { 420000 } else { 240000 }))) { Stop-Process -Id $Process.Id; throw "Smoke timeout: $SmokeLog" }
 } else { $Process.WaitForExit() }
 if ($Process.ExitCode -ne 0) { throw "Demo exited with code $($Process.ExitCode)" }
 if ($SmokeTest) {
     $LogText = Get-Content -LiteralPath $SmokeLog -Raw
-    $Pass = if ($MissionSmokeTest) { 'OK_RT_MISSION: PASS' } elseif ($LegacyGridDemo) { 'OK_DEMO_SMOKE: PASS' } else { 'OK_RT_SMOKE: PASS' }
-    if ($LogText -notmatch $Pass -or $LogText -match 'Failed to compile Material') {
+    $Pass = if ($CampaignSmokeTest) { 'OK_RT_CAMPAIGN: PASS mission=2' } elseif ($MissionSmokeTest) { 'OK_RT_MISSION: PASS' } elseif ($LegacyGridDemo) { 'OK_DEMO_SMOKE: PASS' } else { 'OK_RT_SMOKE: PASS' }
+    if ($LogText -notmatch $Pass -or $LogText -match 'Failed to compile Material|Default Material will be used in game') {
         throw "Rendered smoke test failed. See $SmokeLog"
     }
     Write-Host "Rendered smoke test passed: $SmokeLog"

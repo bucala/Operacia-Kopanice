@@ -52,6 +52,8 @@ for name,sampler,connections in [
     node.set_editor_property('sampler_type',sampler)
     for pin,prop in connections: lib.connect_material_property(node,pin,prop)
 lib.layout_material_expressions(mat)
+lib.set_material_usage(mat,ue.MaterialUsage.MATUSAGE_NANITE)
+lib.set_material_usage(mat,ue.MaterialUsage.MATUSAGE_INSTANCED_STATIC_MESHES)
 lib.recompile_material(mat)
 ue.EditorAssetLibrary.save_loaded_asset(mat,only_if_is_dirty=False)
 for asset in assets:

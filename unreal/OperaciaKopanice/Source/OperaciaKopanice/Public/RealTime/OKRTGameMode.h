@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 #include "RealTime/OKRTTypes.h"
+#include "RealTime/OKRTMission.h"
 #include "OKRTGameMode.generated.h"
 
 class AOKRTUnit;
@@ -40,7 +41,13 @@ public:
     void Orbit(float Yaw,float Tilt,float Zoom=0);
     void Pan(float X,float Y);
     void FocusSelected();
+    void FocusObjective();
     void Restart();
+    void StartMission(int32 Id);
+    void OpenMenuPage(EOKMenuPage Page);
+    void MenuBack();
+    const FOKRTMission& Mission() const { return OKMissions::Get(MissionId); }
+    bool MissionCompleted(int32 Id) const { return (CompletedMissions & (1<<Id))!=0; }
     void Noise(AOKRTUnit* Source,FVector Location,float Loudness,float Range,FName Tag);
     void Alarm(AOKRTUnit* Target,AOKRTUnit* Source);
     void Interact(AOKRTUnit* Unit,EOKInteraction Kind=EOKInteraction::Nearby);
@@ -59,9 +66,16 @@ public:
     UPROPERTY(BlueprintReadOnly) bool bLost=false;
     bool bMenu=false;
     bool bOptions=false;
+    EOKMenuPage MenuPage=EOKMenuPage::Pause;
+    int32 MissionId=0;
+    int32 PreviewMission=0;
+    bool bFrontEnd=false;
+    bool bObjectiveComplete=false;
     bool bCones=true;
     bool bPathPreview=true;
     bool bSteppedCamera=true;
+    bool bObjectiveMarkers=true;
+    float CameraSensitivity=1.f;
     int32 Quality=2;
     int32 ActiveMember=0;
     FString Message;
@@ -75,12 +89,18 @@ private:
     UPROPERTY() TObjectPtr<AOKViaductActor> Bridge;
     UPROPERTY() TObjectPtr<UBoxComponent> BridgeFloor;
     UPROPERTY() TObjectPtr<AStaticMeshActor> TNTMarker;
+    UPROPERTY() TObjectPtr<AStaticMeshActor> MissionTargetActor;
     UPROPERTY() TObjectPtr<ACameraActor> Camera;
     FVector CameraTarget=FVector(900,720,0);
     float CameraYaw=58.86f;
     float CameraTilt=47.f;
     float CameraDistance=4250.f;
     void BuildScene();
+    void BuildAdditionalMission();
+    void SpawnMissionUnit(FVector Location,bool Enemy,float Yaw,const TArray<struct FOKRTPatrolStop>& Route);
+    AStaticMeshActor* MissionProp(const TCHAR* Path,FVector Center,FVector2D Footprint,float Yaw,bool Blocking,FName Tag);
+    TArray<FVector> CoverLocations;
+    int32 CompletedMissions=0;
     UBoxComponent* Collider(FVector Center,FVector Extent,FName Tag);
     AStaticMeshActor* Place(const TCHAR* Path,FVector Location,float Scale=1);
     void UpdateCamera();
@@ -90,6 +110,8 @@ private:
     void SmokeSelectionTests();
     void SmokeControlsTests();
     void SmokeNavigationTests();
+    void CampaignSmokeTick();
+    bool bCampaignSmoke=false;
     bool bSmoke=false;
     bool bMissionSmoke=false;
     bool bMissionSawBridge=false;

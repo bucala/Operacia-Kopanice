@@ -11,7 +11,7 @@ enum class EOKAlert : uint8 { Patrol, Investigate, Combat };
 UENUM(BlueprintType)
 enum class EOKOrder : uint8 { Move, Interact, Takedown, Distract, Carry, Stance };
 UENUM(BlueprintType)
-enum class EOKInteraction : uint8 { Nearby, CollectTNT, DetonateBridge, HideBody };
+enum class EOKInteraction : uint8 { Nearby, CollectTNT, DetonateBridge, HideBody, CollectDocuments, SabotageCommandPost };
 
 USTRUCT(BlueprintType)
 struct FOKRTOrder

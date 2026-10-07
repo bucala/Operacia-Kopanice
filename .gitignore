@@ -20,8 +20,6 @@ node_modules
 # Optional Unreal import sources and high-resolution alternates are kept in the
 # external asset archive, not in the lightweight playable repository.
 /unreal/OperaciaKopanice/ArtSource/
-/unreal/OperaciaKopanice/Content/Kopanice/Supplied/CabinAlt/
-/unreal/OperaciaKopanice/Content/Kopanice/Supplied/CommandVan/
 /unreal/OperaciaKopanice/Content/Kopanice/DetailedCabin/
 
 # IDEs and editors

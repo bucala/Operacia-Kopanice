@@ -4,6 +4,19 @@
 
 ### Unreal Demo
 
+- Add two authored 86.4 m real-time missions: retrieve the forest courier documents
+  and sabotage a command post, each with three live patrols and two-member extraction.
+- Integrate budgeted Nanite Winterwood cabin and Olive Command Caravan derivatives
+  from supplied Blender files; reuse instanced forest, rocks, cars, paths and cover.
+- Replace the small pause panel with main/pause, mission selection, briefing,
+  results/next-operation, graphics/camera/interface settings and restart/quit confirmations.
+- Persist completed missions, objective-marker visibility and camera sensitivity;
+  retain active pause and queued commands when leaving menu. Add objective camera focus.
+- Wait for complete navigation construction before planning pause on larger maps;
+  block early pause/menu input from freezing construction. Add rendered campaign/menu
+  fixtures including real level travel with live patrols.
+- Keep forest instances on visible actors and save Nanite/instancing material usage
+  flags; fail rendered smoke runs when the engine substitutes the default material.
 - Validate complete agent-specific navigation routes before accepting movement,
   guard/body approaches or contextual interactions. Reject inaccessible water,
   interiors, elevated targets and disconnected banks without cancelling prior orders.

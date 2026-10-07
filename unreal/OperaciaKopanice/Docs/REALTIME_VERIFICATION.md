@@ -1,5 +1,53 @@
 # Real-Time Prototype Verification
 
+## Native Campaign and Menu: 2026-10-07
+
+A fresh Win64 Development Editor build from the upload checkout succeeded with
+UE 5.8.2, followed by an incremental build of the startup navigation-input guard.
+Existing preferred-MSVC, optional SDK and engine/input deprecation warnings remain.
+This is not UE 5.4, packaged Windows or Android certification.
+
+Final runs below used the same compiled module and runtime assets in
+`C:/GitHub/Operacia-Kopanice/unreal/OperaciaKopanice`. Evidence logs are local
+under that project's `Saved/Logs`, not included in the release payload.
+
+| Run | Result | Local log |
+| --- | --- | --- |
+| Campaign 1920 x 1080 | Both new missions PASS | DemoSmoke-263a8a5568334436b9a34e246a990ba8.log |
+| Campaign 480 x 800 | Both new missions PASS | DemoSmoke-654f6276afa04e2283f21765603fb80c.log |
+| Original rendered regression 1920 x 1080 | 136/136 PASS | DemoSmoke-e1d89378aa504326a0620aa8fbb1e3b8.log |
+| Original live-AI mission 1280 x 720 | 15/15 PASS | DemoSmoke-38dddc21826045e89c186630a4d70ea0.log |
+
+All four runs exited successfully with no failed assertions, fatal errors,
+material compilation failures or default-material substitutions. The campaign
+logs contain 271 and 421 PASS events respectively; these include repeated
+per-frame layout checks, not that many distinct test cases.
+
+The campaign fixture exercises main/pause pages, three-mission selection, briefing,
+settings tabs and toggles, restart/quit cancellation, objective camera focus and
+results-to-next-mission OpenLevel travel through production HUD callbacks. Early
+pause/menu requests cannot freeze initial navigation construction. All authored
+patrol stops and objective/extraction routes are navigable. Visible imported
+alternate cabins, command vehicles and more than 200 forest instances per map
+are checked; Nanite/instancing material usage flags are saved in the assets.
+
+Both new missions extract both members at 100 health, with all three guards alive
+and their brains enabled. Command-post sabotage provokes an investigating patrol.
+No teleportation, killed/disabled guards or invulnerability completes these runs.
+The original mission still completes a safe start, timed bridge crossing,
+sabotage and extraction with both guards active.
+
+Full HD scene/menu and portrait menu, briefing, options and gameplay captures
+were inspected for nonblank textured rendering and nonoverlapping HUD elements.
+Selected [in-engine captures](CAMPAIGN.md#captured-build) are committed. Runtime,
+source and config hashes matched between upload and development trees (186 files).
+
+Physical mouse timing, a preference-file restart round-trip and Android devices
+remain manual verification gaps. Fixtures intentionally avoid writing player
+preferences. Decorative forest collision, mid-mission saves, audio controls and
+remappable/gamepad menus are not supplied by this pass. The legacy web game and
+its deployment are unchanged.
+
 ## Safe Navigation and Body Reach: 2026-10-06
 
 UE 5.8.2 Win64 Development Editor build succeeded. Existing preferred-MSVC and

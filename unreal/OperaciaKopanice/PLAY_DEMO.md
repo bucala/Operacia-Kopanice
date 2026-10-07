@@ -16,6 +16,8 @@ From this directory in PowerShell:
 ```
 
 Later launches: `./Start-Demo.ps1`. Override `-EngineRoot` if necessary.
+Normal startup opens the main menu. Select an operation, read the briefing and
+deploy; each mission begins in tactical pause after its NavMesh is ready.
 Visual Studio C++ build tools and Windows SDK are required.
 `-Width 1920 -Height 1080` selects Full HD.
 Open the .uproject and use Play > Standalone Game as an alternative.
@@ -23,7 +25,13 @@ Entry is assembled at runtime by `OKRTGameMode`; it is not a baked editor level.
 This is not a packaged standalone EXE or APK. The existing Canvas web game remains
 a separate legacy GO prototype, not a browser build of this Unreal refactor.
 
-## Mission
+## Missions
+
+Three native missions are available from the menu. Mission 2 retrieves documents
+from a forest camp; Mission 3 acquires TNT and disables a command post. Both new
+areas are 86.4 x 86.4 m, use three active patrols and require the living team to
+extract together. See [campaign details](Docs/CAMPAIGN.md) for layouts and assets.
+The following describes Mission 1, Zimny viadukt.
 
 Lead both the Partisan and Officer through the winter settlement.
 Collect the marked TNT, bring both across the only bridge, reach the eastern
@@ -74,7 +82,8 @@ to nearby guards and deals real-time damage.
 | Pan | Arrow keys or middle-mouse drag; also available during tactical pause |
 | Continuous orbit and tilt | Disable stepped camera in Options; Alt + right drag |
 | Zoom / focus active unit | Mouse wheel / Home |
-| Menu / restart | Escape / F5 |
+| Menu / restart confirmation | Escape / F5 |
+| Focus current objective | Crosshair in objective panel |
 
 Right-click world orders use a visibility raycast and complete NavMesh paths.
 An interaction order stores its approach destination, then executes within range;
@@ -117,6 +126,9 @@ same guard. Friendly units are never valid takedown targets.
 Pausing stops physics, patrols, cooldowns and detection, while selection, targeting,
 camera and queued commands remain usable. Queues are limited to 32 per unit.
 Menu pauses the world separately and preserves an existing tactical pause.
+Escape returns one menu page at a time. Restart and quit have confirmations.
+Graphics, camera and interface settings plus completed-operation flags are saved
+locally. This does not save unfinished mid-mission progress.
 Options cover cones, path preview, stepped camera and four quality presets;
 these real-time preferences are saved locally in GameUserSettings.ini and restored
 after restarting the mission or game. Smoke fixtures neither load nor overwrite
@@ -131,6 +143,8 @@ fake route segments.
 ## Verification
 
 `./Start-Demo.ps1 -SmokeTest` runs a rendered native integration fixture.
+`./Start-Demo.ps1 -CampaignSmokeTest -Mission 1` plays both new missions, traverses
+the actual HUD menus and deploys into the next operation with live guards.
 It tests real NavMesh bank connectivity and nonwalkable water, imported meshes,
 cone geometry and cabin occlusion, stance-scaled suspicion, continuous party
 movement and patrols, real Space-key pause/resume, frozen physics and order queues,

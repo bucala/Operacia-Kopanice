@@ -28,6 +28,9 @@
 
 ![Gameplay board](attached_assets/Main_gameplay_1785576138157.png)
 
+Referenčný vizuálny cieľ, nie záber aktuálneho buildu. Aktuálny Unreal prototyp
+je zobrazený v nasledujúcej časti.
+
 ## Unreal Real-Time Prototype
 
 Unreal režim je **stealth real-time tactics (RTT)** v štýle Commandos, nie adventúra
@@ -38,7 +41,9 @@ plánovať rozkazy počas taktickej pauzy. Schopnosti používa iba aktívna pos
 Nový predvolený Unreal režim používa NavMesh, súvislé hliadky, zorné kužele,
 AI Sight/Hearing, prikrčenie a plazenie, odlákanie, tichý útok, prenášanie tiel
 a front príkazov pri taktickej pauze. Zachováva dodané 3D assety zimnej osady.
-Jedna misia zahŕňa získanie TNT, prechod dvojice cez most, sabotáž a spoločný ústup.
+Tri natívne misie zahŕňajú sabotáž viaduktu, získanie dokumentov v lesnom tábore
+a vyradenie veliteľského stanovišťa. Dve nové oblasti majú 86,4 × 86,4 metra,
+vlastné hliadky a rozmiestnenie budov, vozidiel, vegetácie a krytov.
 
 Spustenie: `unreal/OperaciaKopanice/Start-Demo.ps1 -Build` v PowerShelli.
 Vyžaduje UE 5.8, Windows C++ build tools a `git lfs pull`.
@@ -50,13 +55,16 @@ Prvá misia má časované hliadky: pri moste vojak čaká 12 sekúnd otočený 
 a následne most krátko kontroluje. Test celej misie prechádza so zapnutou AI.
 Detonátor sa odomkne až po úplnom prechode oboch členov tímu na východný breh;
 cieľ misie priebežne zobrazuje počet členov v bezpečí.
-Menu uchováva nastavenia kvality grafiky, zorných kužeľov, náhľadu ciest
-a krokovej kamery aj po ďalšom spustení hry.
+Hlavné menu obsahuje výber misie, briefing, výsledky a prechod do ďalšej operácie.
+Nastavenia obrazu, kamery a rozhrania aj dokončené misie sa ukladajú lokálne.
+Reštart a ukončenie vyžadujú potvrdenie; návrat z menu zachová taktickú pauzu.
+Krížik v paneli úlohy zameria kameru na aktuálny cieľ.
 
 [Ovládanie a overenie dema](unreal/OperaciaKopanice/PLAY_DEMO.md) ·
-[Architektúra real-time migrácie](unreal/OperaciaKopanice/Docs/REALTIME_STEALTH.md).
+[Architektúra real-time migrácie](unreal/OperaciaKopanice/Docs/REALTIME_STEALTH.md) ·
+[Natívne misie a menu](unreal/OperaciaKopanice/Docs/CAMPAIGN.md).
 
-![Aktuálny Unreal real-time prototyp](unreal/OperaciaKopanice/Docs/RealTime-2026-09-27.png)
+![Aktuálny Unreal real-time prototyp: Tiché veliteľstvo](unreal/OperaciaKopanice/Docs/Evidence/2026-10-07/Command-Post-1920x1080.png)
 
 Nasledujúce časti README opisujú **pôvodný webový GO prototyp**, ktorý zostáva
 samostatný. Staré Unreal grid demo je dostupné cez `-LegacyGridDemo`.

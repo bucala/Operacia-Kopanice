@@ -207,6 +207,7 @@ void AOKRTPlayerController::TouchMove(ETouchIndex::Type Finger,FVector Location)
     TouchPrevious[Slot]=TouchPosition[Slot]; TouchPosition[Slot]=Position;
     if (FVector2D::Distance(TouchStart,Position)>=24.f) bTouchGesture=true;
     if (!TouchDown[0] || !TouchDown[1]) return;
+    if (!IsGameplayInputAllowed()) return;
     const FVector2D PreviousCenter=(TouchPrevious[0]+TouchPrevious[1])*.5f;
     const FVector2D Center=(TouchPosition[0]+TouchPosition[1])*.5f;
     const float PreviousDistance=FVector2D::Distance(TouchPrevious[0],TouchPrevious[1]);
@@ -279,10 +280,11 @@ void AOKRTPlayerController::ZoomOut() { if (auto* G=Game()) G->Orbit(0,0,250); }
 void AOKRTPlayerController::RotateLeft() { if (auto* G=Game()) G->Orbit(G->bSteppedCamera ? -45 : -8,0); }
 void AOKRTPlayerController::RotateRight() { if (auto* G=Game()) G->Orbit(G->bSteppedCamera ? 45 : 8,0); }
 void AOKRTPlayerController::Focus() { if (auto* G=Game()) G->FocusSelected(); }
-void AOKRTPlayerController::Restart() { if (auto* G=Game()) G->Restart(); }
+void AOKRTPlayerController::Restart() { if (auto* G=Game()) G->OpenMenuPage(EOKMenuPage::ConfirmRestart); }
 void AOKRTPlayerController::Cancel()
 {
     CancelPointer(); ResetTouchState(); bArmed=false;
+    if (!IsGameplayInputAllowed()) return;
     if (auto* G=Game()) for (AOKRTUnit* U:G->Party) if (U->IsSelected()) U->CancelOrders();
 }
 void AOKRTPlayerController::PlayerTick(float Delta)
@@ -294,7 +296,7 @@ void AOKRTPlayerController::PlayerTick(float Delta)
     {
         const float Horizontal=float(IsInputKeyDown(EKeys::Right))-float(IsInputKeyDown(EKeys::Left));
         const float Vertical=float(IsInputKeyDown(EKeys::Up))-float(IsInputKeyDown(EKeys::Down));
-        if (Horizontal || Vertical) G->Pan(Horizontal*1000*CameraDelta,Vertical*1000*CameraDelta);
+        if (Horizontal || Vertical) G->Pan(Horizontal*1000*CameraDelta*G->CameraSensitivity,Vertical*1000*CameraDelta*G->CameraSensitivity);
     }
     float X=0,Y=0;
     if (!GetMousePosition(X,Y))
@@ -303,9 +305,9 @@ void AOKRTPlayerController::PlayerTick(float Delta)
     const bool bPanning=IsGameplayInputAllowed() && IsInputKeyDown(EKeys::MiddleMouseButton);
     const bool bOrbiting=IsGameplayInputAllowed() && !G->bSteppedCamera &&
         (IsInputKeyDown(EKeys::LeftAlt) || IsInputKeyDown(EKeys::RightAlt)) && IsInputKeyDown(EKeys::RightMouseButton);
-    if (bPanning && bWasPanning) G->Pan((LastMouse.X-X)*3,(Y-LastMouse.Y)*3);
+    if (bPanning && bWasPanning) G->Pan((LastMouse.X-X)*3*G->CameraSensitivity,(Y-LastMouse.Y)*3*G->CameraSensitivity);
     if (bOrbiting && bWasOrbiting)
-        G->Orbit((X-LastMouse.X)*.25f,(Y-LastMouse.Y)*.2f);
+        G->Orbit((X-LastMouse.X)*.25f*G->CameraSensitivity,(Y-LastMouse.Y)*.2f*G->CameraSensitivity);
     bWasPanning=bPanning; bWasOrbiting=bOrbiting;
     LastMouse=FVector2D(X,Y);
     PreviewClock+=IsPaused() ? FApp::GetDeltaTime() : Delta;

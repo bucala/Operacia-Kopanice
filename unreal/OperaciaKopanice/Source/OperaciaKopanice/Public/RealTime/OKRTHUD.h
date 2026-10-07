@@ -15,8 +15,9 @@ public:
     bool Click(FVector2D Point);
     bool OverUI(FVector2D Point) const;
     bool ValidateLayout() const;
+    bool FindButton(FName Id,FVector2D& Center) const;
 private:
-    struct FButton { FBox2D Bounds; TFunction<void()> Action; FString Tip; };
+    struct FButton { FBox2D Bounds; TFunction<void()> Action; FString Tip; FName Id=NAME_None; };
     TArray<FButton> Buttons;
     TArray<FBox2D> Panels;
     FVector2D RenderSize=FVector2D::ZeroVector;
@@ -27,4 +28,7 @@ private:
     void Label(const FString& Text,float X,float Y,float Scale=1,FLinearColor Color=FLinearColor::White);
     void Wrap(const FString& Text,float X,float Y,float Width,float Scale=1);
     void WorldRing(FVector Location,float Radius,FLinearColor Color);
+    void DrawMenu(AOKRTGameMode* Game,float Width,float Height);
+    void MenuAction(FName Id,FName IconName,const FString& Text,FVector2D Position,FVector2D Size,TFunction<void()> Action,bool Active=false);
+    int32 OptionsTab=0;
 };

@@ -71,6 +71,7 @@ for asset in manifest:
         for output, prop in connections:
             lib.connect_material_property(node,output,prop)
     lib.layout_material_expressions(mat)
+    lib.set_material_usage(mat,ue.MaterialUsage.MATUSAGE_NANITE)
     lib.recompile_material(mat)
     ue.EditorAssetLibrary.save_loaded_asset(mat)
     for index in range(len(mesh.static_materials)):

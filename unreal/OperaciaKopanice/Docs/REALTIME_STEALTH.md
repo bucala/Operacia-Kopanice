@@ -16,6 +16,13 @@ guard controllers additionally run Patrol -> Investigate -> Combat state logic.
 `AOKRTHUD` draws selection, objective, skills, suspicion, paths and noise circles.
 There is deliberately no inheritance from `OKDemoGameMode`.
 
+`OKRTMission` contains the three immutable operation definitions. GameMode keeps
+per-run objective state and builds the selected runtime scene; `OKRTMissionScene`
+adds the larger forest layouts without introducing grid movement. `OKRTMenu`
+owns HUD menu pages and native action callbacks. Deployment uses OpenLevel URL
+options so results, briefing and restart preserve the chosen operation. See
+[campaign and menu details](CAMPAIGN.md) for placement, persistence and limits.
+
 The runtime scene adds a restrained `AExponentialHeightFog` layer for winter depth
 and a cool movable sky fill. The fog is visual-only: it does not alter line of
 sight, hearing, movement speed or NavMesh. Gameplay perception remains authoritative

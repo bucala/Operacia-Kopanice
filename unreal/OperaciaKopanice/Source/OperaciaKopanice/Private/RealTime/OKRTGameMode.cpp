@@ -77,10 +77,26 @@ void AOKRTGameMode::StartPlay()
 {
     Super::StartPlay();
     bMissionSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTMissionSmoke"));
-    bSmoke=bMissionSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
+    bCampaignSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTCampaignSmoke"));
+    bSmoke=bCampaignSmoke || bMissionSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
+    const FString Requested=UGameplayStatics::ParseOption(OptionsString,TEXT("Mission"));
+    if (Requested.IsEmpty()) FParse::Value(FCommandLine::Get(),TEXT("OKMission="),MissionId);
+    else MissionId=FCString::Atoi(*Requested);
+    MissionId=FMath::Clamp(MissionId,0,OKMissions::Count-1); PreviewMission=MissionId;
+    const auto& Definition=Mission();
+    TNTLocation=Definition.Supply; DetonatorLocation=Definition.Target;
+    ExitLocation=Definition.Exit; HideLocation=Definition.Hide;
+    bFrontEnd=!bSmoke && !UGameplayStatics::HasOption(OptionsString,TEXT("Deploy")) &&
+        !FParse::Param(FCommandLine::Get(),TEXT("OKQuickStart"));
     SmokeStarted=StageStarted=FPlatformTime::Seconds();
     if (!bSmoke) LoadPreferences();
     BuildScene();
+    if (bCampaignSmoke)
+    {
+        TogglePause(); ToggleMenu();
+        Require(!bTacticalPause && !bMenu && !UGameplayStatics::IsGamePaused(GetWorld()),
+            TEXT("startup pause and menu cannot freeze navigation construction"));
+    }
     for (AOKRTUnit* Unit:Enemies) Unit->Vision->bConeVisible=bCones;
     Message=TEXT("Infiltracia zacala.");
 }
@@ -91,6 +107,10 @@ void AOKRTGameMode::LoadPreferences()
     GConfig->GetBool(Section,TEXT("PathPreview"),bPathPreview,GGameUserSettingsIni);
     GConfig->GetBool(Section,TEXT("SteppedCamera"),bSteppedCamera,GGameUserSettingsIni);
     GConfig->GetInt(Section,TEXT("Quality"),Quality,GGameUserSettingsIni);
+    GConfig->GetBool(Section,TEXT("ObjectiveMarkers"),bObjectiveMarkers,GGameUserSettingsIni);
+    GConfig->GetFloat(Section,TEXT("CameraSensitivity"),CameraSensitivity,GGameUserSettingsIni);
+    GConfig->GetInt(Section,TEXT("CompletedMissions"),CompletedMissions,GGameUserSettingsIni);
+    CameraSensitivity=FMath::Clamp(CameraSensitivity,.5f,2.f);
     Quality=FMath::Clamp(Quality,0,3);
     Scalability::FQualityLevels Levels;
     Levels.SetFromSingleQualityLevel(Quality);
@@ -105,6 +125,9 @@ void AOKRTGameMode::SavePreferences()
     GConfig->SetBool(Section,TEXT("PathPreview"),bPathPreview,GGameUserSettingsIni);
     GConfig->SetBool(Section,TEXT("SteppedCamera"),bSteppedCamera,GGameUserSettingsIni);
     GConfig->SetInt(Section,TEXT("Quality"),Quality,GGameUserSettingsIni);
+    GConfig->SetBool(Section,TEXT("ObjectiveMarkers"),bObjectiveMarkers,GGameUserSettingsIni);
+    GConfig->SetFloat(Section,TEXT("CameraSensitivity"),CameraSensitivity,GGameUserSettingsIni);
+    GConfig->SetInt(Section,TEXT("CompletedMissions"),CompletedMissions,GGameUserSettingsIni);
     GConfig->Flush(false,GGameUserSettingsIni);
     if (!bPathPreview) PreviewSpline->ClearSplinePoints();
 }
@@ -156,6 +179,8 @@ void AOKRTGameMode::BuildScene()
         FogComponent->SetVolumetricFogExtinctionScale(.18f);
         FogComponent->SetVolumetricFogScatteringDistribution(.35f);
     }
+    if (MissionId==0)
+    {
     GetWorld()->SpawnActor<AOKWinterEnvironmentActor>()->BuildEnvironment();
     auto* Cabin=LoadObject<UStaticMesh>(nullptr,TEXT("/Game/Kopanice/Supplied/Cabin/SM_OK_Cabin.SM_OK_Cabin"));
     if (Cabin)
@@ -211,6 +236,8 @@ void AOKRTGameMode::BuildScene()
         else Party.Add(Unit);
     }
     Select(0);
+    }
+    else BuildAdditionalMission();
     Camera=GetWorld()->SpawnActor<ACameraActor>();
     auto* Lens=Camera->GetCameraComponent();
     Lens->SetFieldOfView(60); Lens->bConstrainAspectRatio=false;
@@ -234,7 +261,9 @@ void AOKRTGameMode::BuildScene()
     Lens->PostProcessSettings.MotionBlurMax=0.f;
     UpdateCamera();
     GetWorld()->GetFirstPlayerController()->SetViewTarget(Camera);
-    auto* Bounds=GetWorld()->SpawnActor<AOKRTNavBoundsVolume>(FVector(900,720,0),FRotator::ZeroRotator);
+    const FVector NavCenter=MissionId==0 ? FVector(900,720,0) : FVector(Mission().MapSize/2,Mission().MapSize/2,0);
+    auto* Bounds=GetWorld()->SpawnActor<AOKRTNavBoundsVolume>(NavCenter,FRotator::ZeroRotator);
+    if (MissionId!=0) Bounds->Bounds->SetBoxExtent(FVector(Mission().MapSize/2+100,Mission().MapSize/2+100,500));
     if (auto* Nav=FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld()))
     { Nav->OnNavigationBoundsUpdated(Bounds); Nav->Build(); }
 }
@@ -274,20 +303,42 @@ bool AOKRTGameMode::Command(FOKRTOrder Order,bool Append)
 }
 void AOKRTGameMode::TogglePause()
 {
-    if (bWon || bLost || bMenu) return;
+    if (bInitialPausePending || bWon || bLost || bMenu) return;
     bTacticalPause=!bTacticalPause;
     UGameplayStatics::SetGamePaused(GetWorld(),bTacticalPause);
     Message=bTacticalPause ? TEXT("Takticka pauza") : TEXT("Prikazy vykonavane.");
 }
 void AOKRTGameMode::ToggleMenu()
 {
-    bMenu=!bMenu; bOptions=false;
+    if (bMenu) { MenuBack(); return; }
+    OpenMenuPage(EOKMenuPage::Pause);
+}
+void AOKRTGameMode::OpenMenuPage(EOKMenuPage Page)
+{
+    if (bInitialPausePending) return;
+    bMenu=true; MenuPage=Page; bOptions=Page==EOKMenuPage::Options;
+    if (auto* PC=Cast<AOKRTPlayerController>(GetWorld()->GetFirstPlayerController()))
+    { PC->CancelPointer(); PC->bArmed=false; }
+    PreviewSpline->ClearSplinePoints();
+    UGameplayStatics::SetGamePaused(GetWorld(),true);
+}
+void AOKRTGameMode::MenuBack()
+{
+    if (MenuPage!=EOKMenuPage::Pause)
+    { OpenMenuPage(MenuPage==EOKMenuPage::Briefing ? EOKMenuPage::Missions : EOKMenuPage::Pause); return; }
+    if (bFrontEnd || bWon || bLost) return;
+    bMenu=false; bOptions=false;
     UGameplayStatics::SetGamePaused(GetWorld(),bMenu || bTacticalPause);
 }
 void AOKRTGameMode::Restart()
 {
+    StartMission(MissionId);
+}
+void AOKRTGameMode::StartMission(int32 Id)
+{
+    if (Id<0 || Id>=OKMissions::Count) return;
     UGameplayStatics::SetGamePaused(GetWorld(),false);
-    UGameplayStatics::OpenLevel(GetWorld(),TEXT("/Engine/Maps/Entry"));
+    UGameplayStatics::OpenLevel(GetWorld(),TEXT("/Engine/Maps/Entry"),true,FString::Printf(TEXT("Mission=%d?Deploy=1"),Id));
 }
 void AOKRTGameMode::UpdateCamera()
 {
@@ -299,19 +350,26 @@ void AOKRTGameMode::UpdateCamera()
 void AOKRTGameMode::Orbit(float Yaw,float Tilt,float Zoom)
 {
     CameraYaw+=Yaw; CameraTilt=FMath::Clamp(CameraTilt+Tilt,25.f,75.f);
-    CameraDistance=FMath::Clamp(CameraDistance+Zoom,1700.f,6500.f); UpdateCamera();
+    CameraDistance=FMath::Clamp(CameraDistance+Zoom,1700.f,MissionId==0 ? 6500.f : 14500.f); UpdateCamera();
 }
 void AOKRTGameMode::Pan(float X,float Y)
 {
     const FVector Right=Camera->GetActorRightVector().GetSafeNormal2D();
     const FVector Forward=Camera->GetActorForwardVector().GetSafeNormal2D();
     CameraTarget+=Right*X+Forward*Y;
-    CameraTarget.X=FMath::Clamp(CameraTarget.X,-300.,2200.);
-    CameraTarget.Y=FMath::Clamp(CameraTarget.Y,-300.,2000.); UpdateCamera();
+    CameraTarget.X=FMath::Clamp(CameraTarget.X,-300.,MissionId==0 ? 2200. : double(Mission().MapSize+300));
+    CameraTarget.Y=FMath::Clamp(CameraTarget.Y,-300.,MissionId==0 ? 2000. : double(Mission().MapSize+300)); UpdateCamera();
 }
 void AOKRTGameMode::FocusSelected()
 {
     if (Party.IsValidIndex(ActiveMember)) CameraTarget=Party[ActiveMember]->Feet();
+    UpdateCamera();
+}
+void AOKRTGameMode::FocusObjective()
+{
+    if (bMenu || bWon || bLost) return;
+    CameraTarget=bObjectiveComplete || bBridgeDestroyed ? ExitLocation :
+        Mission().Goal==EOKMissionGoal::Documents || !bHasTNT ? TNTLocation : DetonatorLocation;
     UpdateCamera();
 }
 void AOKRTGameMode::Noise(AOKRTUnit* Source,FVector Location,float Loudness,float Range,FName Tag)
@@ -345,22 +403,36 @@ EOKInteraction AOKRTGameMode::FindInteractionAt(FVector PickedLocation,FVector& 
         const float Distance=FVector::Dist2D(PickedLocation,Location);
         if (Distance<Nearest) { Nearest=Distance; Destination=Location; Found=Kind; }
     };
-    if (!bHasTNT) Candidate(TNTLocation,EOKInteraction::CollectTNT);
+    if (Mission().Goal==EOKMissionGoal::Documents)
+    { if (!bObjectiveComplete) Candidate(TNTLocation,EOKInteraction::CollectDocuments); }
+    else if (!bHasTNT) Candidate(TNTLocation,EOKInteraction::CollectTNT);
     // Resolve future objectives while planning; prerequisites are checked on arrival.
-    if (!bBridgeDestroyed) Candidate(DetonatorLocation,EOKInteraction::DetonateBridge);
+    if (Mission().Goal==EOKMissionGoal::Bridge && !bBridgeDestroyed) Candidate(DetonatorLocation,EOKInteraction::DetonateBridge);
+    if (Mission().Goal==EOKMissionGoal::CommandPost && !bObjectiveComplete) Candidate(DetonatorLocation,EOKInteraction::SabotageCommandPost);
     Candidate(HideLocation,EOKInteraction::HideBody);
     return Found;
 }
 void AOKRTGameMode::Interact(AOKRTUnit* Unit,EOKInteraction Kind)
 {
+    if (!Unit || !Unit->IsAlive() || bWon || bLost) return;
+    if (Mission().Goal==EOKMissionGoal::Documents && !bObjectiveComplete &&
+        (Kind==EOKInteraction::Nearby || Kind==EOKInteraction::CollectDocuments) && FVector::Dist2D(Unit->Feet(),TNTLocation)<140)
+    { bObjectiveComplete=true; if (TNTMarker) TNTMarker->SetActorHiddenInGame(true); Message=TEXT("Dokumenty ziskane. Presunte cely tim k vychodu."); return; }
+    if (Mission().Goal==EOKMissionGoal::CommandPost && bHasTNT && !bObjectiveComplete &&
+        (Kind==EOKInteraction::Nearby || Kind==EOKInteraction::SabotageCommandPost) && FVector::Dist2D(Unit->Feet(),DetonatorLocation)<140)
+    {
+        bObjectiveComplete=true;
+        Noise(Unit,DetonatorLocation,1,1600,TEXT("Explosion"));
+        Message=TEXT("Velitelstvo vyradene. Ustupte spolu!"); return;
+    }
     if ((Kind==EOKInteraction::Nearby || Kind==EOKInteraction::HideBody) &&
         Unit->CarriedBody.IsValid() && FVector::Dist2D(Unit->Feet(),HideLocation)<170)
     { Unit->DropBody(true); Message=TEXT("Telo ukryte."); return; }
     if ((Kind==EOKInteraction::Nearby || Kind==EOKInteraction::CollectTNT) &&
-        !bHasTNT && FVector::Dist2D(Unit->Feet(),TNTLocation)<140)
+        Mission().Goal!=EOKMissionGoal::Documents && !bHasTNT && FVector::Dist2D(Unit->Feet(),TNTLocation)<140)
     { bHasTNT=true; if (TNTMarker) TNTMarker->SetActorHiddenInGame(true); Message=TEXT("TNT ziskane."); return; }
     if ((Kind==EOKInteraction::Nearby || Kind==EOKInteraction::DetonateBridge) &&
-        bHasTNT && !bBridgeDestroyed && FVector::Dist2D(Unit->Feet(),DetonatorLocation)<140)
+        Mission().Goal==EOKMissionGoal::Bridge && bHasTNT && !bBridgeDestroyed && FVector::Dist2D(Unit->Feet(),DetonatorLocation)<140)
     {
         if (Party.IsEmpty() || PartyMembersOnSafeBank()!=Party.Num())
         { Message=TEXT("Najprv presunte cely tim na vychodny breh."); return; }
@@ -377,6 +449,7 @@ void AOKRTGameMode::Interact(AOKRTUnit* Unit,EOKInteraction Kind)
 }
 bool AOKRTGameMode::IsCover(FVector Location) const
 {
+    for (const FVector Point:CoverLocations) if (FVector::Dist2D(Location,Point)<170) return true;
     return FVector::Dist2D(Location,FVector(600,1440,0))<170;
 }
 bool AOKRTGameMode::HasCompletePath(FVector From,FVector To) const
@@ -408,6 +481,9 @@ FString AOKRTGameMode::Objective() const
 {
     if (bLost) return TEXT("Misia zlyhala");
     if (bWon) return TEXT("Misia splnena");
+    if (Mission().Goal==EOKMissionGoal::Documents) return bObjectiveComplete ? TEXT("Ustupte s dokumentmi a celym timom") : TEXT("Ziskajte dokumenty z tabora");
+    if (Mission().Goal==EOKMissionGoal::CommandPost)
+        return bObjectiveComplete ? TEXT("Dosiahnite vychod s oboma clenmi") : !bHasTNT ? TEXT("Ziskajte TNT pri sklade") : TEXT("Vyradte velitelstvo");
     if (!bHasTNT) return TEXT("Ziskajte TNT");
     if (bBridgeDestroyed) return TEXT("Dosiahnite vychod s oboma clenmi");
     const int32 SafeMembers=PartyMembersOnSafeBank();
@@ -417,31 +493,35 @@ FString AOKRTGameMode::Objective() const
 void AOKRTGameMode::Tick(float Delta)
 {
     Super::Tick(Delta);
-    if (bInitialPausePending && HasCompletePath(Party[0]->Feet(),DetonatorLocation))
+    if (bInitialPausePending && !UNavigationSystemV1::IsNavigationBeingBuiltOrLocked(GetWorld()) &&
+        HasCompletePath(Party[0]->Feet(),DetonatorLocation) && HasCompletePath(Party[0]->Feet(),ExitLocation))
     {
         bInitialPausePending=false;
         for (AOKRTUnit* Guard:Enemies)
         {
-            CastChecked<AOKRTGuardController>(Guard->GetController())->bBrainEnabled=!bSmoke || bMissionSmoke;
+            CastChecked<AOKRTGuardController>(Guard->GetController())->bBrainEnabled=!bSmoke || bMissionSmoke || bCampaignSmoke;
             Guard->Vision->Refresh();
         }
         TogglePause();
+        if (bFrontEnd) OpenMenuPage(EOKMenuPage::Pause);
     }
     if (!bTacticalPause && !bMenu)
     {
         for (auto& Pulse:NoisePulses) Pulse.Age+=Delta;
         NoisePulses.RemoveAll([](const auto& P){ return P.Age>1.5f; });
-        bool AllExited=bBridgeDestroyed;
+        bool AllExited=Mission().Goal==EOKMissionGoal::Bridge ? bBridgeDestroyed : bObjectiveComplete;
         for (AOKRTUnit* Unit:Party)
         {
             if (Unit->Feet().Z<-220 && Unit->IsAlive()) Unit->TakeHit(100);
             if (!Unit->IsAlive()) bLost=true;
             AllExited=AllExited && Unit->IsAlive() && FVector::Dist2D(Unit->Feet(),ExitLocation)<160;
         }
-        if (AllExited && !bLost) bWon=true;
+        if (AllExited && !bLost && !bWon)
+        { bWon=true; CompletedMissions|=1<<MissionId; SavePreferences(); }
         if ((bWon || bLost) && !UGameplayStatics::IsGamePaused(GetWorld()))
         { UGameplayStatics::SetGamePaused(GetWorld(),true); }
     }
-    if (bMissionSmoke) MissionSmokeTick(Delta);
+    if (bCampaignSmoke) CampaignSmokeTick();
+    else if (bMissionSmoke) MissionSmokeTick(Delta);
     else if (bSmoke) SmokeTick();
 }
