@@ -62,6 +62,11 @@ next-operation navigation, graphics/camera/interface settings, and separate
 restart/quit confirmations. Escape backs out one page at a time. Resuming the
 menu preserves a pre-existing tactical pause and the party's queued orders.
 The objective-panel crosshair focuses the current objective on larger maps.
+Numbered friendly markers keep the party selectable behind forest/building art.
+Their screen-space hit regions select only; they cannot route movement or skills
+through scenery. Neighbouring markers separate and avoid HUD panels; portraits
+and hotkeys remain available at occluded screen edges. The interface settings
+include a persisted Znacky timu toggle. No enemy positions are exposed by it.
 
 Preferences and completed-operation flags are saved in local GameUserSettings.
 They are not a mid-mission save system: closing or restarting loses the active
@@ -102,3 +107,6 @@ These are in-engine captures, not the target-art reference:
 ![Functional shrub concealment and cover badge, 1920 x 1080](Evidence/2026-10-07/Forest-Cover-1920x1080.png)
 
 [Portrait cover badge, 480 x 800](Evidence/2026-10-07/Forest-Cover-480x800.png)
+
+[Party markers, 1920 x 1080](Evidence/2026-10-07/Party-Markers-1920x1080.png) /
+[Party markers, 480 x 800](Evidence/2026-10-07/Party-Markers-480x800.png)

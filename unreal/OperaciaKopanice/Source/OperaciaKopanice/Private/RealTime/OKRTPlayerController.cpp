@@ -52,7 +52,8 @@ bool AOKRTPlayerController::ClickAt(FVector2D Position,EPointerIntent Intent,boo
 {
     auto* G=Game(); if (!G || !IsOnViewport(Position)) return false;
     const bool bCommand=Intent==EPointerIntent::Command;
-    if (auto* UI=Cast<AOKRTHUD>(GetHUD()))
+    auto* UI=Cast<AOKRTHUD>(GetHUD());
+    if (UI)
     {
         if (bCommand && UI->OverUI(Position)) return false;
         if (!bCommand && UI->Click(Position)) return true;
@@ -60,6 +61,12 @@ bool AOKRTPlayerController::ClickAt(FVector2D Position,EPointerIntent Intent,boo
     if (!IsGameplayInputAllowed()) return false;
     if (bCommand && bArmed)
     { bArmed=false; return true; }
+    const int32 Member=UI ? UI->PartyMarkerAt(Position) : INDEX_NONE;
+    if (G->Party.IsValidIndex(Member))
+    {
+        if (bCommand || bArmed) return false;
+        G->Select(Member,bAppend); return true;
+    }
     FHitResult Hit;
     if (!GetHitResultAtScreenPosition(Position,ECC_Visibility,false,Hit)) return false;
     auto* Unit=Cast<AOKRTUnit>(Hit.GetActor());
@@ -317,7 +324,12 @@ void AOKRTPlayerController::PlayerTick(float Delta)
         auto* UI=Cast<AOKRTHUD>(GetHUD());
         FHitResult Hit;
         CurrentMouseCursor=EMouseCursor::Default;
-        if (IsGameplayInputAllowed() && !bBoxSelecting && (!UI || !UI->OverUI(LastMouse)) &&
+        if (IsGameplayInputAllowed() && !bBoxSelecting && UI && UI->PartyMarkerAt(LastMouse)!=INDEX_NONE)
+        {
+            CurrentMouseCursor=bArmed ? EMouseCursor::Default : EMouseCursor::Hand;
+            G->PreviewSpline->ClearSplinePoints();
+        }
+        else if (IsGameplayInputAllowed() && !bBoxSelecting && (!UI || !UI->OverUI(LastMouse)) &&
             GetHitResultAtScreenPosition(LastMouse,ECC_Visibility,false,Hit))
         {
             const auto* Unit=Cast<AOKRTUnit>(Hit.GetActor());

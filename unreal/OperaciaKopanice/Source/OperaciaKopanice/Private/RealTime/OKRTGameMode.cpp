@@ -108,6 +108,7 @@ void AOKRTGameMode::LoadPreferences()
     GConfig->GetBool(Section,TEXT("SteppedCamera"),bSteppedCamera,GGameUserSettingsIni);
     GConfig->GetInt(Section,TEXT("Quality"),Quality,GGameUserSettingsIni);
     GConfig->GetBool(Section,TEXT("ObjectiveMarkers"),bObjectiveMarkers,GGameUserSettingsIni);
+    GConfig->GetBool(Section,TEXT("PartyMarkers"),bPartyMarkers,GGameUserSettingsIni);
     GConfig->GetFloat(Section,TEXT("CameraSensitivity"),CameraSensitivity,GGameUserSettingsIni);
     GConfig->GetInt(Section,TEXT("CompletedMissions"),CompletedMissions,GGameUserSettingsIni);
     CameraSensitivity=FMath::Clamp(CameraSensitivity,.5f,2.f);
@@ -126,6 +127,7 @@ void AOKRTGameMode::SavePreferences()
     GConfig->SetBool(Section,TEXT("SteppedCamera"),bSteppedCamera,GGameUserSettingsIni);
     GConfig->SetInt(Section,TEXT("Quality"),Quality,GGameUserSettingsIni);
     GConfig->SetBool(Section,TEXT("ObjectiveMarkers"),bObjectiveMarkers,GGameUserSettingsIni);
+    GConfig->SetBool(Section,TEXT("PartyMarkers"),bPartyMarkers,GGameUserSettingsIni);
     GConfig->SetFloat(Section,TEXT("CameraSensitivity"),CameraSensitivity,GGameUserSettingsIni);
     GConfig->SetInt(Section,TEXT("CompletedMissions"),CompletedMissions,GGameUserSettingsIni);
     GConfig->Flush(false,GGameUserSettingsIni);

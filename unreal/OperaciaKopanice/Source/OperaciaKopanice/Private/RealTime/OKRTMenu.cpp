@@ -112,6 +112,7 @@ void AOKRTHUD::DrawMenu(AOKRTGameMode* G,float W,float H)
             Toggle(TEXT("Cones"),TEXT("Zorne kuzele"),64,G->bCones,[G](){ G->ToggleCones(); });
             Toggle(TEXT("Routes"),TEXT("Trasy rozkazov"),120,G->bPathPreview,[G](){ G->bPathPreview=!G->bPathPreview; G->SavePreferences(); });
             Toggle(TEXT("Markers"),TEXT("Znacky cielov"),176,G->bObjectiveMarkers,[G](){ G->bObjectiveMarkers=!G->bObjectiveMarkers; G->SavePreferences(); });
+            Toggle(TEXT("PartyMarkers"),TEXT("Znacky timu"),232,G->bPartyMarkers,[G](){ G->bPartyMarkers=!G->bPartyMarkers; G->SavePreferences(); });
         }
         Back();
     }

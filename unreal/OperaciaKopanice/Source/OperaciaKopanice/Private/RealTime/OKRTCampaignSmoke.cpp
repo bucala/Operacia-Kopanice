@@ -86,7 +86,9 @@ void AOKRTGameMode::CampaignSmokeTick()
         Click(TEXT("SensitivityDown")); Click(TEXT("OptionsTab2")); Next(); break;
     case 8:
         Click(TEXT("Markers")); Require(!bObjectiveMarkers,TEXT("objective marker toggle changes setting"));
-        Click(TEXT("Markers")); Click(TEXT("MenuBack")); Next(); break;
+        Click(TEXT("Markers"));
+        Click(TEXT("PartyMarkers")); Require(!bPartyMarkers,TEXT("party marker menu toggle changes setting"));
+        Click(TEXT("PartyMarkers")); Click(TEXT("MenuBack")); Next(); break;
     case 9:
         bFrontEnd=false; OpenMenuPage(EOKMenuPage::Pause); Next(); break;
     case 10: Click(TEXT("Restart")); Next(); break;
@@ -120,6 +122,10 @@ void AOKRTGameMode::CampaignSmokeTick()
         if (Party[0]->QueueSize()) return;
         Require(Party[0]->bInCover && UI->ValidateLayout(),TEXT("native movement reaches shrub cover with a responsive cover badge"));
         FocusSelected();
+        {
+            FVector2D Marker;
+            Require(UI->FindPartyMarker(0,Marker) && UI->PartyMarkerAt(Marker)==0,TEXT("forest concealment retains a selectable friendly marker"));
+        }
         FScreenshotRequest::RequestScreenshot(*FString::Printf(TEXT("OKRT_ForestCover%d.png"),MissionId),false,false);
         SmokeStage=24; StageStarted=Now; break;
     case 24:

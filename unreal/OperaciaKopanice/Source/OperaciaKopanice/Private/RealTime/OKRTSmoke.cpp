@@ -237,6 +237,8 @@ void AOKRTGameMode::SmokeTick()
         }
         SmokeSelectionTests();
         if (SmokeStage<0) return;
+        SmokeMarkerTests();
+        if (SmokeStage<0) return;
         Orbit(45,0); Orbit(-45,0);
         FScreenshotRequest::RequestScreenshot(TEXT("OKRT_Pause.png"),false,false);
         Next(); break;

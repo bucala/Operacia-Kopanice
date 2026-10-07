@@ -230,11 +230,19 @@ void AOKRTHUD::DrawHUD()
     const FString Feedback=PC->bArmed ? PC->ArmedOrder==EOKOrder::Takedown ? TEXT("Tichy utok: vyber hliadku") :
         PC->ArmedOrder==EOKOrder::Carry ? TEXT("Preniest telo: vyber ciel") : TEXT("Odlakanie: vyber miesto") : G->Message;
     Wrap(Unit->Cooldown>0 ? FString::Printf(TEXT("%s | %.1fs"),*Feedback,Unit->Cooldown) : Feedback,24,MessageY+10,MessageW-16,.95f);
+    DrawPartyMarkers();
     float MouseX,MouseY;
     if (PC->GetMousePosition(MouseX,MouseY))
+    {
+        FString Tip;
         for (const auto& B:Buttons) if (B.Bounds.IsInsideOrOn(FVector2D(MouseX,MouseY)))
+        { Tip=B.Tip; break; }
+        const int32 Member=PartyMarkerAt(FVector2D(MouseX,MouseY));
+        if (Tip.IsEmpty() && G->Party.IsValidIndex(Member)) Tip=G->Party[Member]->DisplayName;
+        if (!Tip.IsEmpty())
         {
             const float TW=FMath::Min(290.f,W-32),TX=FMath::Clamp(MouseX,16.f,W-TW-16),TY=FMath::Clamp(MouseY-48,16.f,H-70);
-            DrawRect(FLinearColor(.02f,.02f,.02f,.96f),TX,TY,TW,44); Wrap(B.Tip,TX+8,TY+8,TW-16,.9f); break;
+            DrawRect(FLinearColor(.02f,.02f,.02f,.96f),TX,TY,TW,44); Wrap(Tip,TX+8,TY+8,TW-16,.9f);
         }
+    }
 }

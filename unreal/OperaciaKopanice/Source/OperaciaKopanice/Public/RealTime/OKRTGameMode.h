@@ -75,6 +75,7 @@ public:
     bool bPathPreview=true;
     bool bSteppedCamera=true;
     bool bObjectiveMarkers=true;
+    bool bPartyMarkers=true;
     float CameraSensitivity=1.f;
     int32 Quality=2;
     int32 ActiveMember=0;
@@ -110,6 +111,7 @@ private:
     void SmokeTick();
     void MissionSmokeTick(float Delta);
     void SmokeSelectionTests();
+    void SmokeMarkerTests();
     void SmokeControlsTests();
     void SmokeNavigationTests();
     void CampaignSmokeTick();

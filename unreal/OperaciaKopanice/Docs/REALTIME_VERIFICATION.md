@@ -1,5 +1,54 @@
 # Real-Time Prototype Verification
 
+## Party Selection Through Scenery: 2026-10-07
+
+The UE 5.8.2 Win64 Development Editor build succeeded with the two new marker
+translation units. Build-stage, development and upload DLL hashes match; all
+190 runtime/source/config files also match between development and upload trees.
+Existing preferred-MSVC, optional SDK and engine/input deprecation warnings remain.
+
+Final rendered regression/campaign runs used the development checkout; the final
+live-AI run used `C:/GitHub/Operacia-Kopanice/unreal/OperaciaKopanice`. Logs remain
+local under each project's `Saved/Logs`:
+
+| Run | Result | Local log |
+| --- | --- | --- |
+| Original regression 1920 x 1080 | 157/157 PASS | DemoSmoke-4c903d4c218c4358a50340696d1c8264.log |
+| Original regression 480 x 800 | 157/157 PASS | DemoSmoke-c55a3818c69c4b80b8ab1f2223207f64.log |
+| Campaign 1920 x 1080 | Both forest missions PASS; 353 PASS events | DemoSmoke-640de0c53405445e84cc70070f4d077f.log |
+| Campaign 480 x 800 | Both forest missions PASS; 461 PASS events | DemoSmoke-0f4d753cd94844d1a0771bbda63b9b1e.log |
+| Upload original live-AI mission 1280 x 720 | 15/15 PASS | DemoSmoke-16653d12496c49ef98119543677508d3.log |
+
+These final runs exited successfully without failed assertions, fatal errors,
+material compilation failures or default-material substitutions. Campaign events
+include repeated layout checks, not that many distinct test cases.
+
+Twenty new isolated marker checks cover two distinct hit regions, selection
+through an actual opaque render/pick blocker, Shift selection, touch selection,
+right-click/double-click exclusion, armed-target rejection/cancellation, preserved
+queues and tactical pause, dead/hidden/enemy exclusion, immediate toggle effects,
+menu/results suppression, overlapping allies, offscreen/HUD exclusion and paused
+camera orbit/zoom. Temporary fixture geometry and party transforms are restored;
+these checks do not complete objectives or grant health in the live playthroughs.
+
+A further control regression reserves guard and objective pick regions. The first
+portrait trial exposed an ally marker intercepting a guard click; placement now
+avoids projected character bodies and interaction points, and the final portrait
+run passes enemy inspection, contextual takedown and body pickup unchanged.
+Campaign fixtures exercise the real interface toggle and ensure shrub concealment
+retains a selectable friendly marker. Both new missions still extract at full
+health with all guard brains active; command-post sabotage provokes investigation.
+The original viaduct also retains its safe forty-second opening, timed bridge
+crossing, sabotage and full-health extraction with both guards alive and active.
+
+The committed `Evidence/2026-10-07/Party-Markers-1920x1080.png` and
+`Party-Markers-480x800.png` were inspected for nonblank assets, readable party
+identity and separation from HUD controls. This is a screen-space selection aid,
+not a character silhouette shader or an enemy-reveal system. No new runtime asset
+packages were added. OS mouse timing, a preference-file restart round-trip and
+physical Android devices remain manual gaps. Native editor-hosted Windows only;
+the legacy web game and deployment are unchanged.
+
 ## Functional Forest and Concealment: 2026-10-07
 
 UE 5.8.2 Win64 Development Editor incremental build succeeded, including the new

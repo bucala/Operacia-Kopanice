@@ -47,6 +47,8 @@ vlastné hliadky a rozmiestnenie budov, vozidiel, vegetácie a krytov.
 Kmene a skaly v nových misiách blokujú pohyb aj výhľad; kríky poskytujú
 výškovo ohraničené krytie prikrčeným a plaziacim sa postavám. Aktívne krytie
 signalizuje označenie KRYT pri portréte, nie úplná neviditeľnosť.
+Číslované značky spojencov zostávajú čitateľné aj cez scenériu a umožňujú
+výber myšou alebo dotykom. V nastaveniach rozhrania sa dajú vypnúť.
 
 Spustenie: `unreal/OperaciaKopanice/Start-Demo.ps1 -Build` v PowerShelli.
 Vyžaduje UE 5.8, Windows C++ build tools a `git lfs pull`.

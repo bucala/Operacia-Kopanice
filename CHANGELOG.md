@@ -4,6 +4,12 @@
 
 ### Unreal Demo
 
+- Add small numbered party markers rendered over scenery, with distinct active/
+  selected colours, hover names, desktop/Shift selection and touch selection.
+  Marker clicks never issue terrain orders or consume armed abilities.
+- Keep adjacent markers separate and outside HUD panels; recompute their geometry
+  from the current camera and suppress offscreen, dead, hidden and enemy units.
+  Add a persisted interface toggle and native occluded-selection regressions.
 - Make the new missions' forest functional: instanced firs have narrow physical
   trunk/nav proxies, rocks block movement and sight, and shrubs provide
   height-bounded crouch/prone concealment without blocking paths.

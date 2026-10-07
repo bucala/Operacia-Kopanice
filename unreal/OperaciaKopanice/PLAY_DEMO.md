@@ -89,6 +89,17 @@ to nearby guards and deals real-time damage.
 | Menu / restart confirmation | Escape / F5 |
 | Focus current objective | Crosshair in objective panel |
 
+Numbered party markers remain visible over scenery and select allies on mouse
+release or touch tap. Shift adds an ally; right-clicking a marker never moves or
+attacks. Armed abilities cannot target the marker, but right-click still cancels
+targeting. Gold identifies the active selected member, green another selected
+member and grey an unselected ally. Nearby markers separate, avoid HUD panels,
+character bodies and mission interaction targets,
+and disappear for offscreen/dead/hidden units. Portraits and hotkeys remain
+available when no unobstructed screen position fits. Options > Rozhranie > Znacky
+timu toggles both rendering and hit targets and is saved with other preferences.
+These markers are an ally-selection aid, not an enemy-visibility or AI-cover rule.
+
 Right-click world orders use a visibility raycast and complete NavMesh paths.
 An interaction order stores its approach destination, then executes within range;
 E and the hand icon retain immediate interaction at the active member's feet.

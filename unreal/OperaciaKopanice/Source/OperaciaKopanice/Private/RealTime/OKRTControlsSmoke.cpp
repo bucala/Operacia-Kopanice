@@ -22,6 +22,9 @@ void AOKRTGameMode::SmokeControlsTests()
         !UI->OverUI(Ground) && !UI->OverUI(TNT) && !UI->OverUI(Guard),
         TEXT("RTT control fixture projects world targets outside HUD"));
     if (SmokeStage<0) return;
+    Require(UI->PartyMarkerAt(Guard)==INDEX_NONE && UI->PartyMarkerAt(TNT)==INDEX_NONE,
+        TEXT("friendly markers preserve guard and objective pick regions"));
+    if (SmokeStage<0) return;
     auto Click=[PC](FVector2D Position,bool Append=false)
     { PC->BeginPointer(Position,Append); PC->EndPointer(Position); };
     auto Key=[PC,this](FKey K,EInputEvent Event)

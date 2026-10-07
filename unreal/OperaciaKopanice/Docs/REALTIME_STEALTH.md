@@ -158,6 +158,24 @@ HUD controls does not activate them, and menu/outcome screens block skill arming
 
 ## Selection Input
 
+`OKRTPartyMarkers` builds small numbered screen-space affordances for living,
+nonhidden party members only. Draw and pick use the same current-view projection
+and placement helper, with 32 px desktop / 44 px compact bounds and alternate
+positions for overlapping allies. Full bounds avoid HUD panels/buttons, projected
+character bodies and mission interaction points, preserving guard/body/objective
+picking on narrow views. No marker
+is emitted when the anchor is offscreen or no safe position fits. Markers are
+suppressed in menu/outcome screens and by the persisted PartyMarkers preference.
+They deliberately render above scenery without testing camera occlusion; this
+does not alter collision, navigation or guard perception. No enemies use them.
+
+Unarmed mouse release and touch taps select through a marker before terrain
+raycasting; captured Shift appends selection. Right-click/double-click markers
+never issue world commands. Armed left/touch targeting cannot consume an ability
+on an ally marker; right-click still cancels targeting. Markers are separate from
+blocking HUD panels, so selection rectangles keep their existing body-centre
+semantics. Hover identifies the ally and clears inappropriate path previews.
+
 Desktop input is Commandos-like stealth RTT, not adventure point-and-click.
 Left-click selects a living ally or inspects a living enemy's cone; terrain left-click
 does not move. Right-click orders movement, takedown of a living guard, pickup of a

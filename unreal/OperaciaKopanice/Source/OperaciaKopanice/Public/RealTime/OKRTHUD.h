@@ -16,7 +16,12 @@ public:
     bool OverUI(FVector2D Point) const;
     bool ValidateLayout() const;
     bool FindButton(FName Id,FVector2D& Center) const;
+    bool FindPartyMarker(int32 Member,FVector2D& Center) const;
+    int32 PartyMarkerAt(FVector2D Point) const;
 private:
+    struct FPartyMarker { int32 Member; FBox2D Bounds; FVector2D Anchor; };
+    TArray<FPartyMarker> BuildPartyMarkers() const;
+    void DrawPartyMarkers();
     struct FButton { FBox2D Bounds; TFunction<void()> Action; FString Tip; FName Id=NAME_None; };
     TArray<FButton> Buttons;
     TArray<FBox2D> Panels;
