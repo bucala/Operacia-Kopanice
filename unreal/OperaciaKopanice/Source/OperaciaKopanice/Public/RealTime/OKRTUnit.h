@@ -33,6 +33,7 @@ public:
     bool CanUndoLastOrder() const;
     UFUNCTION(BlueprintCallable) bool UndoLastOrder();
     void GetQueuedLocations(TArray<FVector>& Locations) const;
+    bool GetOrderPath(const FOKRTOrder& Order,bool bFromQueue,TArray<FVector>& Points,FString& Reason) const;
     bool IsSelected() const { return bSelected; }
     void Select(bool bValue) { bSelected=bValue; }
     UPROPERTY(BlueprintReadOnly) bool bEnemy=false;

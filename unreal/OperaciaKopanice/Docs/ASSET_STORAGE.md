@@ -26,8 +26,9 @@ The repository does not commit these generated folders:
 They are local build products and can be regenerated after cloning.
 
 On 2026-10-08 the upload checkout's tracked/staged runtime, source and documentation
-payload measured approximately 695 MiB after the functional-forest, party-marker
-and order-planning updates. These add code/docs and about 7.7 MiB of verification
-captures, no new asset packages. This excludes `.git` history/LFS cache,
+payload measured approximately 696 MiB after the functional-forest, party-marker,
+order-planning and command-feedback updates. These add code/docs and verification
+captures, no new asset packages. The total includes about 12.8 MiB of committed
+verification captures. This excludes `.git` history/LFS cache,
 ignored build products and high-resolution external originals; it is not the
 size of a packaged Windows game. Git LFS downloads the current asset versions.

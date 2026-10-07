@@ -191,8 +191,16 @@ bool AOKRTUnit::Submit(const FOKRTOrder& Order,bool bAppend)
 }
 bool AOKRTUnit::CanNavigateOrder(const FOKRTOrder& Order,bool bFromQueue,FString& Reason)
 {
+    TArray<FVector> Points;
+    return GetOrderPath(Order,bFromQueue,Points,Reason);
+}
+bool AOKRTUnit::GetOrderPath(const FOKRTOrder& Order,bool bFromQueue,TArray<FVector>& Points,FString& Reason) const
+{
+    Points.Reset(); Reason.Reset();
     const bool bTargetOrder=Order.Kind==EOKOrder::Takedown || (Order.Kind==EOKOrder::Carry && Order.Target.IsValid());
     if (Order.Kind!=EOKOrder::Move && !(Order.Kind==EOKOrder::Interact && Order.bApproachInteraction) && !bTargetOrder) return true;
+    if (Order.Location.ContainsNaN() || (bTargetOrder && !Order.Target.IsValid()))
+    { Reason=TEXT("Neplatny ciel."); return false; }
     const FVector Destination=bTargetOrder ? Order.Target->Feet() : Order.Location;
     FVector From=Feet();
     if (bFromQueue)
@@ -211,16 +219,19 @@ bool AOKRTUnit::CanNavigateOrder(const FOKRTOrder& Order,bool bFromQueue,FString
         FNavLocation Projected;
         if (Nav && Nav->ProjectPointToNavigation(Destination,Projected,FVector(Tolerance,Tolerance,75),
             &GetCharacterMovement()->GetNavAgentPropertiesRef()) &&
-            FVector::Dist2D(Projected.Location,Destination)<=Tolerance && FMath::Abs(Projected.Location.Z-Destination.Z)<=75) return true;
+            FVector::Dist2D(Projected.Location,Destination)<=Tolerance && FMath::Abs(Projected.Location.Z-Destination.Z)<=75)
+        { Points={From,Projected.Location}; return true; }
         return Reject();
     }
-    const auto* Path=UNavigationSystemV1::FindPathToLocationSynchronously(GetWorld(),From,Destination,this);
+    // UE's read-only path query takes a non-const actor as its nav-agent context.
+    const auto* Path=UNavigationSystemV1::FindPathToLocationSynchronously(GetWorld(),From,Destination,const_cast<AOKRTUnit*>(this));
     // UE may project an off-mesh goal onto a nearby bank or floor. Do not accept
     // that projected route as reaching a different clicked destination.
     if (!Path || !Path->IsValid() || Path->IsPartial() || Path->PathPoints.IsEmpty() ||
         FVector::Dist2D(Path->PathPoints.Last(),Destination)>Tolerance ||
         FMath::Abs(Path->PathPoints.Last().Z-Destination.Z)>75)
         return Reject();
+    Points=Path->PathPoints;
     return true;
 }
 void AOKRTUnit::FinishOrder()

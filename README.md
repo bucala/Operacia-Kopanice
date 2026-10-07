@@ -51,6 +51,9 @@ signalizuje označenie KRYT pri portréte, nie úplná neviditeľnosť.
 výber myšou alebo dotykom. V nastaveniach rozhrania sa dajú vypnúť.
 Prehľad rozkazov zobrazuje poradie akcií aktívnej postavy. Počas taktickej pauzy
 možno cez Backspace alebo ikonu späť odobrať posledný čakajúci rozkaz.
+Krátke potvrdenie v mieste cieľa rozlišuje prijatie (zelená), odmietnutie
+(červená) a čiastočné prijatie tímom (jantárová, napríklad 1/2).
+Náhľad trasy rešpektuje dostupnosť cieľa, formáciu a koniec plánovanej trasy.
 
 Spustenie: `unreal/OperaciaKopanice/Start-Demo.ps1 -Build` v PowerShelli.
 Vyžaduje UE 5.8, Windows C++ build tools a `git lfs pull`.

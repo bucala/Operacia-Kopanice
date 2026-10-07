@@ -101,6 +101,16 @@ available when no unobstructed screen position fits. Options > Rozhranie > Znack
 timu toggles both rendering and hit targets and is saved with other preferences.
 These markers are an ally-selection aid, not an enemy-visibility or AI-cover rule.
 
+World orders briefly show a green acknowledgement for acceptance, red for
+rejection or amber for partial group acceptance, with a count such as 1/2.
+The bottom message names the member whose command failed and briefly takes
+priority over an armed targeting prompt without cancelling targeting. Rejection
+leaves that member's existing plan intact. Indicators fade even during tactical pause, never
+intercept clicks and are omitted where they would overlap HUD controls. They are
+not noise circles and do not alert guards. Route preview uses the same navigation
+checks as submission, from the queued endpoint during pause/Shift and including
+group formation offset; it no longer draws bank-projected routes into water.
+
 The order tray shows the active specialist's plan, five numbered actions per page,
 up to the existing 32-order limit. Arrows page through the plan; hover or tap an
 action to inspect its type. The started movement/approach is highlighted and

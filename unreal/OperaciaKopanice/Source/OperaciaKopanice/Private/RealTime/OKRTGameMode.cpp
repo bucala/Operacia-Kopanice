@@ -286,22 +286,28 @@ void AOKRTGameMode::SelectAll()
 bool AOKRTGameMode::Command(FOKRTOrder Order,bool Append)
 {
     if (bMenu || bWon || bLost) return false;
-    // Movement and stance affect the selection; scarce skills belong to the active portrait.
-    if (Order.Kind!=EOKOrder::Move && Order.Kind!=EOKOrder::Stance)
-        return Party.IsValidIndex(ActiveMember) && Party[ActiveMember]->IsSelected() && Party[ActiveMember]->Submit(Order,Append);
-    bool Accepted=false;
-    int32 Index=0;
-    const int32 Count=Party.FilterByPredicate([](const auto& U){ return U->IsSelected() && U->IsAlive(); }).Num();
+    int32 Accepted=0,Requested=0;
+    FString Failure,AcceptedName;
+    const bool Group=Order.Kind==EOKOrder::Move || Order.Kind==EOKOrder::Stance;
     for (AOKRTUnit* Unit:Party)
-        if (Unit->IsSelected() && Unit->IsAlive())
+        if (Unit->IsSelected() && Unit->IsAlive() && (Group || (Party.IsValidIndex(ActiveMember) && Party[ActiveMember]==Unit)))
         {
-            auto Individual=Order;
-            if (Count>1 && Order.Kind==EOKOrder::Move) Individual.Location.Y+=(Index++==0 ? -45 : 45);
+            ++Requested;
+            const auto Individual=IndividualOrder(Order,Unit);
             const bool Promoted=Order.Kind==EOKOrder::Move && Order.bRunToDestination &&
                 (Append || bTacticalPause || Unit->QueueSize()==1) && Unit->PromoteLastMoveToRun(Individual.Location);
-            Accepted=Promoted || Unit->Submit(Individual,Append) || Accepted;
+            if (Promoted || Unit->Submit(Individual,Append)) { ++Accepted; AcceptedName=Unit->DisplayName; }
+            else if (Failure.IsEmpty()) Failure=Unit->DisplayName+TEXT(": ")+Message;
         }
-    return Accepted;
+    const FVector Target=Order.Target.IsValid() ? Order.Target->Feet() : Order.Location;
+    const bool WorldTarget=Order.Kind==EOKOrder::Move || Order.Kind==EOKOrder::Distract || Order.Target.IsValid() ||
+        (Order.Kind==EOKOrder::Interact && Order.bApproachInteraction);
+    CommandFeedback={Target,Order.Kind,Accepted,Requested,FPlatformTime::Seconds(),WorldTarget};
+    if (Requested==0) Message=TEXT("Vyber dostupnu postavu.");
+    else if (Accepted==Requested) Message=Requested>1 ? FString::Printf(TEXT("Rozkaz prijaty: %d/%d."),Accepted,Requested) :
+        AcceptedName+TEXT(": rozkaz prijaty.");
+    else Message=Accepted>0 ? FString::Printf(TEXT("Prijate %d/%d. %s"),Accepted,Requested,*Failure) : Failure;
+    return Accepted>0;
 }
 void AOKRTGameMode::TogglePause()
 {
@@ -465,12 +471,19 @@ bool AOKRTGameMode::HasCompletePath(FVector From,FVector To) const
 }
 void AOKRTGameMode::Preview(FVector Destination)
 {
+    FOKRTOrder Order; Order.Location=Destination; PreviewOrder(Order);
+}
+bool AOKRTGameMode::PreviewOrder(const FOKRTOrder& Order,bool Append)
+{
     PreviewSpline->ClearSplinePoints(false);
-    if (!bPathPreview || bMenu || !Party.IsValidIndex(ActiveMember)) return;
-    auto* Path=UNavigationSystemV1::FindPathToLocationSynchronously(GetWorld(),Party[ActiveMember]->Feet(),Destination,Party[ActiveMember]);
-    if (Path && Path->IsValid() && !Path->IsPartial())
-        for (const auto& Point:Path->PathPoints) PreviewSpline->AddSplinePoint(Point+FVector(0,0,8),ESplineCoordinateSpace::World,false);
+    if (!bPathPreview || bMenu || bWon || bLost || !Party.IsValidIndex(ActiveMember)) return false;
+    const auto* Unit=Party[ActiveMember].Get();
+    if (!Unit->IsAlive() || !Unit->IsSelected()) return false;
+    TArray<FVector> Points; FString Reason;
+    if (!Unit->GetOrderPath(IndividualOrder(Order,Unit),Append || bTacticalPause,Points,Reason) || Points.IsEmpty()) return false;
+    for (const auto& Point:Points) PreviewSpline->AddSplinePoint(Point+FVector(0,0,8),ESplineCoordinateSpace::World,false);
     PreviewSpline->UpdateSpline();
+    return true;
 }
 int32 AOKRTGameMode::PartyMembersOnSafeBank() const
 {

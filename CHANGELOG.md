@@ -4,6 +4,17 @@
 
 ### Unreal Demo
 
+- Unify hover previews and order navigation checks, including endpoint projection
+  tolerance, queued origins and the active unit's group formation offset. Do not
+  draw misleading routes into water, elevated goals or inaccessible interiors.
+- Add short noninteractive world command acknowledgements: green accepted,
+  red rejected and amber partially accepted, with group acceptance counts and
+  named failure messages. Preserve rejected units' plans and fade on real time
+  during tactical pause; suppress indicators behind HUD panels and in menus/results.
+- Let recent rejection messages briefly take priority over armed-target prompts,
+  retaining the armed ability for retry; preview the explicitly armed approach type.
+- Add native preview, queue-capacity, acknowledgement and rendered responsive-HUD
+  regressions without changing AI perception or skill-resource consumption.
 - Add a paged tactical order tray for the active specialist, with typed action/
   stance icons, ordinal numbers, execution state and order inspection on tap.
 - Add pause-only tail undo via Backspace or the undo icon, preserving an already

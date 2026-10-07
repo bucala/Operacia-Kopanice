@@ -21,6 +21,16 @@ struct FOKNoisePulse
     float Age=0;
 };
 
+struct FOKCommandFeedback
+{
+    FVector Location=FVector::ZeroVector;
+    EOKOrder Kind=EOKOrder::Move;
+    int32 Accepted=0;
+    int32 Requested=0;
+    double IssuedAt=0;
+    bool bWorldTarget=false;
+};
+
 UCLASS()
 class OPERACIAKOPANICE_API AOKRTGameMode : public AGameModeBase
 {
@@ -55,6 +65,9 @@ public:
     EOKInteraction FindInteractionAt(FVector PickedLocation,FVector& Destination) const;
     bool IsCover(FVector Location,float BodyHeight=95.f) const;
     void Preview(FVector Destination);
+    bool PreviewOrder(const FOKRTOrder& Order,bool bAppend=false);
+    float CommandFeedbackOpacity() const;
+    FOKCommandFeedback CommandFeedback;
     bool HasCompletePath(FVector From,FVector To) const;
     FString Objective() const;
     UPROPERTY(BlueprintReadOnly) TArray<TObjectPtr<AOKRTUnit>> Party;
@@ -113,7 +126,11 @@ private:
     void SmokeSelectionTests();
     void SmokeMarkerTests();
     void SmokeOrderTests();
+    void SmokeFeedbackTests();
+    bool SmokeFeedbackHUDTests();
+    int32 FeedbackHUDSmokeStage=0;
     bool SmokeOrderHUDTests();
+    FOKRTOrder IndividualOrder(const FOKRTOrder& Order,const AOKRTUnit* Unit) const;
     int32 OrderHUDSmokeStage=0;
     void SmokeControlsTests();
     void SmokeNavigationTests();

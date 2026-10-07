@@ -342,12 +342,20 @@ void AOKRTPlayerController::PlayerTick(float Delta)
         else if (IsGameplayInputAllowed() && !bBoxSelecting && (!UI || !UI->OverUI(LastMouse)) &&
             GetHitResultAtScreenPosition(LastMouse,ECC_Visibility,false,Hit))
         {
-            const auto* Unit=Cast<AOKRTUnit>(Hit.GetActor());
+            auto* Unit=Cast<AOKRTUnit>(Hit.GetActor());
             FVector Destination=Hit.ImpactPoint;
-            const bool bInteraction=!Unit && G->FindInteractionAt(Destination,Destination)!=EOKInteraction::Nearby;
+            const EOKInteraction Interaction=Unit ? EOKInteraction::Nearby : G->FindInteractionAt(Destination,Destination);
+            const bool bInteraction=Interaction!=EOKInteraction::Nearby;
             CurrentMouseCursor=bInteraction ? EMouseCursor::Hand : Unit && !Unit->IsAlive() ? EMouseCursor::GrabHand : EMouseCursor::Crosshairs;
-            if (Unit && !Unit->bEnemy) G->PreviewSpline->ClearSplinePoints();
-            else G->Preview(Unit ? Unit->Feet() : Destination);
+            if ((Unit && !Unit->bEnemy) || (bArmed && (ArmedOrder==EOKOrder::Distract || !Unit)))
+                G->PreviewSpline->ClearSplinePoints();
+            else
+            {
+                FOKRTOrder Order; Order.Location=Destination;
+                Order.Kind=bArmed ? ArmedOrder : Unit ? Unit->IsAlive() ? EOKOrder::Takedown : EOKOrder::Carry : bInteraction ? EOKOrder::Interact : EOKOrder::Move;
+                Order.Target=Unit; Order.Interaction=Interaction; Order.bApproachInteraction=bInteraction;
+                G->PreviewOrder(Order,IsShiftDown());
+            }
         }
         else G->PreviewSpline->ClearSplinePoints();
     }

@@ -74,6 +74,12 @@ plan; S/X remains the full selected-group stop. The tray is omitted for empty
 queues or if a short viewport leaves no room. The compact portrait keeps its gold active edge
 without the redundant bottom crosshair, leaving room for double-digit counts.
 
+World command acknowledgements distinguish accepted, rejected and partially
+accepted group orders without stopping the simulation or changing guard senses.
+Named failure messages and group counts make independently accepted formation
+orders explicit; a rejected member retains its prior plan. Hover routes share
+submission's endpoint/navigation checks and the active unit's formation offset.
+
 Preferences and completed-operation flags are saved in local GameUserSettings.
 They are not a mid-mission save system: closing or restarting loses the active
 mission's unfinished progress. Audio mixing, remappable bindings, gamepad menus,

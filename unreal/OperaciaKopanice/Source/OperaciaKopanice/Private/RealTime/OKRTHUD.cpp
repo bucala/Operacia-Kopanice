@@ -229,10 +229,12 @@ void AOKRTHUD::DrawHUD()
     const float MessageY=Compact ? Y-52 : H-68;
     DrawRect(FLinearColor(.025f,.03f,.035f,.82f),16,MessageY,MessageW,44);
     Panels.Add(FBox2D(FVector2D(16,MessageY),FVector2D(16+MessageW,MessageY+44)));
-    const FString Feedback=PC->bArmed ? PC->ArmedOrder==EOKOrder::Takedown ? TEXT("Tichy utok: vyber hliadku") :
+    const bool RejectedTarget=G->CommandFeedbackOpacity()>0 && G->CommandFeedback.Accepted==0;
+    const FString Feedback=PC->bArmed && !RejectedTarget ? PC->ArmedOrder==EOKOrder::Takedown ? TEXT("Tichy utok: vyber hliadku") :
         PC->ArmedOrder==EOKOrder::Carry ? TEXT("Preniest telo: vyber ciel") : TEXT("Odlakanie: vyber miesto") : G->Message;
     Wrap(Unit->Cooldown>0 ? FString::Printf(TEXT("%s | %.1fs"),*Feedback,Unit->Cooldown) : Feedback,24,MessageY+10,MessageW-16,.95f);
     DrawOrderQueue(G,FVector2D(Compact ? 16 : X,(Compact ? MessageY : Y)-78),Compact ? W-32 : 7*(S+4)-4);
+    DrawCommandFeedback();
     DrawPartyMarkers();
     float MouseX,MouseY;
     if (PC->GetMousePosition(MouseX,MouseY))

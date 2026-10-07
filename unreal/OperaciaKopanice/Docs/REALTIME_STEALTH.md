@@ -47,10 +47,28 @@ Mission 1 permits sabotage only when every living party member's capsule clears
 the east end of the physical span. A rejected interaction leaves geometry,
 navigation and noise unchanged. HUD objectives count safe members during the
 crossing and switch to detonator activation once the entire party is across.
-Commands disallow partial paths. Hover preview uses the same synchronous
-NavigationSystem path points, stored in a world-space spline and projected by HUD.
+Commands disallow partial paths. `AOKRTUnit::GetOrderPath` is the shared read-only
+navigation query for submission and hover previews: it checks complete agent paths,
+horizontal/vertical endpoint tolerance and real navigation even for identical
+endpoints. Preview starts from the last queued destination during pause/Shift
+append and applies the active specialist's formation offset. Water projected onto
+a bank, inaccessible interiors and elevated goals cannot produce a valid preview.
+Typed guard/body/interaction approaches use their own acceptance tolerances.
+Preview points are stored in a world-space spline and projected by HUD; preview
+does not validate ability resources or promise that a moving target stays reachable.
 Production Landscape/mesh collision should replace flat proxies when terrain
 elevation and authored interiors are introduced.
+
+`Command` records requested/accepted member counts and a snapshot of the clicked
+world target. The HUD draws a noninteractive acknowledgement for up to 2.4 seconds:
+green accepted, red rejected or amber partial acceptance, with N/N for groups.
+Group commands retain independent acceptance; a failed member's queue is untouched
+and its named reason is kept in the feedback message. The marker uses real time,
+so it expires during true tactical pause, and is omitted offscreen, behind HUD
+controls or in menus/results. It adds no noise/perception event, target tracking,
+hit region or resource cost. Disabling route preview does not disable acknowledgement.
+While targeting remains armed, a recent rejection message temporarily takes
+priority over its target-selection prompt; the ability is not cancelled by drawing.
 
 In Missions 2 and 3, forest render instances keep HISM batching and NoCollision.
 Their visible owner also holds narrow trunk capsules and rock boxes with BlockAll

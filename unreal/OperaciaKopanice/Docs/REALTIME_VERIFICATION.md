@@ -1,5 +1,48 @@
 # Real-Time Prototype Verification
 
+## Command Feedback and Route Previews: 2026-10-08
+
+The UE 5.8.2 Win64 Development Editor build succeeded. Final DLL SHA-256 is
+`B513DF8D37847F6F64087ECCAA188AE4B60ACB5F39F281887254817615368ED8`, matching
+build stage, development and upload trees. All 100 source/config/project files
+and all 94 required content files match between development and upload checkouts.
+Existing preferred-MSVC, optional SDK and engine/input deprecation warnings remain.
+
+| Run | Result | Local log |
+| --- | --- | --- |
+| Final original regression 1920 x 1080 | 221/221 PASS | DemoSmoke-942402e7640f499ea30396b44e6d7fdc.log |
+| Final original regression 480 x 800 | 221/221 PASS | DemoSmoke-b6612ce5d2834c49bb26185a9822ea03.log |
+| Campaign 1920 x 1080 | Both forest missions PASS; 346 PASS events | DemoSmoke-decdbd1f00de40db8c0d3519f02f03b3.log |
+| Campaign 480 x 800 | Both forest missions PASS; 524 PASS events | DemoSmoke-1debb82ea85249dea198215309541285.log |
+| Upload original live-AI mission 1280 x 720 | 15/15 PASS | DemoSmoke-8bbbee47160b4f8cba6d561862a5ff13.log |
+
+Logs remain local under Saved/Logs. Original/campaign regressions ran from the
+development checkout; the final live-AI run used C:/GitHub/Operacia-Kopanice.
+All runs exited successfully without failed checks, fatal errors, material compile
+failures or default-material substitutions. Campaign event counts include repeated
+layout checks, not that many distinct cases. Campaign runs preceded the final
+armed-prompt priority and explicit armed-hover type corrections; the final original
+regressions and upload live-AI run used the final DLL.
+
+Twenty-four additional assertions cover read-only queued path origins, group
+formation offsets, water/interior/elevated rejection, missing targets, acceptance
+counts, independently full group queues, menu/result gates, resource preservation,
+real-time expiry during pause, non-finite targets and responsive world indicators.
+Rendered fixtures check that indicators avoid HUD controls and intercept no input,
+retain armed targeting, and restore the original pending mission plan. Captures
+confirm that a recent rejection remains readable instead of an armed target prompt.
+These isolated fixtures do not execute mission objectives or grant player immunity.
+
+Both larger missions and the original viaduct complete with both members at full
+health and every guard alive with an active brain. No turn/grid execution is added.
+Full HD and portrait accepted/rejected captures were visually inspected for rendered
+assets, legible feedback and nonoverlap. Only the roughly 0.5 MiB
+[portrait rejection capture](Evidence/2026-10-08/Command-Rejected-480x800.png)
+is committed; other captures stay under ignored Saved/Verification.
+No runtime asset packages were added. OS mouse timing, physical Android devices,
+packaged EXE/APK and web parity remain unverified; this is the native editor-hosted
+Windows demo and the legacy web game is unchanged.
+
 ## Tactical Order Planning: 2026-10-08
 
 The UE 5.8.2 Win64 Development Editor build succeeded with the new order tray and
