@@ -33,7 +33,7 @@ void AOKRTGameMode::CampaignSmokeTick()
     { FOKRTOrder O; O.Location=P; return Unit->Submit(O,Append); };
     auto Approach=[](AOKRTUnit* Unit,FVector P,EOKInteraction Kind)
     { FOKRTOrder O; O.Kind=EOKOrder::Interact; O.Location=P; O.Interaction=Kind; O.bApproachInteraction=true; return Unit->Submit(O,true); };
-    if (SmokeStage>=18 && SmokeStage<=22)
+    if (SmokeStage>=18)
         for (AOKRTUnit* Guard:Enemies)
             if (!Guard->IsAlive() || !CastChecked<AOKRTGuardController>(Guard->GetController())->bBrainEnabled)
             { Require(false,TEXT("campaign retains all live guard brains")); return; }
@@ -43,6 +43,8 @@ void AOKRTGameMode::CampaignSmokeTick()
         if (bInitialPausePending || Now-StageStarted<2) return;
         Require(MissionId>0 && bTacticalPause && Enemies.Num()==3,TEXT("additional mission starts paused with three patrols"));
         Require(HasCompletePath(Party[0]->Feet(),TNTLocation) && HasCompletePath(TNTLocation,ExitLocation),TEXT("new mission objectives and extraction are connected"));
+        SmokeForestTests();
+        if (SmokeStage<0) return;
         for (AOKRTUnit* Guard:Enemies)
             for (const auto& Stop:CastChecked<AOKRTGuardController>(Guard->GetController())->PatrolRoute)
                 Require(FVector::Dist2D(Guard->Feet(),Stop.Location)<35 || HasCompletePath(Guard->Feet(),Stop.Location),TEXT("new mission patrol stop is navigable"));
@@ -107,15 +109,33 @@ void AOKRTGameMode::CampaignSmokeTick()
     case 17:
         MenuBack(); TogglePause(); Select(0);
         Require(Approach(Party[0],TNTLocation,MissionId==1 ? EOKInteraction::CollectDocuments : EOKInteraction::CollectTNT),TEXT("campaign accepts contextual supply approach"));
+        Party[0]->CancelOrders();
+        {
+            FOKRTOrder Crouch; Crouch.Kind=EOKOrder::Stance; Crouch.Stance=EOKStance::Crouch;
+            FVector Shrub=Mission().Spawn+FVector(-180,-260,0); Shrub.Z=0;
+            Require(Party[0]->Submit(Crouch) && Move(Party[0],Shrub),TEXT("campaign queues a crouched approach into live shrub cover"));
+        }
+        SmokeStage=23; StageStarted=Now; break;
+    case 23:
+        if (Party[0]->QueueSize()) return;
+        Require(Party[0]->bInCover && UI->ValidateLayout(),TEXT("native movement reaches shrub cover with a responsive cover badge"));
+        FocusSelected();
+        FScreenshotRequest::RequestScreenshot(*FString::Printf(TEXT("OKRT_ForestCover%d.png"),MissionId),false,false);
+        SmokeStage=24; StageStarted=Now; break;
+    case 24:
+        if (Now-StageStarted<.5) return;
+        {
+            FOKRTOrder Walk; Walk.Kind=EOKOrder::Stance; Walk.Stance=EOKStance::Walk;
+            Require(Party[0]->Submit(Walk),TEXT("campaign can leave concealment and resume walking"));
+        }
         // The western bypass avoids the central guard. Commands, not teleports,
         // move the team; both meshes and all enemy brains remain in production mode.
-        Party[0]->CancelOrders();
         if (MissionId==1) Require(Move(Party[0],FVector(900,2200,0)) && Approach(Party[0],TNTLocation,EOKInteraction::CollectDocuments),TEXT("courier queues western approach and document pickup"));
         else Require(Approach(Party[0],TNTLocation,EOKInteraction::CollectTNT),TEXT("command post queues TNT pickup"));
         Require(Move(Party[1],FVector(900,MissionId==1 ? 2200 : 2300,0)),TEXT("companion accepts western bypass"));
         FocusObjective();
         FScreenshotRequest::RequestScreenshot(*FString::Printf(TEXT("OKRT_CampaignScene%d.png"),MissionId),false,false);
-        Next(); break;
+        SmokeStage=18; StageStarted=Now; break;
     case 18:
         if (Party[0]->QueueSize() || Party[1]->QueueSize()) return;
         Require(MissionId==1 ? bObjectiveComplete : bHasTNT,TEXT("campaign supplies acquired using navigation and interaction"));

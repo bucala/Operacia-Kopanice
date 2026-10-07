@@ -53,7 +53,7 @@ public:
     void Interact(AOKRTUnit* Unit,EOKInteraction Kind=EOKInteraction::Nearby);
     bool Distract(AOKRTUnit* Unit,FVector Destination);
     EOKInteraction FindInteractionAt(FVector PickedLocation,FVector& Destination) const;
-    bool IsCover(FVector Location) const;
+    bool IsCover(FVector Location,float BodyHeight=95.f) const;
     void Preview(FVector Destination);
     bool HasCompletePath(FVector From,FVector To) const;
     FString Objective() const;
@@ -100,6 +100,8 @@ private:
     void SpawnMissionUnit(FVector Location,bool Enemy,float Yaw,const TArray<struct FOKRTPatrolStop>& Route);
     AStaticMeshActor* MissionProp(const TCHAR* Path,FVector Center,FVector2D Footprint,float Yaw,bool Blocking,FName Tag);
     TArray<FVector> CoverLocations;
+    struct FFoliageCover { FVector Base; float Radius; float Height; };
+    TArray<FFoliageCover> FoliageCover;
     int32 CompletedMissions=0;
     UBoxComponent* Collider(FVector Center,FVector Extent,FName Tag);
     AStaticMeshActor* Place(const TCHAR* Path,FVector Location,float Scale=1);
@@ -111,6 +113,7 @@ private:
     void SmokeControlsTests();
     void SmokeNavigationTests();
     void CampaignSmokeTick();
+    void SmokeForestTests();
     bool bCampaignSmoke=false;
     bool bSmoke=false;
     bool bMissionSmoke=false;

@@ -447,10 +447,14 @@ void AOKRTGameMode::Interact(AOKRTUnit* Unit,EOKInteraction Kind)
     }
     Message=TEXT("Nie je tu dostupna interakcia.");
 }
-bool AOKRTGameMode::IsCover(FVector Location) const
+bool AOKRTGameMode::IsCover(FVector Location,float BodyHeight) const
 {
-    for (const FVector Point:CoverLocations) if (FVector::Dist2D(Location,Point)<170) return true;
-    return FVector::Dist2D(Location,FVector(600,1440,0))<170;
+    for (const auto& Shrub:FoliageCover)
+        if (FVector::DistSquared2D(Location,Shrub.Base)<FMath::Square(Shrub.Radius) &&
+            Location.Z>=Shrub.Base.Z-15 && Location.Z+BodyHeight<=Shrub.Base.Z+Shrub.Height) return true;
+    for (const FVector Point:CoverLocations)
+        if (FMath::Abs(Location.Z-Point.Z)<80 && FVector::Dist2D(Location,Point)<170) return true;
+    return MissionId==0 && FMath::Abs(Location.Z)<80 && FVector::Dist2D(Location,FVector(600,1440,0))<170;
 }
 bool AOKRTGameMode::HasCompletePath(FVector From,FVector To) const
 {

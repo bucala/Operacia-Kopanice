@@ -99,6 +99,7 @@ void AOKRTUnit::SetStance(EOKStance Value)
 {
     Stance=Value;
     const bool bLow=Value==EOKStance::Crouch || Value==EOKStance::Prone;
+    if (!bLow) bInCover=false;
     if (bLow) Crouch(); else UnCrouch();
     float Speed=Value==EOKStance::Run ? 360 : Value==EOKStance::Walk ? 190 : Value==EOKStance::Crouch ? 90 : 50;
     if (CarriedBody.IsValid()) Speed=FMath::Min(Speed,100.f);
@@ -334,7 +335,8 @@ void AOKRTUnit::Tick(float Delta)
     auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
     if (!Game || Game->bWon || Game->bLost) return;
     Cooldown=FMath::Max(0.f,Cooldown-Delta);
-    bInCover=Game->IsCover(Feet()) && (Stance==EOKStance::Crouch || Stance==EOKStance::Prone);
+    bInCover=(Stance==EOKStance::Crouch || Stance==EOKStance::Prone) &&
+        Game->IsCover(Feet(),Stance==EOKStance::Prone ? 35.f : 95.f);
     if (!bEnemy) UpdateOrders();
     UpdateAnimation(Delta);
     NoiseClock+=Delta;

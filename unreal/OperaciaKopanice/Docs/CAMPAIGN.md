@@ -27,10 +27,20 @@ simulation or an asserted exact model identification.
 
 The maps also reuse the supplied cabin, black car, two fir variants, winter shrub,
 limestone rocks, cobblestone courtyards, wooden paths and supply crates. Deterministic
-HISM scattering produces hundreds of decorative forest instances per mission.
-Buildings, vehicles, tactical rocks and crate cover have separate collision/nav
-proxies. Decorative forest instances do not block navigation. Crouched concealment
-uses the tagged tactical cover positions, not every decorative shrub.
+HISM scattering produces hundreds of forest instances per mission. Render meshes
+remain instanced and noncolliding; narrow capsule proxies describe tree trunks,
+and simple box proxies describe rocks. These block movement and authoritative
+vision traces and are exported to the dynamic NavMesh. Tree canopies are not
+opaque collision boxes. Buildings, vehicles and crate cover retain their proxies.
+
+Shrubs remain traversable. Their placed bounds define finite concealment volumes:
+crouched or prone units must fit beneath the shrub height to gain the existing
+0.3 cover visibility multiplier. Standing or leaving the clump removes it;
+cover does not make units invisible. The portrait displays KRYT while concealed.
+Two authored shrubs near spawn/body cover make this usable along the safe approach.
+Scattering leaves patrol stops, objectives, buildings and a command service lane
+clear and rejects collisions with existing obstacles. The original mission's
+virtual cover point does not leak into the larger maps.
 
 Runtime placement normalizes mesh pivots, fits bounds uniformly and accounts for
 different imported vehicle axes. Cabin envelopes remain 720 x 720 cm, cars fit
@@ -69,9 +79,13 @@ Android packaging and cloud saves are not implemented by this pass.
 ```
 
 The campaign fixture uses the real HUD callbacks to traverse menus and deploy from
-Mission 2 results into Mission 3. It uses production navigation/interaction orders
-with every enemy brain active, without teleporting, killing guards or granting
-invulnerability. Fixtures do not overwrite player preferences. See
+Mission 2 results into Mission 3. Mission playthroughs use production
+navigation/interaction orders with every enemy brain active, without teleporting,
+killing guards or granting invulnerability. Before resuming, separate isolated
+forest checks temporarily position and restore a unit/guard to test trunk
+occlusion and shrub stance factors; these do not complete mission objectives.
+Both playthroughs navigate into real shrub cover and capture the KRYT badge.
+Fixtures do not overwrite player preferences. See
 [verification](REALTIME_VERIFICATION.md) for completed runs and remaining gaps.
 This is a Windows editor-hosted UE demo; the legacy web game remains separate.
 
@@ -84,3 +98,7 @@ These are in-engine captures, not the target-art reference:
 ![Command post and supplied assets, 1920 x 1080](Evidence/2026-10-07/Command-Post-1920x1080.png)
 
 [Portrait mission selection, 480 x 800](Evidence/2026-10-07/Campaign-Menu-480x800.png)
+
+![Functional shrub concealment and cover badge, 1920 x 1080](Evidence/2026-10-07/Forest-Cover-1920x1080.png)
+
+[Portrait cover badge, 480 x 800](Evidence/2026-10-07/Forest-Cover-480x800.png)

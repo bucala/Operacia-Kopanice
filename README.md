@@ -44,6 +44,9 @@ a front príkazov pri taktickej pauze. Zachováva dodané 3D assety zimnej osady
 Tri natívne misie zahŕňajú sabotáž viaduktu, získanie dokumentov v lesnom tábore
 a vyradenie veliteľského stanovišťa. Dve nové oblasti majú 86,4 × 86,4 metra,
 vlastné hliadky a rozmiestnenie budov, vozidiel, vegetácie a krytov.
+Kmene a skaly v nových misiách blokujú pohyb aj výhľad; kríky poskytujú
+výškovo ohraničené krytie prikrčeným a plaziacim sa postavám. Aktívne krytie
+signalizuje označenie KRYT pri portréte, nie úplná neviditeľnosť.
 
 Spustenie: `unreal/OperaciaKopanice/Start-Demo.ps1 -Build` v PowerShelli.
 Vyžaduje UE 5.8, Windows C++ build tools a `git lfs pull`.

@@ -114,6 +114,12 @@ void AOKRTHUD::DrawHUD()
         DrawRect(Active ? FLinearColor(.81f,.68f,.36f) : Unit->IsSelected() ? FLinearColor(.45f,.72f,.55f) : FLinearColor(.22f,.23f,.22f),X,Y,Card,3);
         if (auto* T=Texture(I==0 ? TEXT("Partisan") : TEXT("Officer")))
             DrawTexture(T,X+7,Y+8,Card-14,Card-14,I==0 ? .395f : .385f,I==0 ? .077f : .032f,I==0 ? .23f : .245f,I==0 ? .265f : .25f,FLinearColor::White,BLEND_Translucent);
+        if (Unit->bInCover)
+        {
+            DrawRect(FLinearColor(.035f,.12f,.07f,.95f),X+7,Y+Card-28,Card-14,18);
+            Icon(TEXT("eye"),X+10,Y+Card-27,16,FLinearColor(.6f,.9f,.7f));
+            Label(TEXT("KRYT"),X+31,Y+Card-26,.85f,FLinearColor(.7f,.94f,.77f));
+        }
         Label(Unit->DisplayName,X+7,Y+Card,Compact ? 1 : 1.15f,FLinearColor(.91f,.8f,.52f));
         DrawRect(FLinearColor(.15f,.15f,.15f),X+7,Y+Card+23,Card-14,4);
         DrawRect(FLinearColor(.35f,.66f,.45f),X+7,Y+Card+23,(Card-14)*Unit->Health/100,4);
@@ -124,7 +130,7 @@ void AOKRTHUD::DrawHUD()
         if (Active) Icon(TEXT("crosshair"),X+Card-23,Y+Card+29,16,FLinearColor(.91f,.8f,.52f));
         const FBox2D Bounds(FVector2D(X,Y),FVector2D(X+Card,Y+Card+48));
         Panels.Add(Bounds); Buttons.Add({Bounds,[G,PC,I](){ G->Select(I,PC->IsInputKeyDown(EKeys::LeftShift) || PC->IsInputKeyDown(EKeys::RightShift)); },
-            Unit->DisplayName+(Active ? TEXT(" (aktivna)") : TEXT(""))});
+            Unit->DisplayName+(Active ? TEXT(" (aktivna)") : TEXT(""))+(Unit->bInCover ? TEXT(" / v kryte") : TEXT(""))});
         if (Unit->IsSelected()) WorldRing(Unit->Feet(),42,Active ? FLinearColor(.91f,.8f,.52f,.9f) : FLinearColor(.65f,.9f,.73f,.7f));
     }
     const float ObjectiveWidth=FMath::Min(320.f,W-Card-64);

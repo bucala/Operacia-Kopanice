@@ -1,5 +1,49 @@
 # Real-Time Prototype Verification
 
+## Functional Forest and Concealment: 2026-10-07
+
+UE 5.8.2 Win64 Development Editor incremental build succeeded, including the new
+forest fixture. Campaign runs used the development checkout; original-mission
+regressions used `C:/GitHub/Operacia-Kopanice/unreal/OperaciaKopanice` with the
+same compiled module. Hashes matched for all 188 runtime/source/config files.
+Logs remain local under each project's `Saved/Logs`.
+
+| Run | Result | Local log |
+| --- | --- | --- |
+| Development campaign 1920 x 1080 | Both forest missions PASS; 347 PASS events | DemoSmoke-4bdc12ef6ee64a29ae66b62bf67271fd.log |
+| Development campaign 480 x 800 | Both forest missions PASS; 455 PASS events | DemoSmoke-8e3517766c0c4e9e9112b01d2a2469bb.log |
+| Upload original rendered regression 1920 x 1080 | 136/136 PASS | DemoSmoke-b622316d108c44388c74b88120a544b7.log |
+| Upload original live-AI mission 1280 x 720 | 15/15 PASS | DemoSmoke-e9ed2ccb926541b1941c6f41ca211026.log |
+
+All engine runs exited successfully, without failed assertions, fatal errors,
+material compilation failures or default-material substitutions. Campaign event
+counts include repeated layout checks, not that many distinct cases. Existing
+preferred-MSVC, optional SDK and engine/input deprecation warnings remain.
+
+Eleven isolated forest assertions per new mission verify substantial trunk/rock/
+shrub placement, a complete NavMesh detour around a real trunk, blocking of the
+character capsule, trunk occlusion through the authoritative vision component,
+and visibility beside the same trunk. Shrub cover has finite horizontal/vertical
+bounds: standing visibility remains 1, crouching in cover is 0.105, and prone in
+cover is 0.045, never zero. Larger maps do not inherit the original virtual cover.
+These paused unit checks temporarily position and restore actors; they are
+separate from the mission playthrough and do not grant objectives or health.
+
+Both real-time playthroughs navigate into an authored shrub using production
+queued stance/movement orders, display KRYT, then walk out to complete objectives
+and extract both members at full health. All three enemy brains remain active
+and all guards survive. Sabotage still draws an investigating patrol. These
+playthroughs use no teleportation, guard disabling or invulnerability.
+
+Full HD and portrait cover captures were inspected for visible assets, readable
+cover state and nonoverlapping HUD elements; selected captures are committed in
+`Evidence/2026-10-07/Forest-Cover-1920x1080.png` and
+`Evidence/2026-10-07/Forest-Cover-480x800.png`. No new asset packages were required.
+Tree collision describes trunks, not canopies; shrubs reduce detection rather
+than physically obstructing navigation. Final terrain/road dressing, physical
+mouse timing, mid-mission saves and packaged Windows/Android builds remain out
+of scope. The legacy web game and deployment are unchanged.
+
 ## Native Campaign and Menu: 2026-10-07
 
 A fresh Win64 Development Editor build from the upload checkout succeeded with

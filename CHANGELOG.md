@@ -4,6 +4,13 @@
 
 ### Unreal Demo
 
+- Make the new missions' forest functional: instanced firs have narrow physical
+  trunk/nav proxies, rocks block movement and sight, and shrubs provide
+  height-bounded crouch/prone concealment without blocking paths.
+- Preserve patrol, objective and service clearings; show a live KRYT portrait badge.
+  Standing immediately removes concealment; new maps no longer inherit Mission 1's
+  virtual cover point. Add native forest collision, sight and cover regressions,
+  plus a real queued approach into shrub cover during each campaign playthrough.
 - Add two authored 86.4 m real-time missions: retrieve the forest courier documents
   and sabotage a command post, each with three live patrols and two-member extraction.
 - Integrate budgeted Nanite Winterwood cabin and Olive Command Caravan derivatives

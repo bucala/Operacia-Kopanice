@@ -52,6 +52,18 @@ NavigationSystem path points, stored in a world-space spline and projected by HU
 Production Landscape/mesh collision should replace flat proxies when terrain
 elevation and authored interiors are introduced.
 
+In Missions 2 and 3, forest render instances keep HISM batching and NoCollision.
+Their visible owner also holds narrow trunk capsules and rock boxes with BlockAll
+and navigation relevance. These proxies obstruct Pawn and Visibility without
+making whole tree canopies impassable. Deterministic placement reserves patrol,
+objective and approach clearings and rejects overlap with existing obstacles.
+Shrubs have no physical/nav obstruction: world-space cylinders derived from their
+placed bounds grant concealment only when a crouched/prone body fits below the
+clump height. Crouch tests 95 cm and prone 35 cm above the feet; cover applies the
+existing 0.3 visibility multiplier, never zero. Standing clears cover immediately.
+The HUD's KRYT badge reflects the live unit state. Existing tactical crate/rock
+cover is also vertically bounded; Mission 1's virtual cover remains mission-local.
+
 ## Perception
 
 Patrol routes contain `FOKRTPatrolStop` entries (world position, facing yaw and

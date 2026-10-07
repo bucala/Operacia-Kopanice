@@ -2,6 +2,7 @@
 #include "RealTime/OKRTUnit.h"
 #include "RealTime/OKRTGuardController.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/SplineComponent.h"
@@ -64,6 +65,8 @@ void AOKRTGameMode::BuildAdditionalMission()
     const FVector Huts2[]={{2450,1700,0},{4500,3200,0},{5700,4700,0},{3100,5700,0}};
     const FVector Huts3[]={{2200,5500,0},{3500,4400,0},{5500,1700,0},{5800,5400,0},{2800,900,0}};
     const TArray<FVector> Huts=MissionId==1 ? TArray<FVector>(Huts2,UE_ARRAY_COUNT(Huts2)) : TArray<FVector>(Huts3,UE_ARRAY_COUNT(Huts3));
+    const FVector Stops2[]={{3500,2400,0},{2600,4400,0},{5800,5400,0}};
+    const FVector Stops3[]={{4300,3900,0},{5700,2500,0},{3200,1400,0}};
     for (int32 I=0;I<Huts.Num();++I)
         MissionProp(I%2 ? Cabin : CabinAlt,Huts[I],FVector2D(720,720),(I%4)*90,true,TEXT("MissionCabin"));
     if (MissionId==1)
@@ -84,9 +87,10 @@ void AOKRTGameMode::BuildAdditionalMission()
         CoverLocations.Add(P);
         MissionProp(Crate,P+FVector(0,145,0),FVector2D(100,100),12,true,TEXT("StealthCover"));
     }
-    // Instancing keeps the larger forest affordable; clearings protect objectives,
-    // hut entrances and the authored western bypass from decorative obstructions.
-    auto AddForest=[&](const TCHAR* Path,float Height,int32 Count,int32 Seed)
+    // Render meshes stay instanced. Simple shared-owner collision components
+    // describe trunks/rocks, not opaque boxes around the entire tree canopy.
+    enum class EForestPart { Tree, Shrub, Rock };
+    auto AddForest=[&](const TCHAR* Path,float Height,int32 Count,int32 Seed,EForestPart Kind)
     {
         auto* Asset=LoadObject<UStaticMesh>(nullptr,Path);
         if (!Asset) return;
@@ -99,26 +103,61 @@ void AOKRTGameMode::BuildAdditionalMission()
         Instances->SetCanEverAffectNavigation(false); Instances->RegisterComponent();
         const FBox Box=Asset->GetBoundingBox();
         FRandomStream Random(Seed);
-        for (int32 I=0;I<Count;++I)
+        for (int32 I=0;I<Count+(Kind==EForestPart::Shrub ? 2 : 0);++I)
         {
-            const FVector P(Random.FRandRange(250,Size-250),Random.FRandRange(250,Size-250),-8);
-            if ((P.X>700 && P.X<1900 && P.Y<7000) ||
+            const bool Authored=I>=Count;
+            FVector P=Authored ? (I==Count ? Definition.Spawn+FVector(-180,-260,0) : HideLocation+FVector(-220,-120,0)) :
+                FVector(Random.FRandRange(250,Size-250),Random.FRandRange(250,Size-250),0);
+            P.Z=-8;
+            if (!Authored && ((P.X>700 && P.X<1900 && P.Y<7000) ||
                 FVector::Dist2D(P,TNTLocation)<380 || FVector::Dist2D(P,DetonatorLocation)<500 ||
-                FVector::Dist2D(P,ExitLocation)<400 || FVector::Dist2D(P,Definition.Spawn)<500) continue;
+                FVector::Dist2D(P,ExitLocation)<400 || FVector::Dist2D(P,Definition.Spawn)<500)) continue;
             bool Clear=true;
             for (const FVector Hut:Huts) if (FVector::Dist2D(P,Hut)<650) Clear=false;
+            for (int32 Stop=0;Stop<3;++Stop)
+                if (FVector::Dist2D(P,MissionId==1 ? Stops2[Stop] : Stops3[Stop])<350) Clear=false;
+            if (MissionId==2 && FMath::Abs(P.X-4300)<160 && P.Y>2600 && P.Y<4100) Clear=false;
             if (!Clear) continue;
-            const float Scale=Height/Box.GetSize().Z*Random.FRandRange(.8f,1.2f);
+            const float Clearance=Kind==EForestPart::Rock ? 100.f : 55.f;
+            if (GetWorld()->OverlapBlockingTestByChannel(P+FVector(0,0,110),FQuat::Identity,ECC_Pawn,
+                FCollisionShape::MakeCapsule(Clearance,100))) continue;
+            const float Scale=Height/Box.GetSize().Z*(Authored ? 1.35f : Random.FRandRange(.8f,1.2f));
             const FRotator Rotation(0,Random.FRandRange(0,360),0);
             const FVector Pivot(Box.GetCenter().X,Box.GetCenter().Y,Box.Min.Z);
             Instances->AddInstance(FTransform(Rotation,P-Rotation.RotateVector(Pivot*Scale),FVector(Scale)),true);
+            UShapeComponent* Collision=nullptr;
+            if (Kind==EForestPart::Tree)
+            {
+                auto* Trunk=NewObject<UCapsuleComponent>(ForestActor);
+                const float Radius=FMath::Clamp(float(Box.GetSize().Z*Scale)*.035f,16.f,28.f);
+                const float HalfHeight=FMath::Min(float(Box.GetSize().Z*Scale)*.3f,200.f);
+                Trunk->SetCapsuleSize(Radius,HalfHeight);
+                Trunk->SetRelativeLocation(P+FVector(0,0,HalfHeight));
+                Trunk->ComponentTags.Add(TEXT("ForestTrunk")); Collision=Trunk;
+            }
+            else if (Kind==EForestPart::Rock)
+            {
+                auto* Rock=NewObject<UBoxComponent>(ForestActor);
+                const FVector Extent=Box.GetSize()*Scale*FVector(.4f,.4f,.5f);
+                Rock->SetBoxExtent(Extent); Rock->SetRelativeLocation(P+FVector(0,0,Extent.Z));
+                Rock->SetRelativeRotation(Rotation);
+                Rock->ComponentTags.Add(TEXT("ForestRock")); Collision=Rock;
+            }
+            else FoliageCover.Add({P,FMath::Clamp(float(FMath::Min(Box.GetSize().X,Box.GetSize().Y)*Scale)*.28f,45.f,135.f),float(Box.GetSize().Z*Scale)});
+            if (Collision)
+            {
+                ForestActor->AddInstanceComponent(Collision); Collision->SetupAttachment(Instances);
+                Collision->SetCollisionProfileName(TEXT("BlockAll"));
+                Collision->SetCanEverAffectNavigation(true); Collision->SetGenerateOverlapEvents(false);
+                Collision->CanCharacterStepUpOn=ECB_No; Collision->RegisterComponent();
+            }
         }
         Instances->ComponentTags.Add(TEXT("MissionForest"));
     };
-    AddForest(TEXT("/Game/Kopanice/Supplied/Forest/SM_OK_SnowFir.SM_OK_SnowFir"),650,280,41+MissionId);
-    AddForest(TEXT("/Game/Kopanice/Supplied/Forest/SM_OK_SnowFirSmall.SM_OK_SnowFirSmall"),420,160,73+MissionId);
-    AddForest(TEXT("/Game/Kopanice/Supplied/Forest/SM_OK_SnowShrub.SM_OK_SnowShrub"),100,150,91+MissionId);
-    AddForest(TEXT("/Game/Kopanice/Supplied/Forest/SM_OK_ForestRock.SM_OK_ForestRock"),150,80,117+MissionId);
+    AddForest(TEXT("/Game/Kopanice/Supplied/Forest/SM_OK_SnowFir.SM_OK_SnowFir"),650,280,41+MissionId,EForestPart::Tree);
+    AddForest(TEXT("/Game/Kopanice/Supplied/Forest/SM_OK_SnowFirSmall.SM_OK_SnowFirSmall"),420,160,73+MissionId,EForestPart::Tree);
+    AddForest(TEXT("/Game/Kopanice/Supplied/Forest/SM_OK_SnowShrub.SM_OK_SnowShrub"),100,150,91+MissionId,EForestPart::Shrub);
+    AddForest(TEXT("/Game/Kopanice/Supplied/Forest/SM_OK_ForestRock.SM_OK_ForestRock"),150,80,117+MissionId,EForestPart::Rock);
     // A few tactical rocks have real collision and provide crouched concealment.
     for (const FVector P:{FVector(2100,4900,0),FVector(2100,3500,0),FVector(3800,2000,0)})
     {
@@ -127,8 +166,6 @@ void AOKRTGameMode::BuildAdditionalMission()
     }
     SpawnMissionUnit(Definition.Spawn,false,0,{});
     SpawnMissionUnit(Definition.Spawn+FVector(180,0,0),false,0,{});
-    const FVector Stops2[]={{3500,2400,0},{2600,4400,0},{5800,5400,0}};
-    const FVector Stops3[]={{4300,3900,0},{5700,2500,0},{3200,1400,0}};
     for (int32 I=0;I<3;++I)
     {
         const FVector Stop=MissionId==1 ? Stops2[I] : Stops3[I];

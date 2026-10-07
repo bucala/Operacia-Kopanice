@@ -31,6 +31,10 @@ Three native missions are available from the menu. Mission 2 retrieves documents
 from a forest camp; Mission 3 acquires TNT and disables a command post. Both new
 areas are 86.4 x 86.4 m, use three active patrols and require the living team to
 extract together. See [campaign details](Docs/CAMPAIGN.md) for layouts and assets.
+In these forest missions, trunks and rocks block movement and sight. Shrubs stay
+traversable and conceal crouched/prone units beneath their height; KRYT appears
+on the portrait while the cover bonus is active. Standing or leaving the shrub
+removes it. Concealment slows detection but does not grant invisibility.
 The following describes Mission 1, Zimny viadukt.
 
 Lead both the Partisan and Officer through the winter settlement.
