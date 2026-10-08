@@ -1,5 +1,65 @@
 # Real-Time Prototype Verification
 
+## Running By Default, Native and Web: 2026-10-08
+
+The previous web entry point really was the legacy turn-based GO engine; native
+deployment also forced an initial tactical pause. The default web entry now loads
+an independent continuous-time simulation, and native deployment no longer forces
+that pause. Space remains optional; neither version waits for a next-turn action.
+
+UE 5.8.2 Win64 Development Editor compilation succeeded. DLL SHA-256:
+`BDBD6CA3B835A67DCA03F3D8408260C580AE62419FC02F59233086771C1E591F`.
+Development and upload DLLs match. All 100 Source/Config files and all 94 delivered
+Content files match between the two checkouts. No content packages were added.
+The DLL and build caches stay local, not in Git.
+
+| Native run | Result | Local log |
+| --- | --- | --- |
+| Production-path startup 1920 x 1080 | 11/11 PASS | DemoSmoke-cf9df95fb8524306b14916f8538da6b8.log |
+| Production-path startup 480 x 800 | 11/11 PASS | DemoSmoke-4ad246bdba30432ea50f36f63136cba8.log |
+| Upload production-path startup 1920 x 1080 | 11/11 PASS | DemoSmoke-b233d8a541cc434d95ad3721c5e63995.log |
+| Original planning/control regression 1920 x 1080 | 221/221 PASS | DemoSmoke-87c0358d02c842898806a1fdf2c7bae1.log |
+| Original mission with live AI 1920 x 1080 | 15/15 PASS | DemoSmoke-0c4858f000c64bd792c697c105c7181d.log |
+
+Run `Start-Demo.ps1 -RealtimeSmokeTest` for the new rendered fixture. It starts
+without a Space press, accepts one destination and measures continuous movement,
+observes patrols without further player input, then checks optional pause, queue
+execution and both paused/running menu returns. Guard brains stay enabled and
+no teleport, immunity or altered perception is used. The older isolated planning
+fixtures opt into pause deliberately; they are not production startup behavior.
+
+Web typecheck and production build pass. Vitest passes 91/91: 32 new real-time
+simulation/input tests and 59 preserved legacy tests. Coverage includes fractional
+movement, autonomous patrols, simultaneous party movement, frame-rate independence,
+pause/cooldowns, validated queue replacement, gesture cancellation, LoS/stances,
+ammunition reservations, route invalidation after bridge destruction and objectives
+for all three maps. A complete first mission runs with active guards using actual
+orders, takedown, carrying/hiding, sabotage and two-member extraction, without
+teleports or invulnerability. The other maps' objective sequencing tests isolate
+AI; they are not claimed as live-guard campaign playthroughs.
+
+`tools/verify-web-rtt.cjs` verifies mouse/touch movement, optional pause, queued
+commands, group movement, menu preservation, settings, zoom and visible canvas
+pixels. Local development diagnostics additionally observe timed patrols; live
+production checks read friendly HUD positions and timing, not hidden AI state.
+Screenshots and layout checks cover 1920 x 1080, 480 x 800, 360 x 740, 600 x 480
+and 800 x 480, including panel overlap and text/container bounds. The final build
+is published separately with Wrangler to the existing Cloudflare Workers URL;
+a source Git push alone does not deploy the web application.
+
+Final live browser verification passed all five viewport sizes with no runtime
+errors; production contains no development diagnostic object. Workers version
+`731ebc53-638d-4e75-a520-182d0a49b023` serves `index-B9BYFxDr.js` and
+`index-BDri2ssT.css`. The gzip JavaScript bundle is about 80.4 kB; existing artwork
+is unchanged. The small [live mobile capture](../../../artifacts/operacia-kopanice/docs/evidence/2026-10-08/web-rtt-mobile.png)
+is committed; desktop/options captures and JSON reports remain under ignored
+`Saved/WebRTT` and `Saved/WebRTT-Live`.
+
+The web remains a separate planar Canvas adaptation with existing PNG sprites,
+PathFinding.js navigation and simpler effects, not an Unreal HTML5 build or art
+parity. Physical Android hardware and packaged EXE/APK remain untested. Historical
+reports below describe their own earlier builds; the web is no longer unchanged.
+
 ## Command Feedback and Route Previews: 2026-10-08
 
 The UE 5.8.2 Win64 Development Editor build succeeded. Final DLL SHA-256 is

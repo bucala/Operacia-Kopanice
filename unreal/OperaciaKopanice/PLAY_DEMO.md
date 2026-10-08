@@ -17,13 +17,14 @@ From this directory in PowerShell:
 
 Later launches: `./Start-Demo.ps1`. Override `-EngineRoot` if necessary.
 Normal startup opens the main menu. Select an operation, read the briefing and
-deploy; each mission begins in tactical pause after its NavMesh is ready.
+deploy; each mission runs immediately after its NavMesh is ready. Space is an
+optional tactical pause, never a next-turn command.
 Visual Studio C++ build tools and Windows SDK are required.
 `-Width 1920 -Height 1080` selects Full HD.
 Open the .uproject and use Play > Standalone Game as an alternative.
 Entry is assembled at runtime by `OKRTGameMode`; it is not a baked editor level.
-This is not a packaged standalone EXE or APK. The existing Canvas web game remains
-a separate legacy GO prototype, not a browser build of this Unreal refactor.
+This is not a packaged standalone EXE or APK. The Canvas web adaptation now also
+uses a real-time loop, but is not a browser build of this Unreal project.
 
 ## Missions
 
@@ -45,8 +46,8 @@ bridge onto the east bank. An early interaction leaves the bridge intact and
 shows a message; retry after the second member crosses. The objective reports
 crossing progress and changes to detonator activation when the team is safe.
 Any party death fails the mission.
-The mission starts in tactical pause once navigation is ready, allowing an initial
-plan before guards begin moving. Resume with Space or the pause icon.
+The mission starts running once navigation is ready. Press Space or the pause icon
+only when you want to freeze the world and queue orders; press again to resume.
 
 The west guard waits north-facing for 12 seconds, approaches the bridge, watches
 east for 2 seconds, then turns north and returns. The southern east-bank guard

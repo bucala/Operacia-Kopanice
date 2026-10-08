@@ -1,7 +1,7 @@
 {
   "name": "Operácia Kopanice",
   "short_name": "Kopanice",
-  "description": "Ťahová taktická stealth hra z Kopaníc.",
+  "description": "Taktická stealth hra v reálnom čase z Kopaníc.",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#17191c",

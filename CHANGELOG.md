@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Real-Time Defaults: Native and Web
+
+- Replace the default web GO entry point with a separate continuous-time RTT
+  simulation: two-member selection, full destination paths via PathFinding.js,
+  independent timed patrols, two-zone LoS detection, suspicion/investigation/combat,
+  noise, stances, cooldown/ammo skills, takedowns, body carrying/hiding and extraction.
+- Add three web operations, a continuous snow surface, animated river/bridge,
+  existing sprite assets, clipped view cones, routes and contextual command feedback.
+- Add main/operation/options/pause/result menus and persisted interface settings;
+  remove turn/undo-turn controls from the default runtime. Tactical pause queues
+  bounded orders; running commands replace plans only after successful validation.
+- Add responsive mouse/touch controls, box/group selection, pinch zoom and pan;
+  rejected targets, cancelled pointers and pinch release cannot issue stray orders.
+- Start native missions running immediately after NavMesh readiness. Keep true
+  tactical pause optional and preserve its state across menus. Keep explicit legacy
+  grid mode and isolated planning fixtures separate from production startup.
+- Add a rendered native real-time startup fixture, web simulation/input tests and
+  desktop/mobile Playwright verification. Preserve historical GO tests as legacy
+  coverage, not evidence for the new real-time runtime.
+- Make the pnpm-only preinstall guard work on Windows without a POSIX shell.
+
 ### Unreal Demo
 
 - Unify hover previews and order navigation checks, including endpoint projection

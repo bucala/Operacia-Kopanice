@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <strong>Real-time stealth taktika v Unreal Engine a pôvodný webový GO prototyp.</strong><br>
+  <strong>Real-time stealth taktika v Unreal Engine aj vo webovej adaptácii.</strong><br>
   Zimná kopaničiarska osada, dvojica postáv a taktická pauza.
 </p>
 
@@ -76,8 +76,32 @@ Krížik v paneli úlohy zameria kameru na aktuálny cieľ.
 
 ![Aktuálny Unreal real-time prototyp: Tiché veliteľstvo](unreal/OperaciaKopanice/Docs/Evidence/2026-10-07/Command-Post-1920x1080.png)
 
-Nasledujúce časti README opisujú **pôvodný webový GO prototyp**, ktorý zostáva
-samostatný. Staré Unreal grid demo je dostupné cez `-LegacyGridDemo`.
+## Web Real-Time Prototype
+
+Predvolený webový vstup už nespúšťa GO engine. Tri operácie používajú súvislý
+pohyb dvojčlenného tímu, časované hliadky, zorné kužele s prekážkami, podozrenie,
+hluk, prikrčenie/plazenie, odlákanie, tichý útok a prenášanie/ukrývanie tiel.
+Po nasadení tímu hra beží automaticky; Space iba prepína voliteľnú taktickú pauzu.
+Neexistuje koniec ťahu ani automatická reakcia hliadok po kliknutí hráča.
+
+Web je **Canvas adaptácia**, nie Unreal build v prehliadači. Používa existujúce
+obrazové assety; grafická ani fyzikálna parita s natívnym UE demom sa netvrdí.
+Navigácia používa PathFinding.js nad kolíznym poľom, ale postavy sa pohybujú
+v súvislých svetových súradniciach, nie po herných políčkach.
+Webové mapy majú vlastné rozmery 25 × 20 m, 48 × 45 m a 48 × 48 m.
+
+Spustenie z koreňa repozitára: `pnpm --filter @workspace/operacia-kopanice dev`.
+Predvolený port je 3000; možno ho zmeniť premennou `PORT`.
+Verejná verzia: [Cloudflare Workers](https://operacia-kopanice.marcel-bucala.workers.dev/).
+Nasadenie webu je samostatný krok, samotný Git push Worker neaktualizuje.
+[Ovládanie, architektúra a testy webu](artifacts/operacia-kopanice/README.md).
+
+Nasledujúce historické časti opisujú pôvodný GO prototyp. Jeho pravidlá a regresné
+testy zostávajú archivované v `src/go`, no hlavný webový vstup ich nepoužíva.
+Staré Unreal grid demo je dostupné iba cez explicitné `-LegacyGridDemo`.
+
+<details>
+<summary>Archív: pôvodná dokumentácia GO prototypu</summary>
 
 > **Stav projektu:** hrateľný webový prototyp s ôsmimi ručne navrhnutými GO misiami, deterministickou stealth logikou, izometrickým Canvas rendererom, responzívnym HUD-om a lokálnym ukladaním postupu. Typecheck, testy (53/53) a produkčný build sú vynútené CI na každý push a pull request.
 
@@ -510,3 +534,5 @@ Projektové metadata deklarujú licenciu **MIT**. Pred verejnou distribúciou sk
   <strong>Operácia Kopanice</strong><br>
   <sub>Naplánuj ticho. Pohni sa presne. Preži reakciu.</sub>
 </p>
+
+</details>

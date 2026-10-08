@@ -52,8 +52,9 @@ sculpting, dense road-edge dressing and final art polish remain future work.
 
 Normal startup opens the main menu over the real scene. Select an operation,
 read its briefing and deploy. Deployment and restarting preserve the mission ID
-through OpenLevel URL options; they do not always reload Mission 1. The initial
-planning pause waits for navigation construction and connected objective/exit paths.
+through OpenLevel URL options; they do not always reload Mission 1. Deployment
+waits for navigation construction and connected objective/exit paths, then runs
+immediately. Only an explicit Space/pause request starts tactical planning.
 Pause and menu requests are ignored during that construction to avoid stopping
 the navigation builder before it can finish.
 

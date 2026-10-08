@@ -11,17 +11,22 @@
     "test": "vitest run --config vitest.config.ts"
   },
   "devDependencies": {
-    "vitest": "^3.2.4",
     "@replit/vite-plugin-cartographer": "catalog:",
     "@replit/vite-plugin-dev-banner": "catalog:",
     "@replit/vite-plugin-runtime-error-modal": "catalog:",
     "@types/node": "catalog:",
+    "@types/pathfinding": "^0.1.0",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "vite": "catalog:",
+    "vitest": "^3.2.4",
     "wrangler": "^4.120.0"
+  },
+  "dependencies": {
+    "lucide-react": "0.545.0",
+    "pathfinding": "0.4.18"
   }
 }

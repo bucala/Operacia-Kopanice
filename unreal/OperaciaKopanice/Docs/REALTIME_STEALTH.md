@@ -123,6 +123,12 @@ This is prototype AI, not realistic combat doctrine or a production hearing mode
 
 ## Pause and Orders
 
+Production deployment runs as soon as navigation is ready. There is no forced
+initial tactical pause. The main/pause menu freezes the world separately and
+restores the previous tactical state on resume. Old planning regression fixtures
+explicitly opt into pause; `-OKRTRealtimeSmoke` tests the running production path
+with live guard brains, continuous movement and optional pause/resume.
+
 True game pause freezes CharacterMovement, AI, perception, timers and cooldowns.
 PlayerController uses full paused ticking and pause-enabled key/touch bindings.
 GameMode paused ticking is limited to runtime test bookkeeping and camera/input

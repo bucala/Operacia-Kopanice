@@ -122,6 +122,7 @@ private:
     void UpdateCamera();
     int32 PartyMembersOnSafeBank() const;
     void SmokeTick();
+    void RealtimeSmokeTick();
     void MissionSmokeTick(float Delta);
     void SmokeSelectionTests();
     void SmokeMarkerTests();
@@ -139,6 +140,8 @@ private:
     bool bCampaignSmoke=false;
     bool bSmoke=false;
     bool bMissionSmoke=false;
+    bool bRealtimeSmoke=false;
+    bool bRealtimeSawPatrol=false;
     bool bMissionSawBridge=false;
     float MissionAwayTime=0;
     float MissionLongestAway=0;

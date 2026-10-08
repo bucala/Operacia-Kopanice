@@ -78,7 +78,8 @@ void AOKRTGameMode::StartPlay()
     Super::StartPlay();
     bMissionSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTMissionSmoke"));
     bCampaignSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTCampaignSmoke"));
-    bSmoke=bCampaignSmoke || bMissionSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
+    bRealtimeSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTRealtimeSmoke"));
+    bSmoke=bCampaignSmoke || bMissionSmoke || bRealtimeSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
     const FString Requested=UGameplayStatics::ParseOption(OptionsString,TEXT("Mission"));
     if (Requested.IsEmpty()) FParse::Value(FCommandLine::Get(),TEXT("OKMission="),MissionId);
     else MissionId=FCString::Atoi(*Requested);
@@ -518,10 +519,12 @@ void AOKRTGameMode::Tick(float Delta)
         bInitialPausePending=false;
         for (AOKRTUnit* Guard:Enemies)
         {
-            CastChecked<AOKRTGuardController>(Guard->GetController())->bBrainEnabled=!bSmoke || bMissionSmoke || bCampaignSmoke;
+            CastChecked<AOKRTGuardController>(Guard->GetController())->bBrainEnabled=!bSmoke || bMissionSmoke || bCampaignSmoke || bRealtimeSmoke;
             Guard->Vision->Refresh();
         }
-        TogglePause();
+        // Production deployment runs immediately. Older planning fixtures opt in
+        // to pause explicitly; the realtime fixture exercises the production path.
+        if (bSmoke && !bRealtimeSmoke) TogglePause();
         if (bFrontEnd) OpenMenuPage(EOKMenuPage::Pause);
     }
     if (!bTacticalPause && !bMenu)
@@ -540,7 +543,8 @@ void AOKRTGameMode::Tick(float Delta)
         if ((bWon || bLost) && !UGameplayStatics::IsGamePaused(GetWorld()))
         { UGameplayStatics::SetGamePaused(GetWorld(),true); }
     }
-    if (bCampaignSmoke) CampaignSmokeTick();
+    if (bRealtimeSmoke) RealtimeSmokeTick();
+    else if (bCampaignSmoke) CampaignSmokeTick();
     else if (bMissionSmoke) MissionSmokeTick(Delta);
     else if (bSmoke) SmokeTick();
 }
