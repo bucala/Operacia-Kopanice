@@ -26,22 +26,29 @@ import {
 import { Simulation } from "./Simulation";
 import { Renderer } from "./Renderer";
 import { Pointer } from "./Pointer";
+import { OrderTray } from "./OrderTray";
 import { MISSIONS } from "./missions";
 import { type Action, type Point } from "./types";
 import "./realtime.css";
 
 type Page = "main" | "missions" | "pause" | "options" | null;
-type Settings = { cones: boolean; paths: boolean; cameraSpeed: number };
+type Settings = {
+  cones: boolean;
+  paths: boolean;
+  markers: boolean;
+  cameraSpeed: number;
+};
 function readSettings(): Settings {
   try {
     const s = JSON.parse(localStorage.getItem("kopanice-rtt-settings") ?? "{}");
     return {
       cones: s.cones !== false,
       paths: s.paths !== false,
+      markers: s.markers !== false,
       cameraSpeed: Math.min(2, Math.max(0.5, Number(s.cameraSpeed) || 1)),
     };
   } catch {
-    return { cones: true, paths: true, cameraSpeed: 1 };
+    return { cones: true, paths: true, markers: true, cameraSpeed: 1 };
   }
 }
 const time = (seconds: number) =>
@@ -228,6 +235,22 @@ export default function RealtimeApp() {
       const options = settingsRef.current;
       r.cones = options.cones;
       r.paths = options.paths;
+      r.markers = options.markers;
+      if (now - hud > 100) {
+        r.markerExclusions = [
+          ...document.querySelectorAll(
+            ".rt-party,.rt-objective,.rt-controls,.rt-message",
+          ),
+        ].map((n) => {
+          const b = n.getBoundingClientRect();
+          return {
+            left: b.left - 4,
+            right: b.right + 4,
+            top: b.top - 4,
+            bottom: b.bottom + 4,
+          };
+        });
+      }
       if (!pageRef.current) {
         const amount = dt * 450 * options.cameraSpeed;
         r.pan(
@@ -270,6 +293,12 @@ export default function RealtimeApp() {
             outcome: sim.current.outcome,
           }),
           project: (point: Point) => r.project(point),
+          markers: () =>
+            r.partyMarkers.map((m) => ({
+              id: m.unit.id,
+              ...m.center,
+              bounds: m.bounds,
+            })),
         },
       });
     return () => {
@@ -368,6 +397,13 @@ export default function RealtimeApp() {
                   : "Pripraveny"}
               </span>
             </div>
+            <OrderTray
+              key={active.id}
+              sim={s}
+              focus={(p) => {
+                if (r) r.center = { x: p.x, y: p.y };
+              }}
+            />
             <div className="rt-tools">
               <Tool
                 label="Takticka pauza (Space)"
@@ -587,6 +623,16 @@ export default function RealtimeApp() {
               <>
                 <h2>Nastavenia</h2>
                 <label className="rt-setting">
+                  <span>Oznacenia clenov timu</span>
+                  <input
+                    type="checkbox"
+                    checked={settings.markers}
+                    onChange={(e) =>
+                      changeSettings({ ...settings, markers: e.target.checked })
+                    }
+                  />
+                </label>
+                <label className="rt-setting">
                   <span>Zorne polia nepriatelov</span>
                   <input
                     type="checkbox"
@@ -630,7 +676,7 @@ export default function RealtimeApp() {
               </>
             )}
             <div className="rt-version">
-              STEALTH RTT · WEB PROTOTYP · 2026.10.08
+              STEALTH RTT · WEB PROTOTYP · 2026.10.11
             </div>
           </section>
         </div>

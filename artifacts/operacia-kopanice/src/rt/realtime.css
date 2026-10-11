@@ -147,6 +147,46 @@
   color: #d0c9b0;
   font-size: 11px;
 }
+.rt-order-tray {
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #56635b;
+}
+.rt-order-tray header {
+  display: flex;
+  justify-content: space-between;
+  height: 20px;
+  font-size: 10px;
+  color: #d3c79f;
+  font-variant-numeric: tabular-nums;
+}
+.rt-order-slots {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+.rt-order-slots button,
+.rt-order-empty {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 38px;
+  min-width: 0;
+  padding: 4px;
+}
+.rt-order-slots svg {
+  width: 20px;
+  height: 20px;
+}
+.rt-order-slots small {
+  position: absolute;
+  top: 0;
+  right: 3px;
+  font-size: 9px;
+}
+.rt-order-empty {
+  border-bottom: 1px solid #46534e;
+}
 .rt-tools {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
@@ -343,7 +383,7 @@
   }
   .rt-message {
     left: 10px;
-    bottom: 180px;
+    bottom: 260px;
     max-width: calc(100% - 20px);
     font-size: 11px;
     padding: 7px 10px;
@@ -387,7 +427,7 @@
     width: calc(100% - 226px);
   }
   .rt-message {
-    bottom: 180px;
+    bottom: 260px;
     max-width: calc(100% - 20px);
   }
 }

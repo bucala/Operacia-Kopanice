@@ -1,5 +1,6 @@
 import { Renderer } from "./Renderer";
 import { type Action, type Point, distance } from "./types";
+import { contains } from "./PartyMarkers";
 
 export class Pointer {
   action: Action = "move";
@@ -132,13 +133,18 @@ export class Pointer {
       if (d.dragged && d.button === 0 && !d.touch) {
         const sim = this.renderer.sim;
         if (!d.shift) sim.party.forEach((u) => (u.selected = false));
+        const bounds = {
+          left: Math.min(p.x, d.p.x),
+          right: Math.max(p.x, d.p.x),
+          top: Math.min(p.y, d.p.y),
+          bottom: Math.max(p.y, d.p.y),
+        };
+        const markers = this.renderer.partyMarkers;
         sim.party.forEach((u, i) => {
           const q = this.renderer.project(u);
           if (
-            q.x >= Math.min(p.x, d.p.x) &&
-            q.x <= Math.max(p.x, d.p.x) &&
-            q.y >= Math.min(p.y, d.p.y) &&
-            q.y <= Math.max(p.y, d.p.y)
+            contains(bounds, q) ||
+            markers.some((m) => m.unit === u && contains(bounds, m.center))
           )
             sim.select(i, true);
         });
@@ -155,8 +161,16 @@ export class Pointer {
     touch: boolean,
     append: boolean,
   ): void {
-    const sim = this.renderer.sim,
-      u = this.renderer.pick(screen),
+    const sim = this.renderer.sim;
+    const marker =
+      button === 0 ? this.renderer.pickPartyMarker(screen) : undefined;
+    if (marker) {
+      sim.select(sim.party.indexOf(marker), append);
+      this.renderer.preview = null;
+      this.lastCommand = undefined;
+      return;
+    }
+    const u = this.renderer.pick(screen),
       p = this.renderer.unproject(screen);
     if (button === 2 && this.action !== "move") {
       this.action = "move";

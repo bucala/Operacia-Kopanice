@@ -1,5 +1,38 @@
 # Real-Time Prototype Verification
 
+## Web Tactical Readability: 2026-10-11
+
+This slice changes only the web runtime/interface and shared documentation. Native
+source, binaries and content packages remain at the previously verified build;
+no new native compilation or campaign playthrough is claimed for this UI slice.
+
+Typecheck, production build and 102/102 Vitest tests pass: 43 real-time tests and
+59 archived legacy tests. Eleven new regressions cover stable separated marker
+geometry, HUD exclusion, dead/hidden/offscreen/enemy filtering, camera/stance
+picking, foreground paint order, armed mouse/touch selection, marker box selection,
+typed mission orders, bounded pagination and wide-road/stone stroke isolation.
+
+Local Playwright passes 1920 x 1080, 480 x 800 touch, 360 x 740, 600 x 480 and
+800 x 480 without runtime errors or overlapping/clipped HUD panels. It exercises
+seven-command plans, five-slot paging, inspection without world changes, tail undo
+without position rewinds, independent member queues and current-order pause state.
+Development-only read-only diagnostics verify marker selection after zoom/rotation
+and pixel colour above scenery. Production runs never expose that diagnostic API.
+Actual wheel events are sent over terrain and canvas hashes must change; merely
+remaining nonblank while the cursor is over a HUD button is not a zoom check.
+
+Marker settings survive reload. Touch checks use real browser pointer events at
+human-paced intervals and destinations clear of character selection hitboxes.
+Screenshots/JSON stay under ignored Saved/WebRTT-2026-10-11. The web remains a
+planar sprite adaptation, not native visual parity or a physical Android test.
+
+Final live production verification also passes all five viewports without errors.
+Worker version `210d0e51-9342-44ca-92da-73436b428aa4` serves
+`index-CjqeLyZ6.js` (82.1 kB gzip) and `index-D9tgwA2B.css`.
+Only source/docs and a 126,316-byte [live mobile capture](../../../artifacts/operacia-kopanice/docs/evidence/2026-10-11/web-rtt-mobile.png)
+are committed; asset textures, UE packages, dependencies and native DLLs are unchanged.
+Live reports/captures remain under Saved/WebRTT-Live-2026-10-11.
+
 ## Running By Default, Native and Web: 2026-10-08
 
 The previous web entry point really was the legacy turn-based GO engine; native

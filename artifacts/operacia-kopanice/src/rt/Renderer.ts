@@ -1,6 +1,12 @@
 import { SpriteCache } from "../go/SpriteCache";
 import { Simulation, SIGHT } from "./Simulation";
 import { type Point, type Prop, type Unit, distance } from "./types";
+import {
+  bodyHeight,
+  contains,
+  layoutPartyMarkers,
+  type ScreenRect,
+} from "./PartyMarkers";
 
 const ROOT = "/assets/sprites/";
 export class Renderer {
@@ -14,6 +20,8 @@ export class Renderer {
   preview: Point[] | null = null;
   cones = true;
   paths = true;
+  markers = true;
+  markerExclusions: ScreenRect[] = [];
   selection?: { from: Point; to: Point };
   private ground = document.createElement("canvas");
   private groundKey = "";
@@ -99,6 +107,21 @@ export class Renderer {
     this.center.x += before.x - after.x;
     this.center.y += before.y - after.y;
   }
+  get partyMarkers() {
+    return this.markers && !this.sim.menu && !this.sim.outcome
+      ? layoutPartyMarkers(
+          this.sim.party,
+          (p) => this.project(p),
+          this.scale,
+          this.width,
+          this.height,
+          this.markerExclusions,
+        )
+      : [];
+  }
+  pickPartyMarker(screen: Point): Unit | undefined {
+    return this.partyMarkers.find((m) => contains(m.bounds, screen))?.unit;
+  }
   pick(screen: Point): Unit | undefined {
     return [...this.sim.units]
       .filter((u) => !u.hidden && !u.carriedBy)
@@ -107,7 +130,7 @@ export class Renderer {
         const p = this.project(u);
         return (
           Math.abs(p.x - screen.x) < Math.max(12, this.scale * 0.45) &&
-          screen.y > p.y - this.scale * 1.85 &&
+          screen.y > p.y - bodyHeight(u, this.scale) &&
           screen.y < p.y + 10
         );
       });
@@ -128,6 +151,7 @@ export class Renderer {
     ctx.fill();
     if (stroke) {
       ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
       ctx.stroke();
     }
   }
@@ -390,8 +414,7 @@ export class Renderer {
     ctx.beginPath();
     ctx.ellipse(x, y, s * 0.4, s * 0.2, 0, 0, Math.PI * 2);
     ctx.fill();
-    const h =
-        s * (u.stance === "prone" ? 0.7 : u.stance === "crouch" ? 1.35 : 1.85),
+    const h = bodyHeight(u, s),
       w = h * 0.52;
     // Crop away the source display pedestal; character height is world-scaled.
     if (image)
@@ -413,16 +436,7 @@ export class Renderer {
     ctx.restore();
     if (u.health <= 0) return;
     if (u.selected && !u.enemy) this.ring(ctx, u, 0.5, "#e8cc78");
-    if (!u.enemy) {
-      ctx.font = "bold 12px system-ui";
-      ctx.fillStyle = "#1f3037";
-      ctx.textAlign = "center";
-      ctx.fillText(u.id === "partisan" ? "1" : "2", q.x, q.y - s * 2 - 5);
-      ctx.fillStyle = "#344951";
-      ctx.fillRect(q.x - 15, q.y - s * 2, 30, 3);
-      ctx.fillStyle = "#79a18b";
-      ctx.fillRect(q.x - 15, q.y - s * 2, (30 * u.health) / 100, 3);
-    } else if (u.suspicion > 0 || u.alert !== "patrol") {
+    if (u.enemy && (u.suspicion > 0 || u.alert !== "patrol")) {
       ctx.fillStyle = "#3c4549";
       ctx.fillRect(q.x - 18, q.y - s * 2, 36, 5);
       ctx.fillStyle = u.alert === "combat" ? "#c54e4e" : "#d0ac63";
@@ -433,6 +447,44 @@ export class Renderer {
         5,
       );
     }
+  }
+  private drawPartyMarkers(ctx: CanvasRenderingContext2D): void {
+    ctx.save();
+    for (const { unit, number, anchor, center: p } of this.partyMarkers) {
+      ctx.beginPath();
+      ctx.moveTo(anchor.x, anchor.y);
+      ctx.lineTo(p.x, p.y + 16);
+      ctx.strokeStyle = "rgba(31,48,55,.7)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 16, 0, Math.PI * 2);
+      ctx.fillStyle = unit.selected ? "#435e51" : "#29383e";
+      ctx.fill();
+      ctx.strokeStyle =
+        unit === this.sim.party[this.sim.active]
+          ? "#ead18c"
+          : unit.selected
+            ? "#9bcbb4"
+            : "#d9e3e5";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.font = "bold 14px system-ui";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#f3f5ee";
+      ctx.fillText(String(number), p.x, p.y - 1);
+      ctx.fillStyle = "#17292e";
+      ctx.fillRect(p.x - 12, p.y + 10, 24, 3);
+      ctx.fillStyle = "#91b7a0";
+      ctx.fillRect(
+        p.x - 12,
+        p.y + 10,
+        24 * Math.max(0, Math.min(1, unit.health / 100)),
+        3,
+      );
+    }
+    ctx.restore();
   }
   private cone(
     ctx: CanvasRenderingContext2D,
@@ -582,5 +634,7 @@ export class Renderer {
       ctx.fillRect(a.x, a.y, b.x - a.x, b.y - a.y);
       ctx.strokeRect(a.x, a.y, b.x - a.x, b.y - a.y);
     }
+    // Selection handles must remain above every depth-sorted tree and building.
+    this.drawPartyMarkers(ctx);
   }
 }

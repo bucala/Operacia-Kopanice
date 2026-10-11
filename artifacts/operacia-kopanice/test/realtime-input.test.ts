@@ -36,6 +36,8 @@ function setup() {
     project: (p: Point) => p,
     unproject: (p: Point) => p,
     pick: () => undefined,
+    pickPartyMarker: () => undefined,
+    partyMarkers: [],
     pan: vi.fn(),
     zoom: vi.fn(),
   } as unknown as Renderer;
@@ -99,6 +101,36 @@ describe("RTT pointer controls", () => {
     expect(input.action).toBe("move");
     expect(sim.party[0].orders).toHaveLength(0);
     expect(sim.party[0].charges).toBe(5);
+  });
+  it("marker selection keeps armed abilities and plans intact with mouse or touch", () => {
+    const { sim, click, input, renderer, event } = setup();
+    sim.command("move", { x: 10, y: 30 });
+    const order = sim.party[0].orders[0];
+    input.action = "distract";
+    renderer.pickPartyMarker = () => sim.party[1];
+    click(12, 24, 0);
+    expect(sim.active).toBe(1);
+    expect(input.action).toBe("distract");
+    expect(sim.party[0].orders[0]).toBe(order);
+    expect(sim.party[1].orders).toHaveLength(0);
+    expect(sim.party[1].charges).toBe(5);
+    renderer.pickPartyMarker = () => sim.party[0];
+    event("pointerdown", 12, 24, 0, 1, true, true);
+    event("pointerup", 12, 24, 0, 1, true, true);
+    expect(sim.party.every((u) => u.selected)).toBe(true);
+    expect(sim.active).toBe(0);
+    expect(input.action).toBe("distract");
+  });
+  it("box selection includes displaced marker centres without moving units", () => {
+    const { sim, renderer, event } = setup();
+    Object.defineProperty(renderer, "partyMarkers", {
+      value: [{ unit: sim.party[1], center: { x: 12, y: 12 } }],
+    });
+    event("pointerdown", 8, 8, 0);
+    event("pointermove", 17, 17, 0);
+    event("pointerup", 17, 17, 0);
+    expect(sim.party.map((u) => u.selected)).toEqual([false, true]);
+    expect(sim.party.every((u) => u.orders.length === 0)).toBe(true);
   });
   it("touch tap issues a continuous move, touch drag only pans", () => {
     const { sim, event, renderer } = setup();

@@ -39,17 +39,19 @@ Run that command from the repository root. `PLAYWRIGHT_MODULE` can select a bund
 Playwright module and `PLAYWRIGHT_CHANNEL` can select another installed browser.
 Development-only read-only diagnostics verify fractional movement, idle patrols,
 group movement and pause preservation. They are stripped from production builds.
+The browser check also exercises paged orders, pause-only tail undo, independent
+member plans, marker selection with an armed skill and camera-correct picking.
 Desktop/mobile screenshots and canvas pixel checks verify visible rendered assets.
 Production checks use friendly HUD positions/timing instead of development-only
 diagnostics, and include narrow portrait and short landscape panel-overlap checks.
 
-![Live web real-time prototype, mobile](docs/evidence/2026-10-08/web-rtt-mobile.png)
+![Live web real-time prototype with party markers and paged orders, mobile](docs/evidence/2026-10-11/web-rtt-mobile.png)
 
 ## Controls
 
 | Action | Mouse / keyboard |
 | --- | --- |
-| Select a member / both | Left-click a member or portrait; 1 / 2 / 3 or Ctrl+A |
+| Select a member / both | Left-click numbered marker, member or portrait; 1 / 2 / 3 or Ctrl+A |
 | Add or box-select | Shift + selection; left-drag selection box |
 | Cycle active member, retain group | Tab |
 | Move continuously | Right-click terrain; left-click terrain never moves |
@@ -58,6 +60,7 @@ diagnostics, and include narrow portrait and short landscape panel-overlap check
 | Optional tactical pause | Space / pause icon |
 | Stop selected members | S / X / stop icon |
 | Remove last waiting order | Backspace, only during tactical pause |
+| Inspect queued orders | Order tray arrows page five slots; click a slot to focus its target |
 | Walk / run / crouch / prone | W / R / C / V |
 | Contextual takedown / body pickup | Right-click living / downed guard |
 | Arm takedown / distraction / carry / interaction | T / F / B / E, then left-click target |
@@ -69,6 +72,14 @@ diagnostics, and include narrow portrait and short landscape panel-overlap check
 Touch: tap a member to select; tap terrain to command; drag to pan; pinch to zoom.
 Use stance/ability icons and tap targets. Gesture completion/cancellation never
 issues a move. A menu or outcome prevents world orders.
+
+Numbered friendly markers render over buildings/trees and retain a 40 px hit
+region through camera zoom/rotation. Neighbours separate and avoid HUD panels;
+dead, hidden, carried, offscreen and enemy units never get these handles. Selecting
+a marker keeps an armed ability and both members' plans intact. The settings
+toggle persists. Portraits/hotkeys remain available when no clear placement exists.
+Order inspection is read-only: it neither replaces a plan nor resumes tactical
+pause. Current execution is highlighted; waiting orders stay numbered separately.
 
 ## Missions and Rules
 
@@ -96,6 +107,8 @@ destroyed bridges can invalidate an already accepted order at execution time.
 `missions` defines authored layouts and deterministic dressing, `Renderer` draws
 world-space sprites/cones/routes, `Pointer` handles gestures, and `RealtimeApp`
 owns lifecycle, keyboard input and the React HUD/menus. Simulation is DOM-free.
+`PartyMarkers` owns shared drawing/picking geometry; `OrderTray`/`OrderDisplay`
+provide a paged read-only view of the simulation's authoritative queue.
 No default module imports the legacy GO rules; only its independent image cache
 is reused. `src/go` and its tests remain archived regression coverage.
 

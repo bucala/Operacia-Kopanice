@@ -84,6 +84,11 @@ hluk, prikrčenie/plazenie, odlákanie, tichý útok a prenášanie/ukrývanie t
 Po nasadení tímu hra beží automaticky; Space iba prepína voliteľnú taktickú pauzu.
 Neexistuje koniec ťahu ani automatická reakcia hliadok po kliknutí hráča.
 
+Web teraz obsahuje číslované označenia tímu nad stromami a budovami, výber aj po
+zoome/rotácii a stránkovaný prehľad vykonávaných či čakajúcich rozkazov. Klik na
+rozkaz iba zameria kameru; rušenie čakajúceho rozkazu zostáva dostupné počas
+taktickej pauzy. Označenia možno vypnúť v nastaveniach.
+
 Web je **Canvas adaptácia**, nie Unreal build v prehliadači. Používa existujúce
 obrazové assety; grafická ani fyzikálna parita s natívnym UE demom sa netvrdí.
 Navigácia používa PathFinding.js nad kolíznym poľom, ale postavy sa pohybujú

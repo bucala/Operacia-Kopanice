@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Web Tactical Readability: 2026-10-11
+
+- Bring the web interface closer to native RTT controls: numbered friendly markers
+  remain above scenery, use camera-correct 40 px hit regions, avoid HUD/each other
+  and retain armed abilities and existing plans on selection. Add a saved toggle.
+- Add a five-slot paged order tray with typed icons, ordinals, live execution/pause
+  state and read-only camera inspection. Tail undo remains pause-only; each member
+  retains an independent plan. Keep the enlarged dock clear of mobile messages.
+- Reset stone-outline stroke width instead of inheriting wide road strokes, so
+  cobbled paths no longer disappear into large flat bands.
+- Add marker/layout/drawing/input/order regressions and browser checks for full
+  queues, touch selection, settings reload, camera rotation and actual wheel zoom.
+- No native runtime, mesh packages, texture resolution or dependencies changed.
+
 ### Real-Time Defaults: Native and Web
 
 - Replace the default web GO entry point with a separate continuous-time RTT

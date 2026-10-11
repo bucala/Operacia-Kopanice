@@ -20,6 +20,17 @@ async function pixels(page) {
   assert(colors > 100, "canvas must contain visible assets, not a blank field");
   return colors;
 }
+async function canvasHash(page) {
+  return page.locator("canvas").evaluate((canvas) => {
+    const { data } = canvas
+      .getContext("2d")
+      .getImageData(0, 0, canvas.width, canvas.height);
+    let hash = 2166136261;
+    for (let i = 0; i < data.length; i += 64)
+      hash = Math.imul(hash ^ data[i], 16777619);
+    return hash >>> 0;
+  });
+}
 async function launch(page) {
   await page.goto(url, { waitUntil: "networkidle" });
   await page
@@ -65,7 +76,7 @@ async function point(page, p) {
 }
 async function checkLayout(page) {
   const problems = await page
-    .locator(".rt-hud button,.rt-objective,.rt-message")
+    .locator(".rt-hud button,.rt-objective,.rt-message,.rt-order-tray header")
     .evaluateAll((nodes) =>
       nodes
         .filter((n) => {
@@ -100,6 +111,133 @@ async function checkLayout(page) {
     });
   assert.deepEqual(overlaps, [], "HUD panels must not overlap");
 }
+async function checkOrderTray(page) {
+  await page.keyboard.press("s");
+  await page.keyboard.press("1");
+  if (!(await snapshot(page)).paused) await page.keyboard.press("Space");
+  for (let i = 0; i < 7; i++) {
+    const p = await point(page, { x: 3, y: i % 2 ? 16 : 18 });
+    await page.mouse.click(p.x, p.y, { button: "right" });
+  }
+  assert.equal((await snapshot(page)).party[0].orders, 7);
+  assert.equal(await page.locator("[data-order-index]").count(), 5);
+  await page
+    .getByRole("button", { name: "Dalsie rozkazy", exact: true })
+    .click();
+  assert.equal(await page.locator("[data-order-index]").count(), 2);
+  assert.equal(
+    await page
+      .locator("[data-order-index]")
+      .first()
+      .getAttribute("data-order-index"),
+    "5",
+  );
+  const before = await snapshot(page);
+  await page.locator('[data-order-index="5"]').click();
+  assert.deepEqual(
+    await snapshot(page),
+    before,
+    "inspecting an order does not execute or replace it",
+  );
+  await page
+    .getByRole("button", {
+      name: "Odstranit posledny cakajuci rozkaz",
+      exact: true,
+    })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Odstranit posledny cakajuci rozkaz",
+      exact: true,
+    })
+    .click();
+  assert.equal((await snapshot(page)).party[0].orders, 5);
+  assert.equal(
+    await page
+      .locator("[data-order-index]")
+      .first()
+      .getAttribute("data-order-index"),
+    "0",
+  );
+  assert.deepEqual(
+    (await snapshot(page)).party.map((p) => [p.x, p.y]),
+    before.party.map((p) => [p.x, p.y]),
+    "tail undo never rewinds world movement",
+  );
+  await page.keyboard.press("2");
+  assert.equal(
+    await page.locator(".rt-order-tray").count(),
+    0,
+    "each member owns a separate plan",
+  );
+  await page.keyboard.press("1");
+  await checkLayout(page);
+  if (await page.evaluate(() => !!window.__kopanice)) {
+    await page
+      .getByRole("button", { name: "Hodit kamen", exact: true })
+      .click();
+    const marker = await page.evaluate(() =>
+      window.__kopanice.markers().find((m) => m.id === "officer"),
+    );
+    assert(marker, "officer marker must be visible");
+    assert.equal(marker.bounds.right - marker.bounds.left, 40);
+    await page.mouse.click(marker.x, marker.y);
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Vybrat Dostojnik", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Hodit kamen", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
+      "selection preserves armed skills",
+    );
+    assert.equal(
+      (await snapshot(page)).party[0].orders,
+      5,
+      "selection does not destroy another member's plan",
+    );
+    assert.equal(
+      (await snapshot(page)).party[1].orders,
+      0,
+      "marker never issues a stray terrain command",
+    );
+    const color = await page.locator("canvas").evaluate((canvas, marker) => {
+      const dpr = canvas.width / innerWidth;
+      return [
+        ...canvas
+          .getContext("2d")
+          .getImageData(
+            Math.round((marker.x + 10) * dpr),
+            Math.round(marker.y * dpr),
+            1,
+            1,
+          ).data,
+      ];
+    }, marker);
+    assert.deepEqual(
+      color,
+      [67, 94, 81, 255],
+      "marker is painted above scenery",
+    );
+    await page.keyboard.press("Escape"); // Cancel armed rock, do not open the menu.
+    await page.keyboard.press("1");
+  }
+  await page.keyboard.press("Space");
+  await page.waitForTimeout(180);
+  await page.keyboard.press("Space");
+  await snapshot(page);
+  assert.equal(
+    await page
+      .locator('[data-order-index="0"]')
+      .getAttribute("data-order-state"),
+    "Pozastavene",
+  );
+  await page.screenshot({ path: path.join(output, "web-rtt-orders.png") });
+}
 (async () => {
   const browser = await chromium.launch({
     headless: true,
@@ -110,6 +248,7 @@ async function checkLayout(page) {
       viewport: { width: 1920, height: 1080 },
     });
     const page = await desktop.newPage();
+    page.setDefaultTimeout(10000);
     page.on("pageerror", (e) => errors.push(e.message));
     await launch(page);
     const diagnostics = await page.evaluate(() => !!window.__kopanice);
@@ -197,27 +336,62 @@ async function checkLayout(page) {
         "running stays running after menu",
       );
     }
+    await checkOrderTray(page);
+    console.log("Desktop movement, markers and order tray: PASS");
     const desktopColors = await pixels(page);
     await checkLayout(page);
     await page.screenshot({ path: path.join(output, "web-rtt-desktop.png") });
+    await page.mouse.move(500, 350);
+    await page.waitForTimeout(120);
+    const beforeZoom = await canvasHash(page);
     for (let i = 0; i < 5; i++) await page.mouse.wheel(0, -80);
     await page.waitForTimeout(300);
+    assert.notEqual(
+      await canvasHash(page),
+      beforeZoom,
+      "wheel over terrain changes the camera rendering",
+    );
     assert((await pixels(page)) > 100, "zoom retains a rendered scene");
+    if (diagnostics) {
+      await page.keyboard.press("q");
+      const marker = await page.evaluate(() =>
+        window.__kopanice.markers().find((m) => m.id === "officer"),
+      );
+      assert(marker, "marker follows zoom and rotated camera");
+      assert.equal(marker.bounds.right - marker.bounds.left, 40);
+      await page.mouse.click(marker.x, marker.y);
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Vybrat Dostojnik", exact: true })
+          .getAttribute("aria-pressed"),
+        "true",
+      );
+    }
     await page.getByRole("button", { name: "Menu (Esc)", exact: true }).click();
     await page.getByRole("button", { name: "Nastavenia", exact: true }).click();
     await page.getByLabel("Zorne polia nepriatelov").uncheck();
+    await page.getByLabel("Oznacenia clenov timu").uncheck();
     assert.equal(
       await page.getByLabel("Zorne polia nepriatelov").isChecked(),
       false,
     );
     await page.screenshot({ path: path.join(output, "web-rtt-options.png") });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Nastavenia", exact: true }).click();
+    assert.equal(
+      await page.getByLabel("Oznacenia clenov timu").isChecked(),
+      false,
+      "marker preference survives reload",
+    );
     results.push({
       viewport: "1920x1080",
       canvasColors: desktopColors,
       diagnostics,
       result: "PASS",
     });
+    console.log("Desktop layout, zoom and persisted options: PASS");
     await desktop.close();
+    console.log("Checking touch viewport...");
     const mobile = await browser.newContext({
       viewport: { width: 480, height: 800 },
       isMobile: true,
@@ -225,8 +399,10 @@ async function checkLayout(page) {
       deviceScaleFactor: 1,
     });
     const touch = await mobile.newPage();
+    touch.setDefaultTimeout(10000);
     touch.on("pageerror", (e) => errors.push(e.message));
     await launch(touch);
+    console.log("Touch mission deployed");
     {
       const dest = await point(touch, { x: 3, y: 18 });
       await touch.touchscreen.tap(dest.x, dest.y);
@@ -243,6 +419,40 @@ async function checkLayout(page) {
       await touch.getByTestId("realtime-state").textContent(),
       "TAKTICKA PAUZA",
     );
+    for (let i = 0; i < 6; i++) {
+      // Keep touch targets clear of the moving member's body-selection hitbox.
+      const p = await point(
+        touch,
+        i % 2 ? { x: 1.2, y: 17.5 } : { x: 3, y: 18 },
+      );
+      await touch.touchscreen.tap(p.x, p.y);
+      await touch.waitForTimeout(60);
+    }
+    assert(
+      (await snapshot(touch)).party[0].orders > 5,
+      "touch appends a paged plan",
+    );
+    console.log("Touch movement and queued plan: PASS");
+    await touch
+      .getByRole("button", { name: "Dalsie rozkazy", exact: true })
+      .tap();
+    assert((await snapshot(touch)).party[0].orders > 5);
+    if (await touch.evaluate(() => !!window.__kopanice)) {
+      const marker = await touch.evaluate(() =>
+        window.__kopanice.markers().find((m) => m.id === "officer"),
+      );
+      assert(marker);
+      await touch.touchscreen.tap(marker.x, marker.y);
+      assert.equal(
+        await touch
+          .getByRole("button", { name: "Vybrat Dostojnik", exact: true })
+          .getAttribute("aria-pressed"),
+        "true",
+      );
+      await touch
+        .getByRole("button", { name: "Vybrat Partizan", exact: true })
+        .tap();
+    }
     await checkLayout(touch);
     const mobileColors = await pixels(touch);
     await touch.screenshot({ path: path.join(output, "web-rtt-mobile.png") });
@@ -262,8 +472,21 @@ async function checkLayout(page) {
         hasTouch: true,
       });
       const small = await context.newPage();
+      small.setDefaultTimeout(10000);
       small.on("pageerror", (e) => errors.push(e.message));
       await launch(small);
+      await small
+        .getByRole("button", { name: "Takticka pauza (Space)", exact: true })
+        .click();
+      for (const y of [18, 16]) {
+        const p = await point(small, { x: 3, y });
+        await small.mouse.click(p.x, p.y, { button: "right" });
+      }
+      assert.equal(
+        (await snapshot(small)).party[0].orders,
+        2,
+        "small viewport accepts a full plan",
+      );
       await checkLayout(small);
       await pixels(small);
       results.push({
