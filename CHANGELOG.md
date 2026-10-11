@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Main Native World and Commandos 2 Input: 2026-10-11
+
+- Work only on the main Unreal game. Study the supplied Commandos 2/BEL manuals
+  and indexed mission documentation; record original Kopanice rules and limits in
+  GAME_WORLD.md without redistributing manuals or copying mission scripts/assets.
+- Replace the mixed mouse model with LMB commands/double-LMB run, RMB selection/
+  drag/enemy-cone inspection, Ctrl membership toggle and RMB tool-only cancellation.
+  Preserve Shift order append, separate touch input and optional Space/P pause.
+- Require an explicitly armed silent attack for living guards. E/hand now targets
+  typed objective approaches rather than executing an unrelated nearby action.
+- Move guard spawn, facing, duty and timed routes into immutable mission data.
+  Add fixed sentries to larger operations; they investigate/watch without chasing.
+- Share live-world progress predicates across objective text/focus, objective
+  interaction gates and extraction, including the full-team bridge safety rule.
+- Make far crawling visually undetectable while retaining near-zone detection and
+  independent hearing. Add native input/world regression fixtures and update guides.
+- Normalize UE's synthesized pressed event on double-click so real mouse dispatch
+  cannot duplicate a paused move or replay a targeted interaction. Planning tests
+  wait for complete scene navigation, not just the first usable bridge path.
+- No web runtime/deployment, asset packages, external dependencies or texture sizes changed.
+
 ### Web Tactical Readability: 2026-10-11
 
 - Bring the web interface closer to native RTT controls: numbered friendly markers

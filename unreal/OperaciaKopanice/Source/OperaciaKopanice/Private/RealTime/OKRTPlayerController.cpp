@@ -6,6 +6,7 @@
 #include "Engine/World.h"
 #include "Components/InputComponent.h"
 #include "Components/SplineComponent.h"
+#include "GameFramework/PlayerInput.h"
 
 AOKRTPlayerController::AOKRTPlayerController()
 {
@@ -21,10 +22,11 @@ void AOKRTPlayerController::SetupInputComponent()
     auto Bind=[this](FKey Key,void (AOKRTPlayerController::*Function)())
     { InputComponent->BindKey(Key,IE_Pressed,this,Function).bExecuteWhenPaused=true; };
     Bind(EKeys::LeftMouseButton,&AOKRTPlayerController::LeftClick);
-    InputComponent->BindKey(EKeys::LeftMouseButton,IE_Released,this,&AOKRTPlayerController::LeftRelease).bExecuteWhenPaused=true;
+    InputComponent->BindKey(EKeys::LeftMouseButton,IE_DoubleClick,this,&AOKRTPlayerController::LeftDoubleClick).bExecuteWhenPaused=true;
     Bind(EKeys::RightMouseButton,&AOKRTPlayerController::RightClick);
-    InputComponent->BindKey(EKeys::RightMouseButton,IE_DoubleClick,this,&AOKRTPlayerController::RightDoubleClick).bExecuteWhenPaused=true;
+    InputComponent->BindKey(EKeys::RightMouseButton,IE_Released,this,&AOKRTPlayerController::RightRelease).bExecuteWhenPaused=true;
     Bind(EKeys::SpaceBar,&AOKRTPlayerController::Pause);
+    Bind(EKeys::P,&AOKRTPlayerController::Pause);
     Bind(EKeys::Escape,&AOKRTPlayerController::Menu);
     Bind(EKeys::One,&AOKRTPlayerController::One); Bind(EKeys::Two,&AOKRTPlayerController::Two);
     Bind(EKeys::Three,&AOKRTPlayerController::All);
@@ -49,6 +51,14 @@ bool AOKRTPlayerController::CommandAt(FVector2D Position,bool bRun,bool bAppend)
 { return ClickAt(Position,EPointerIntent::Command,bAppend,bRun); }
 bool AOKRTPlayerController::TapAt(FVector2D Position)
 { return ClickAt(Position,EPointerIntent::Touch); }
+bool AOKRTPlayerController::SelectAt(FVector2D Position,bool bToggle)
+{ return ClickAt(Position,EPointerIntent::Selection,bToggle); }
+void AOKRTPlayerController::SelectMember(int32 Index,bool bToggle)
+{
+    auto* G=Game(); if (!IsGameplayInputAllowed() || !G->Party.IsValidIndex(Index)) return;
+    bArmed=false;
+    if (bToggle) G->ToggleSelection(Index); else G->Select(Index);
+}
 bool AOKRTPlayerController::ClickAt(FVector2D Position,EPointerIntent Intent,bool bAppend,bool bRun)
 {
     auto* G=Game(); if (!G || !IsOnViewport(Position)) return false;
@@ -57,16 +67,17 @@ bool AOKRTPlayerController::ClickAt(FVector2D Position,EPointerIntent Intent,boo
     if (UI)
     {
         if (bCommand && UI->OverUI(Position)) return false;
-        if (!bCommand && UI->Click(Position)) return true;
+        if (Intent==EPointerIntent::Touch && UI->Click(Position)) return true;
+        if (Intent==EPointerIntent::Selection && UI->OverUI(Position)) return false;
     }
     if (!IsGameplayInputAllowed()) return false;
-    if (bCommand && bArmed)
+    if (Intent==EPointerIntent::Selection && bArmed)
     { bArmed=false; return true; }
     const int32 Member=UI ? UI->PartyMarkerAt(Position) : INDEX_NONE;
     if (G->Party.IsValidIndex(Member))
     {
         if (bCommand || bArmed) return false;
-        G->Select(Member,bAppend); return true;
+        SelectMember(Member,bAppend); return true;
     }
     FHitResult Hit;
     if (!GetHitResultAtScreenPosition(Position,ECC_Visibility,false,Hit)) return false;
@@ -74,7 +85,13 @@ bool AOKRTPlayerController::ClickAt(FVector2D Position,EPointerIntent Intent,boo
     if (bArmed)
     {
         FOKRTOrder Order; Order.Kind=ArmedOrder; Order.Location=Hit.ImpactPoint; Order.Target=Unit;
-        if (Order.Kind==EOKOrder::Distract || Unit)
+        if (ArmedOrder==EOKOrder::Interact)
+        {
+            Order.Interaction=G->FindInteractionAt(Hit.ImpactPoint,Order.Location);
+            Order.bApproachInteraction=Order.Interaction!=EOKInteraction::Nearby;
+            if (!Order.bApproachInteraction) { G->Message=TEXT("Vyber interaktivny objekt."); return false; }
+        }
+        if (Order.Kind==EOKOrder::Distract || Order.bApproachInteraction || Unit)
         { if (G->Command(Order,bAppend)) { bArmed=false; return true; } }
         else G->Message=TEXT("Vyber ciel schopnosti.");
         return false;
@@ -83,12 +100,13 @@ bool AOKRTPlayerController::ClickAt(FVector2D Position,EPointerIntent Intent,boo
     {
         if (!bCommand)
         {
-            if (!Unit->bEnemy && Unit->IsAlive()) G->Select(G->Party.IndexOfByKey(Unit),bAppend);
+            if (!Unit->bEnemy && Unit->IsAlive()) SelectMember(G->Party.IndexOfByKey(Unit),bAppend);
             else if (Unit->bEnemy && Unit->IsAlive()) Unit->Vision->bConeVisible=!Unit->Vision->bConeVisible;
             return true;
         }
         if (!Unit->bEnemy || bRun) return false;
-        FOKRTOrder Order; Order.Kind=Unit->IsAlive() ? EOKOrder::Takedown : EOKOrder::Carry;
+        if (Unit->IsAlive()) { G->Message=TEXT("Najprv vyber schopnost ticheho utoku."); return false; }
+        FOKRTOrder Order; Order.Kind=EOKOrder::Carry;
         Order.Target=Unit; Order.Location=Unit->Feet();
         return G->Command(Order,bAppend);
     }
@@ -108,6 +126,8 @@ bool AOKRTPlayerController::IsGameplayInputAllowed() const
 { const auto* G=Game(); return G && !G->bMenu && !G->bWon && !G->bLost; }
 bool AOKRTPlayerController::IsShiftDown() const
 { return IsInputKeyDown(EKeys::LeftShift) || IsInputKeyDown(EKeys::RightShift); }
+bool AOKRTPlayerController::IsControlDown() const
+{ return IsInputKeyDown(EKeys::LeftControl) || IsInputKeyDown(EKeys::RightControl); }
 bool AOKRTPlayerController::IsOnViewport(FVector2D Position) const
 {
     int32 W,H; GetViewportSize(W,H);
@@ -118,10 +138,10 @@ void AOKRTPlayerController::BeginPointer(FVector2D Position,bool bAppend)
 {
     CancelPointer();
     if (!IsOnViewport(Position)) return;
-    if (auto* UI=Cast<AOKRTHUD>(GetHUD())) if (UI->Click(Position)) return;
     if (!IsGameplayInputAllowed()) return;
-    // Armed abilities retain click targeting; they never start a selection drag.
-    if (bArmed) { ClickAt(Position,EPointerIntent::Selection,bAppend); return; }
+    // RMB cancels a tool; a separate gesture is required to select afterwards.
+    if (bArmed) { bArmed=false; return; }
+    if (auto* UI=Cast<AOKRTHUD>(GetHUD())) if (UI->OverUI(Position)) return;
     bPointerDown=true; bAppendSelection=bAppend;
     PointerStart=PointerEnd=Position;
 }
@@ -172,21 +192,37 @@ void AOKRTPlayerController::EndPointer(FVector2D Position)
     }
     CancelPointer();
 }
-void AOKRTPlayerController::LeftClick() { float X,Y; if (GetMousePosition(X,Y)) BeginPointer(FVector2D(X,Y),IsShiftDown()); }
-void AOKRTPlayerController::LeftRelease()
-{ float X,Y; if (GetMousePosition(X,Y)) EndPointer(FVector2D(X,Y)); else CancelPointer(); }
+void AOKRTPlayerController::LeftClick()
+{
+    // UE synthesizes IE_Pressed for IE_DoubleClick; dispatch that click only once.
+    const auto* State=PlayerInput ? PlayerInput->GetKeyState(EKeys::LeftMouseButton) : nullptr;
+    if (State && !State->EventCounts[IE_DoubleClick].IsEmpty()) return;
+    PrimaryClick(false);
+}
+void AOKRTPlayerController::LeftDoubleClick() { PrimaryClick(true); }
+void AOKRTPlayerController::PrimaryClick(bool bDouble)
+{
+    CancelPointer(); float X,Y;
+    if (!GetMousePosition(X,Y)) return;
+    const FVector2D Position(X,Y);
+    if (auto* UI=Cast<AOKRTHUD>(GetHUD())) if (UI->Click(Position)) { bPrimaryClickValid=false; return; }
+    if (!IsGameplayInputAllowed()) { bPrimaryClickValid=false; return; }
+    const bool SameTarget=bDouble && bPrimaryClickValid && FVector2D::Distance(Position,LastPrimaryClick)<8;
+    // Double-click run only upgrades a terrain move, not a skill/interaction.
+    if (SameTarget && !bArmed && !bPrimaryClickMoved) return;
+    const bool WasArmed=bArmed;
+    const bool Accepted=CommandAt(Position,SameTarget && bPrimaryClickMoved && !WasArmed,IsShiftDown());
+    bPrimaryClickMoved=Accepted && !WasArmed && Game()->CommandFeedback.Kind==EOKOrder::Move;
+    bPrimaryClickValid=true; LastPrimaryClick=Position;
+}
 void AOKRTPlayerController::RightClick()
 {
     CancelPointer(); float X,Y;
     if (!IsInputKeyDown(EKeys::LeftAlt) && !IsInputKeyDown(EKeys::RightAlt) && GetMousePosition(X,Y))
-        CommandAt(FVector2D(X,Y),false,IsShiftDown());
+        BeginPointer(FVector2D(X,Y),IsControlDown());
 }
-void AOKRTPlayerController::RightDoubleClick()
-{
-    CancelPointer(); float X,Y;
-    if (!IsInputKeyDown(EKeys::LeftAlt) && !IsInputKeyDown(EKeys::RightAlt) && GetMousePosition(X,Y))
-        CommandAt(FVector2D(X,Y),true,IsShiftDown());
-}
+void AOKRTPlayerController::RightRelease()
+{ float X,Y; if (GetMousePosition(X,Y)) EndPointer(FVector2D(X,Y)); else CancelPointer(); }
 int32 AOKRTPlayerController::TouchSlot(ETouchIndex::Type Finger) const
 {
     if (Finger==ETouchIndex::Touch1) return 0;
@@ -251,7 +287,7 @@ void AOKRTPlayerController::Arm(EOKOrder Order)
 }
 void AOKRTPlayerController::SetPartyStance(EOKStance Stance)
 { if (auto* G=Game()) { FOKRTOrder Order; Order.Kind=EOKOrder::Stance; Order.Stance=Stance; G->Command(Order); } }
-void AOKRTPlayerController::Interact() { if (auto* G=Game()) { FOKRTOrder Order; Order.Kind=EOKOrder::Interact; G->Command(Order); } }
+void AOKRTPlayerController::Interact() { Arm(EOKOrder::Interact); }
 void AOKRTPlayerController::Pause() { if (auto* G=Game()) G->TogglePause(); }
 void AOKRTPlayerController::Menu()
 {
@@ -259,8 +295,8 @@ void AOKRTPlayerController::Menu()
     CancelPointer(); ResetTouchState(); bArmed=false;
     if (!bCancelTarget) if (auto* G=Game()) G->ToggleMenu();
 }
-void AOKRTPlayerController::One() { if (auto* G=Game()) G->Select(0,IsShiftDown()); }
-void AOKRTPlayerController::Two() { if (auto* G=Game()) G->Select(1,IsShiftDown()); }
+void AOKRTPlayerController::One() { SelectMember(0,IsControlDown()); }
+void AOKRTPlayerController::Two() { SelectMember(1,IsControlDown()); }
 void AOKRTPlayerController::All() { if (auto* G=Game()) G->SelectAll(); }
 void AOKRTPlayerController::NextUnit()
 {
@@ -347,12 +383,14 @@ void AOKRTPlayerController::PlayerTick(float Delta)
             const EOKInteraction Interaction=Unit ? EOKInteraction::Nearby : G->FindInteractionAt(Destination,Destination);
             const bool bInteraction=Interaction!=EOKInteraction::Nearby;
             CurrentMouseCursor=bInteraction ? EMouseCursor::Hand : Unit && !Unit->IsAlive() ? EMouseCursor::GrabHand : EMouseCursor::Crosshairs;
-            if ((Unit && !Unit->bEnemy) || (bArmed && (ArmedOrder==EOKOrder::Distract || !Unit)))
+            if ((Unit && (!Unit->bEnemy || (Unit->IsAlive() && !bArmed))) ||
+                (bArmed && (ArmedOrder==EOKOrder::Distract || (!Unit && ArmedOrder!=EOKOrder::Interact))) ||
+                (bArmed && ArmedOrder==EOKOrder::Interact && !bInteraction))
                 G->PreviewSpline->ClearSplinePoints();
             else
             {
                 FOKRTOrder Order; Order.Location=Destination;
-                Order.Kind=bArmed ? ArmedOrder : Unit ? Unit->IsAlive() ? EOKOrder::Takedown : EOKOrder::Carry : bInteraction ? EOKOrder::Interact : EOKOrder::Move;
+                Order.Kind=bArmed ? ArmedOrder : Unit ? EOKOrder::Carry : bInteraction ? EOKOrder::Interact : EOKOrder::Move;
                 Order.Target=Unit; Order.Interaction=Interaction; Order.bApproachInteraction=bInteraction;
                 G->PreviewOrder(Order,IsShiftDown());
             }

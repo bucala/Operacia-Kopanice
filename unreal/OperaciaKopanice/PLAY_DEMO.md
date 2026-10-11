@@ -30,7 +30,7 @@ uses a real-time loop, but is not a browser build of this Unreal project.
 
 Three native missions are available from the menu. Mission 2 retrieves documents
 from a forest camp; Mission 3 acquires TNT and disables a command post. Both new
-areas are 86.4 x 86.4 m, use three active patrols and require the living team to
+areas are 86.4 x 86.4 m, use two mobile patrols and one fixed sentry and require the living team to
 extract together. See [campaign details](Docs/CAMPAIGN.md) for layouts and assets.
 In these forest missions, trunks and rocks block movement and sight. Shrubs stay
 traversable and conceal crouched/prone units beneath their height; KRYT appears
@@ -56,8 +56,9 @@ crouch, wait for the west guard to return and face north, then cross together.
 Sight and hearing still react to exposed or noisy movement, including during waits.
 
 Two guards patrol continuously. The near zone detects standing units immediately;
-the far zone fills suspicion gradually. Crouching, prone stance and nearby cover
-reduce detection. Walls block sight; running is audible over a larger distance.
+the far zone fills suspicion gradually for standing/crouching units. Crawling is
+not visually detected in the far zone, but is detectable nearby and can still make
+noise. Low cover reduces detection. Walls block sight; running is audible farther.
 Suspicious guards investigate noises and visible bodies; combat spreads an alarm
 to nearby guards and deals real-time damage.
 
@@ -65,24 +66,25 @@ to nearby guards and deals real-time damage.
 
 | Action | Input |
 | --- | --- |
-| Select Partisan / Officer / both | 1 / 2 / 3 or Ctrl+A; portraits or left-click a party member |
+| Select Partisan / Officer / both | 1 / 2 / 3 or Ctrl+A; portraits or right-click a party member |
 | Cycle active specialist | Tab; keeps a multi-unit selection intact |
-| Box selection / add to selection | Left-mouse drag / Shift + drag; Shift + portrait also adds |
-| Move in current stance | Right-click terrain; left-click terrain never moves |
-| Run to destination | Right double-click terrain; changes pace only when order executes |
-| Append a move | Shift + right-click terrain |
-| Active pause / resume | Space or pause icon |
+| Box selection / add to selection | Right-mouse drag / Ctrl + drag |
+| Toggle selected membership | Ctrl + right-click ally/marker, Ctrl + portrait or Ctrl + 1/2 |
+| Move in current stance | Left-click terrain; right-click terrain never moves |
+| Run to destination | Left double-click terrain; changes pace only when order executes |
+| Append a move | Shift + left-click terrain |
+| Active pause / resume | Space / P or pause icon |
 | Queue orders | Issue orders during active pause, then resume |
 | Stop selected units / clear orders | S / X or lower-right minus icon |
 | Undo last waiting order of active specialist | Backspace or order-tray undo icon, during tactical pause only |
 | Cancel armed targeting without stopping movement | Right-click world or Escape |
 | Walk / run / crouch / prone | W / R / C / V or stance icons |
-| Silent takedown | Right-click living guard, or T then left-click guard; approach from behind |
+| Silent takedown | T/swords then left-click guard; approach from behind; unarmed click cannot attack |
 | Distraction | F or circle icon, then click ground; 5 charges, 6 s cooldown |
-| Approach TNT / detonator / hide carried body | Right-click near its world marker; active member approaches and interacts |
-| Interact immediately at current position | E or hand icon, within range |
-| Carry body / drop carried body | Right-click dead guard; B or backpack icon also targets pickup/drops a carried body |
-| Toggle one guard's cone | Left-click that guard; no attack is issued |
+| Approach TNT / detonator / hide carried body | Left-click near its world marker; active member approaches and interacts |
+| Target an interaction | E or hand icon, then left-click an interactive object |
+| Carry body / drop carried body | Left-click dead guard; B/backpack targets pickup or drops a carried body |
+| Toggle one guard's cone | Right-click that guard; no attack is issued |
 | Toggle all cones | Eye icon / Options |
 | Rotate | Q / right bracket or rotate icons |
 | Pan | Arrow keys or middle-mouse drag; also available during tactical pause |
@@ -92,7 +94,7 @@ to nearby guards and deals real-time damage.
 | Focus current objective | Crosshair in objective panel |
 
 Numbered party markers remain visible over scenery and select allies on mouse
-release or touch tap. Shift adds an ally; right-clicking a marker never moves or
+right-button release or touch tap. Ctrl toggles an ally; right-clicking a marker never moves or
 attacks. Armed abilities cannot target the marker, but right-click still cancels
 targeting. Gold identifies the active selected member, green another selected
 member and grey an unselected ally. Nearby markers separate, avoid HUD panels,
@@ -121,9 +123,9 @@ another specialist's plan, spends ammunition or rewinds an executed action.
 S/X still stops all selected units explicitly. Empty queues have no tray, and
 short viewports suppress the tray if it would overlap existing HUD controls.
 
-Right-click world orders use a visibility raycast and complete NavMesh paths.
+Left-click world orders use a visibility raycast and complete NavMesh paths.
 An interaction order stores its approach destination, then executes within range;
-E and the hand icon retain immediate interaction at the active member's feet.
+E and the hand icon arm a targetable typed approach, not an immediate nearby action.
 Double-click promotes the last matching movement order instead of duplicating it
 in a paused or Shift-appended queue. Ordinary moves preserve the current stance;
 use W/C/V to leave running after a double-click. Invalid orders preserve existing paths.
@@ -135,15 +137,15 @@ Water, blocked interiors and disconnected banks after sabotage cannot cancel a
 valid route. Appended routes are checked from the last queued destination and
 checked again on execution; a stale approach ends without clearing later orders.
 Body pickup and takedown also require unobstructed reach at arrival.
-Unarmed left-click selection occurs on release; moving at least 8 screen pixels starts
+Unarmed right-click selection occurs on release; moving at least 8 screen pixels starts
 a selection rectangle instead. Drag in either direction. Empty rectangles keep
 the existing selection and never issue movement. Units are selected by their
 projected capsule centres; dead units, guards and centres underneath HUD panels
 are excluded. Starting on HUD never starts a drag. Leaving the viewport, opening
-the menu, right-clicking or pressing X cancels a pending drag.
+the menu, issuing a left-click order or pressing X cancels a pending drag.
 Touch input is release-based: a tap shorter than 24 screen pixels activates the
 UI, party selection or enemy inspection, and terrain taps issue contextual commands.
-It does not inherit the desktop left-click-only selection rule. A finger slide is ignored as a gesture and does
+It does not inherit desktop right-click selection. A finger slide is ignored as a gesture and does
 not move a unit. Two fingers pan the camera and change zoom by pinch. This keeps
 the current Android interaction safe while leaving single-finger camera orbit
 available for a later pass.
@@ -163,6 +165,12 @@ Pausing stops physics, patrols, cooldowns and detection, while selection, target
 camera and queued commands remain usable. Queues are limited to 32 per unit.
 Menu pauses the world separately and preserves an existing tactical pause.
 Escape returns one menu page at a time. Restart and quit have confirmations.
+
+The main native version now uses a documented Commandos 2-based mouse model.
+BEL's different selection scheme was not mixed into it. Space/P pause and C/V
+stances are deliberate Kopanice adaptations. See [native world contract](Docs/GAME_WORLD.md)
+for studied manual sections, mission chains, guard duties and unimplemented mechanics.
+The separate web version has not been changed to this new input scheme.
 Graphics, camera and interface settings plus completed-operation flags are saved
 locally. This does not save unfinished mid-mission progress.
 Options cover cones, path preview, stepped camera and four quality presets;
@@ -192,9 +200,10 @@ Command regressions also cover friendly/invalid targets, unchanged movement on
 rejection, takedown-then-carry planning, stale-target path cancellation, cooldown
 waiting, empty inventory, active-member skills, queue capacity and menu gating.
 AI checks verify stable pursuit requests and last-seen search after losing sight.
-RTT control checks cover left-click selection versus right-click orders, contextual
-TNT/guard/body targeting, paused double-click promotion, preserved stealth stance,
-group formations, Ctrl+A/Tab/S/Escape, UI gating and separate touch-tap behavior.
+RTT control checks cover RMB selection versus LMB orders, explicit attack and typed
+objective/body targeting, actual mouse double-click promotion, Ctrl membership,
+preserved stealth stance, group formations, Ctrl+A/Tab/S/Escape, UI gating and
+separate touch-tap behavior.
 Navigation checks cover preserved active paths after invalid replacements, paused
 queue integrity, same-position orders, execution-time target reachability, bridge
 disconnection and wall-blocked versus unobstructed body pickup.

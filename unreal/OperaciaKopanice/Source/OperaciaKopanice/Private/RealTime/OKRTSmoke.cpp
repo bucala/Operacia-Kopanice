@@ -55,7 +55,8 @@ void AOKRTGameMode::SmokeTick()
     {
     case 0:
         if (Now-StageStarted<4) return;
-        if (!HasCompletePath(Party[0]->Feet(),FVector(1440,720,0)))
+        // A usable bridge path can exist before the full scene finishes building.
+        if (bInitialPausePending || !HasCompletePath(Party[0]->Feet(),FVector(1440,720,0)))
         {
             if (Now-StageStarted>25) Require(false,TEXT("NavMesh generated and bridge connects banks"));
             return;
@@ -201,6 +202,8 @@ void AOKRTGameMode::SmokeTick()
             Party[0]->SetActorLocation(PartyLocation);
         }
         SmokeNavigationTests();
+        if (SmokeStage<0) return;
+        SmokeWorldTests();
         if (SmokeStage<0) return;
         SmokeControlsTests();
         if (SmokeStage<0) return;

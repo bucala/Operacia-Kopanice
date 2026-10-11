@@ -131,7 +131,7 @@ void AOKRTHUD::DrawHUD()
         Label(FString::FromInt(Unit->QueueSize()),X+53,Y+Card+29,.85f);
         if (Active && !Compact) Icon(TEXT("crosshair"),X+Card-23,Y+Card+29,16,FLinearColor(.91f,.8f,.52f));
         const FBox2D Bounds(FVector2D(X,Y),FVector2D(X+Card,Y+Card+48));
-        Panels.Add(Bounds); Buttons.Add({Bounds,[G,PC,I](){ G->Select(I,PC->IsInputKeyDown(EKeys::LeftShift) || PC->IsInputKeyDown(EKeys::RightShift)); },
+        Panels.Add(Bounds); Buttons.Add({Bounds,[PC,I](){ PC->SelectMember(I,PC->IsInputKeyDown(EKeys::LeftControl) || PC->IsInputKeyDown(EKeys::RightControl)); },
             Unit->DisplayName+(Active ? TEXT(" (aktivna)") : TEXT(""))+(Unit->bInCover ? TEXT(" / v kryte") : TEXT(""))});
         if (Unit->IsSelected()) WorldRing(Unit->Feet(),42,Active ? FLinearColor(.91f,.8f,.52f,.9f) : FLinearColor(.65f,.9f,.73f,.7f));
     }
@@ -214,7 +214,7 @@ void AOKRTHUD::DrawHUD()
     Button(G->bTacticalPause ? TEXT("play") : TEXT("pause"),X,Y,S,G->bTacticalPause ? TEXT("Pokracovat (Space)") : TEXT("Takticka pauza (Space)"),[G](){ G->TogglePause(); },G->bTacticalPause);
     Button(TEXT("swords"),X+(S+4),Y,S,TEXT("Tichy utok (T)"),[PC](){ PC->Arm(EOKOrder::Takedown); },PC->bArmed && PC->ArmedOrder==EOKOrder::Takedown);
     Button(TEXT("circle_dot"),X+2*(S+4),Y,S,TEXT("Odlakanie (F)"),[PC](){ PC->Arm(EOKOrder::Distract); },PC->bArmed && PC->ArmedOrder==EOKOrder::Distract);
-    Button(TEXT("hand"),X+3*(S+4),Y,S,TEXT("Interakcia (E)"),[G](){ FOKRTOrder O; O.Kind=EOKOrder::Interact; G->Command(O); });
+    Button(TEXT("hand"),X+3*(S+4),Y,S,TEXT("Interakcia (E)"),[PC](){ PC->Arm(EOKOrder::Interact); },PC->bArmed && PC->ArmedOrder==EOKOrder::Interact);
     Button(TEXT("backpack"),X+4*(S+4),Y,S,TEXT("Preniest / polozit telo (B)"),[PC](){ PC->Arm(EOKOrder::Carry); });
     Button(TEXT("eye"),X+5*(S+4),Y,S,TEXT("Zorne kuzele"),[G](){ G->ToggleCones(); },G->bCones);
     Button(TEXT("menu"),X+6*(S+4),Y,S,TEXT("Menu (Esc)"),[G](){ G->ToggleMenu(); });
@@ -231,7 +231,8 @@ void AOKRTHUD::DrawHUD()
     Panels.Add(FBox2D(FVector2D(16,MessageY),FVector2D(16+MessageW,MessageY+44)));
     const bool RejectedTarget=G->CommandFeedbackOpacity()>0 && G->CommandFeedback.Accepted==0;
     const FString Feedback=PC->bArmed && !RejectedTarget ? PC->ArmedOrder==EOKOrder::Takedown ? TEXT("Tichy utok: vyber hliadku") :
-        PC->ArmedOrder==EOKOrder::Carry ? TEXT("Preniest telo: vyber ciel") : TEXT("Odlakanie: vyber miesto") : G->Message;
+        PC->ArmedOrder==EOKOrder::Carry ? TEXT("Preniest telo: vyber ciel") :
+        PC->ArmedOrder==EOKOrder::Interact ? TEXT("Interakcia: vyber objekt") : TEXT("Odlakanie: vyber miesto") : G->Message;
     Wrap(Unit->Cooldown>0 ? FString::Printf(TEXT("%s | %.1fs"),*Feedback,Unit->Cooldown) : Feedback,24,MessageY+10,MessageW-16,.95f);
     DrawOrderQueue(G,FVector2D(Compact ? 16 : X,(Compact ? MessageY : Y)-78),Compact ? W-32 : 7*(S+4)-4);
     DrawCommandFeedback();

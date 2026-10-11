@@ -12,6 +12,20 @@ UENUM(BlueprintType)
 enum class EOKOrder : uint8 { Move, Interact, Takedown, Distract, Carry, Stance };
 UENUM(BlueprintType)
 enum class EOKInteraction : uint8 { Nearby, CollectTNT, DetonateBridge, HideBody, CollectDocuments, SabotageCommandPost };
+UENUM(BlueprintType)
+enum class EOKGuardDuty : uint8 { Patrol, HoldPost };
+
+USTRUCT(BlueprintType)
+struct FOKRTPatrolStop
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) FVector Location=FVector::ZeroVector;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) float FacingYaw=0;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite,meta=(ClampMin="0")) float WaitSeconds=1;
+    FOKRTPatrolStop()=default;
+    FOKRTPatrolStop(FVector Position,float Yaw,float Duration)
+        : Location(Position),FacingYaw(Yaw),WaitSeconds(Duration) {}
+};
 
 USTRUCT(BlueprintType)
 struct FOKRTOrder

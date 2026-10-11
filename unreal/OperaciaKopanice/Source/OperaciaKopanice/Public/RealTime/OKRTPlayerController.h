@@ -21,6 +21,8 @@ public:
     void UpdatePointer(FVector2D Position);
     void EndPointer(FVector2D Position);
     void CancelPointer();
+    bool SelectAt(FVector2D Position,bool bToggle=false);
+    void SelectMember(int32 Index,bool bToggle=false);
     bool CommandAt(FVector2D Position,bool bRun=false,bool bAppend=false);
     bool TapAt(FVector2D Position);
     bool GetSelectionBounds(FBox2D& Bounds) const;
@@ -29,9 +31,10 @@ public:
 private:
     AOKRTGameMode* Game() const;
     void LeftClick();
-    void LeftRelease();
+    void LeftDoubleClick();
+    void PrimaryClick(bool bDouble);
     void RightClick();
-    void RightDoubleClick();
+    void RightRelease();
     void Interact();
     void Pause();
     void Menu();
@@ -49,6 +52,7 @@ private:
     bool ClickAt(FVector2D Position,EPointerIntent Intent,bool bAppend=false,bool bRun=false);
     bool IsGameplayInputAllowed() const;
     bool IsShiftDown() const;
+    bool IsControlDown() const;
     bool IsOnViewport(FVector2D Position) const;
     void SelectInBounds(const FBox2D& Bounds);
     bool bPointerDown=false;
@@ -69,4 +73,7 @@ private:
     FVector2D LastMouse=FVector2D::ZeroVector;
     bool bWasPanning=false;
     bool bWasOrbiting=false;
+    bool bPrimaryClickValid=false;
+    bool bPrimaryClickMoved=false;
+    FVector2D LastPrimaryClick=FVector2D::ZeroVector;
 };

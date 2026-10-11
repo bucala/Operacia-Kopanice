@@ -38,12 +38,13 @@ void AOKRTGameMode::SmokeMarkerTests()
         TEXT("marker selects an occluded ally without a terrain ray hit"));
     Click(Second,true);
     Require(ActiveMember==1 && Party[0]->IsSelected() && Party[1]->IsSelected(),
-        TEXT("Shift marker click adds the second specialist"));
+        TEXT("Ctrl RMB marker click adds the second specialist"));
     Require(!PC->CommandAt(First) && !PC->CommandAt(First,true) && ActiveMember==1,
-        TEXT("right click and double click on a marker never issue world orders"));
-    PC->Arm(EOKOrder::Distract); Click(First);
+        TEXT("left click and double click on a marker never issue world orders"));
+    PC->Arm(EOKOrder::Distract); PC->CommandAt(First);
     Require(PC->bArmed && ActiveMember==1,TEXT("friendly marker cannot consume an armed ability"));
-    Require(PC->CommandAt(First) && !PC->bArmed,TEXT("right click on a marker still cancels armed targeting"));
+    Click(First);
+    Require(!PC->bArmed && ActiveMember==1,TEXT("right click on a marker only cancels armed targeting"));
     Require(PC->TapAt(First) && ActiveMember==0 && !Party[1]->IsSelected(),
         TEXT("touch marker tap selects instead of moving or interacting"));
     Require(Party[0]->QueueSize()==Queue0 && Party[1]->QueueSize()==Queue1 &&

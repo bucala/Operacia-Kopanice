@@ -58,7 +58,8 @@ void AOKRTGuardController::Investigate(FVector Location)
     AlertState=EOKAlert::Investigate; LastKnown=Location;
     bAtPatrolStop=false;
     Suspicion=FMath::Max(Suspicion,.3f); Wait=0;
-    MoveToLocation(Location,65,false,true,true,false,nullptr,false);
+    if (Duty==EOKGuardDuty::HoldPost) StopMovement();
+    else MoveToLocation(Location,65,false,true,true,false,nullptr,false);
 }
 void AOKRTGuardController::Alert(AOKRTUnit* Target,bool bBroadcast)
 {
@@ -72,6 +73,17 @@ void AOKRTGuardController::Alert(AOKRTUnit* Target,bool bBroadcast)
     if (bNew && bBroadcast)
         if (auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>()) Game->Alarm(Target,Unit);
 }
+float AOKRTGuardController::DetectionRate(const AOKRTUnit* Target,bool& bInstant) const
+{
+    bInstant=false;
+    const auto* Unit=Cast<AOKRTUnit>(GetPawn());
+    bool Primary=false;
+    if (!Unit || !Target || !Target->IsAlive() || !Unit->Vision->Sees(Target,Primary)) return 0;
+    if (!Primary && Target->Stance==EOKStance::Prone) return 0;
+    const float Factor=Target->VisibilityFactor();
+    bInstant=Primary && Factor>=.9f;
+    return (Primary ? 2.4f : .4f)*Factor;
+}
 void AOKRTGuardController::Tick(float Delta)
 {
     Super::Tick(Delta);
@@ -81,22 +93,21 @@ void AOKRTGuardController::Tick(float Delta)
     MoveRetry=FMath::Max(0.f,MoveRetry-Delta);
     bool Seen=false;
     AOKRTUnit* SeenUnit=nullptr;
-    float DetectionRate=0;
+    float BestDetectionRate=0;
     bool Instant=false;
     for (AOKRTUnit* Party:Game->Party)
     {
-        bool Primary=false;
-        if (!Party->IsAlive() || !Unit->Vision->Sees(Party,Primary)) continue;
-        const float Factor=Party->VisibilityFactor();
-        const float Rate=(Primary ? 2.4f : .4f)*Factor;
+        bool Immediate=false;
+        const float Rate=DetectionRate(Party,Immediate);
+        if (Rate<=0) continue;
         Seen=true;
-        if (!SeenUnit || Rate>DetectionRate) { DetectionRate=Rate; SeenUnit=Party; }
-        if (Primary && Factor>=.9f) { Instant=true; SeenUnit=Party; break; }
+        if (!SeenUnit || Rate>BestDetectionRate) { BestDetectionRate=Rate; SeenUnit=Party; }
+        if (Immediate) { Instant=true; SeenUnit=Party; break; }
     }
     if (SeenUnit)
     {
         LastKnown=SeenUnit->Feet();
-        Suspicion=Instant ? 1.f : FMath::Min(1.f,Suspicion+Delta*DetectionRate);
+        Suspicion=Instant ? 1.f : FMath::Min(1.f,Suspicion+Delta*BestDetectionRate);
         if (Suspicion>=1) Alert(SeenUnit);
         else if (Suspicion>.5f && AlertState==EOKAlert::Patrol) Investigate(LastKnown);
     }
@@ -116,7 +127,7 @@ void AOKRTGuardController::Tick(float Delta)
             SetFocus(Target);
             const FVector Direction=(Target->Feet()-Unit->Feet()).GetSafeNormal2D();
             Unit->SetActorRotation(Direction.Rotation());
-            if (FVector::Dist2D(Unit->Feet(),Target->Feet())>650)
+            if (FVector::Dist2D(Unit->Feet(),Target->Feet())>650 && Duty!=EOKGuardDuty::HoldPost)
             {
                 // Actor goals already track motion; do not abort/recreate the path every frame.
                 if (PursuitTarget.Get()!=Target || (GetMoveStatus()==EPathFollowingStatus::Idle && MoveRetry<=0))
@@ -129,7 +140,7 @@ void AOKRTGuardController::Tick(float Delta)
             {
                 if (GetMoveStatus()!=EPathFollowingStatus::Idle) StopMovement();
                 PursuitTarget.Reset(); ShotClock+=Delta;
-                if (ShotClock>1.1f)
+                if (ShotClock>1.1f && FVector::Dist2D(Unit->Feet(),Target->Feet())<=650)
                 {
                     ShotClock=0; Target->TakeHit(35);
                     Game->Noise(Unit,Unit->Feet(),1,1600,TEXT("Gunshot"));
@@ -141,7 +152,7 @@ void AOKRTGuardController::Tick(float Delta)
             ClearFocus(EAIFocusPriority::Gameplay);
             // Losing sight must replace the actor goal, otherwise AI follows an unseen player.
             if (PursuitTarget.IsValid()) { StopMovement(); PursuitTarget.Reset(); MoveRetry=0; }
-            if (GetMoveStatus()==EPathFollowingStatus::Idle && MoveRetry<=0 && FVector::Dist2D(Unit->Feet(),LastKnown)>90)
+            if (Duty!=EOKGuardDuty::HoldPost && GetMoveStatus()==EPathFollowingStatus::Idle && MoveRetry<=0 && FVector::Dist2D(Unit->Feet(),LastKnown)>90)
             { MoveToLocation(LastKnown,70,false,true,true,false,nullptr,false); MoveRetry=.5f; }
         }
         if (LostSight>6 || !Target || !Target->IsAlive())
@@ -152,7 +163,9 @@ void AOKRTGuardController::Tick(float Delta)
     if (AlertState==EOKAlert::Investigate)
     {
         Wait+=Delta;
-        Unit->AddActorWorldRotation(FRotator(0,Delta*32,0));
+        if (Duty==EOKGuardDuty::HoldPost)
+            Unit->SetActorRotation(FMath::RInterpConstantTo(Unit->GetActorRotation(),FRotator(0,(LastKnown-Unit->Feet()).Rotation().Yaw,0),Delta,90));
+        else Unit->AddActorWorldRotation(FRotator(0,Delta*32,0));
         if (Wait<4) return;
         AlertState=EOKAlert::Patrol; Suspicion=.15f; Wait=0;
     }

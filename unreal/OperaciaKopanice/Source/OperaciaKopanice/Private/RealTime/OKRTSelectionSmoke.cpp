@@ -65,9 +65,9 @@ void AOKRTGameMode::SmokeSelectionTests()
     Require(Party[0]->QueueSize()==Queue0 && Party[1]->QueueSize()==Queue1,TEXT("cancel and UI gestures preserve command queues"));
     bool Press=false,Release=false;
     for (const auto& Binding:PC->InputComponent->KeyBindings)
-        if (Binding.Chord.Key==EKeys::LeftMouseButton && Binding.bExecuteWhenPaused)
+        if (Binding.Chord.Key==EKeys::RightMouseButton && Binding.bExecuteWhenPaused)
         { Press|=Binding.KeyEvent==IE_Pressed; Release|=Binding.KeyEvent==IE_Released; }
-    Require(Press && Release,TEXT("mouse press and release bindings execute while paused"));
+    Require(Press && Release,TEXT("RMB selection press and release bindings execute while paused"));
     bool TouchPress=false,TouchRepeat=false,TouchRelease=false;
     for (const auto& Binding:PC->InputComponent->TouchBindings)
     {

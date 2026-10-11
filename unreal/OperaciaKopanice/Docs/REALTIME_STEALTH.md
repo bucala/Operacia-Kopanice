@@ -16,7 +16,11 @@ guard controllers additionally run Patrol -> Investigate -> Combat state logic.
 `AOKRTHUD` draws selection, objective, skills, suspicion, paths and noise circles.
 There is deliberately no inheritance from `OKDemoGameMode`.
 
-`OKRTMission` contains the three immutable operation definitions. GameMode keeps
+`OKRTMission` contains the three immutable operation definitions, including guard
+spawns, facing, duty and timed routes. Its Stage/CanExecute/CanExtract predicates
+consume a live `FOKRTMissionState` snapshot, shared by objective HUD, camera focus,
+interaction gates and extraction. See [native world contract](GAME_WORLD.md).
+GameMode keeps
 per-run objective state and builds the selected runtime scene; `OKRTMissionScene`
 adds the larger forest layouts without introducing grid movement. `OKRTMenu`
 owns HUD menu pages and native action callbacks. Deployment uses OpenLevel URL
@@ -106,8 +110,9 @@ trace, evaluated against all living party units. The most detectable visible uni
 is chosen so a crouching unit cannot mask a standing companion.
 Near: 330 cm, 35-degree half-angle. Far: 1000 cm, 45-degree half-angle.
 Near standing/no-cover detection is instant. Other near detections gain 2.4/s;
-far detections gain 0.4/s, multiplied by walk/run 1, crouch 0.35, prone 0.15
-and cover 0.3. Suspicion decays while unseen.
+far detections gain 0.4/s, multiplied by walk/run 1, crouch 0.35 and cover 0.3.
+Prone has zero visual rate in the far zone; near detection still uses its 0.15
+stance multiplier. Hearing remains independent. Suspicion decays while unseen.
 Visual cones are rebuilt at most every 0.12 s while visible and clipped by rays.
 Hidden/carried bodies are excluded from discovery.
 
@@ -119,6 +124,9 @@ Visible pursuit reuses UE's moving actor goal rather than replacing the request
 each frame. Loss of sight immediately replaces that goal with the last seen world
 position and clears actor focus. Failed/idle pursuit retries are bounded to 0.5 s;
 both pursuit and last-seen investigation require complete navigation paths.
+HoldPost duty turns toward a disturbance without issuing an investigation path;
+it remains stationary in combat rather than chasing. Missions 2 and 3 each assign
+one sentry this duty and retain two mobile patrols. Firing still requires range.
 This is prototype AI, not realistic combat doctrine or a production hearing model.
 
 ## Pause and Orders
@@ -156,7 +164,8 @@ still the explicit selected-group stop.
 
 Contextual Interact orders carry a world-space destination, `EOKInteraction` identity
 and `bApproachInteraction`; they navigate first and interact only after reaching
-range. E/HUD-hand interaction remains immediate. Typed interactions cannot
+range. E/HUD-hand arms an explicit interaction target and queues a typed approach.
+Typed interactions cannot
 accidentally activate a different nearby marker. Detonator
 and hide destinations can be planned before TNT/pickup; prerequisites are checked
 at execution, not inferred from the state at mouse-click time.
@@ -209,19 +218,20 @@ suppressed in menu/outcome screens and by the persisted PartyMarkers preference.
 They deliberately render above scenery without testing camera occlusion; this
 does not alter collision, navigation or guard perception. No enemies use them.
 
-Unarmed mouse release and touch taps select through a marker before terrain
-raycasting; captured Shift appends selection. Right-click/double-click markers
-never issue world commands. Armed left/touch targeting cannot consume an ability
+Unarmed RMB release and touch taps select through a marker before terrain
+raycasting; captured Ctrl toggles single-member selection and adds box selection.
+LMB/double-LMB markers never issue world commands. Armed left/touch targeting cannot consume an ability
 on an ally marker; right-click still cancels targeting. Markers are separate from
 blocking HUD panels, so selection rectangles keep their existing body-centre
 semantics. Hover identifies the ally and clears inappropriate path previews.
 
 Desktop input is Commandos-like stealth RTT, not adventure point-and-click.
-Left-click selects a living ally or inspects a living enemy's cone; terrain left-click
-does not move. Right-click orders movement, takedown of a living guard, pickup of a
-dead guard or approach/interaction at available TNT, detonator and body-hiding markers.
-Friendly right-click is ignored. Double right-click runs to a terrain destination
-without repeating target interactions. Shift appends world orders and adds selection.
+The Commandos 2 mouse model is authoritative: RMB selects a living ally, toggles a
+living enemy's cone or begins a selection rectangle. It never orders movement.
+LMB commands terrain movement, corpse pickup or typed objective approach.
+A living guard requires an explicitly armed takedown; an unarmed LMB cannot attack.
+Double LMB runs without repeating interactions. Shift appends world orders;
+Ctrl toggles a single ally/portrait/hotkey and adds to box selection.
 1/2 select living specialists, 3/Ctrl+A selects the living party and Tab cycles the
 active specialist without dropping an existing group. Arrow keys and middle drag pan
 the camera while running or paused; Alt+right drag is reserved for continuous orbit.
@@ -229,21 +239,22 @@ The first drag frame records the pointer before applying deltas, preventing came
 Hover cursor and preview distinguish navigable terrain, interactions and body targets.
 
 The controller's BeginPointer/UpdatePointer/EndPointer handlers separate a mouse
-click from a box selection with an 8-pixel threshold. Left mouse press and release
-bindings execute while paused. HUD and armed-skill clicks are handled on press;
-ordinary selection waits for release. `CommandAt` and `TapAt` route through the same
-target resolver with explicit command/touch intents. Touch taps select allies,
+click from a box selection with an 8-pixel threshold. Right mouse press and release
+bindings execute while paused. LMB HUD and armed-skill clicks are handled on press;
+RMB selection waits for release. `CommandAt`, `SelectAt` and `TapAt` route through the same
+target resolver with explicit command/selection/touch intents. Touch taps select allies,
 inspect enemies and command terrain contextually, rather than pretending to be
 desktop left clicks. Armed abilities retain their separate left/tap targeting path.
 
 Box selection uses projected living party capsule centres and normalized screen
 bounds, excludes HUD-covered centres, preserves selection on an empty rectangle,
-and supports additive Shift selection. It does not enqueue orders. The old active
+and supports additive Ctrl selection. It does not enqueue orders. The old active
 member survives when still selected; otherwise the first hit becomes active.
 HUD marks the active member with a gold bar, existing crosshair asset and world
-ring; other selected members are green. Portrait Shift-click both adds and
-activates a member. Pointer state is cancelled on invalid screen coordinates,
-menu/outcome gating, right-click, ability arming or explicit cancel. Touch
+ring; other selected members are green. Ctrl + portrait toggles membership;
+removing the active member restores another selected member when available.
+Pointer state is cancelled on invalid screen coordinates,
+menu/outcome gating, left-click command, ability arming or explicit cancel. Touch
 press/release bindings are pause-safe. Only a release within 24 screen pixels of
 the press becomes a click; slides are ignored so a mobile finger gesture cannot
 issue an accidental movement. With two active fingers, the controller pans from

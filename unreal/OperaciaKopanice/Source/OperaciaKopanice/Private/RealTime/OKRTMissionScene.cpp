@@ -32,7 +32,7 @@ AStaticMeshActor* AOKRTGameMode::MissionProp(const TCHAR* Path,FVector Center,FV
     }
     return Actor;
 }
-void AOKRTGameMode::SpawnMissionUnit(FVector Location,bool Enemy,float Yaw,const TArray<FOKRTPatrolStop>& Route)
+void AOKRTGameMode::SpawnMissionUnit(FVector Location,bool Enemy,float Yaw,const TArray<FOKRTPatrolStop>& Route,EOKGuardDuty Duty)
 {
     FActorSpawnParameters Params; Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
     auto* Unit=GetWorld()->SpawnActor<AOKRTUnit>(Location,FRotator(0,Yaw,0),Params);
@@ -41,7 +41,7 @@ void AOKRTGameMode::SpawnMissionUnit(FVector Location,bool Enemy,float Yaw,const
     {
         Enemies.Add(Unit);
         auto* AI=CastChecked<AOKRTGuardController>(Unit->GetController());
-        AI->PatrolRoute=Route; AI->bBrainEnabled=false;
+        AI->PatrolRoute=Route; AI->Duty=Duty; AI->bBrainEnabled=false;
     }
     else Party.Add(Unit);
 }
@@ -65,8 +65,6 @@ void AOKRTGameMode::BuildAdditionalMission()
     const FVector Huts2[]={{2450,1700,0},{4500,3200,0},{5700,4700,0},{3100,5700,0}};
     const FVector Huts3[]={{2200,5500,0},{3500,4400,0},{5500,1700,0},{5800,5400,0},{2800,900,0}};
     const TArray<FVector> Huts=MissionId==1 ? TArray<FVector>(Huts2,UE_ARRAY_COUNT(Huts2)) : TArray<FVector>(Huts3,UE_ARRAY_COUNT(Huts3));
-    const FVector Stops2[]={{3500,2400,0},{2600,4400,0},{5800,5400,0}};
-    const FVector Stops3[]={{4300,3900,0},{5700,2500,0},{3200,1400,0}};
     for (int32 I=0;I<Huts.Num();++I)
         MissionProp(I%2 ? Cabin : CabinAlt,Huts[I],FVector2D(720,720),(I%4)*90,true,TEXT("MissionCabin"));
     if (MissionId==1)
@@ -114,8 +112,9 @@ void AOKRTGameMode::BuildAdditionalMission()
                 FVector::Dist2D(P,ExitLocation)<400 || FVector::Dist2D(P,Definition.Spawn)<500)) continue;
             bool Clear=true;
             for (const FVector Hut:Huts) if (FVector::Dist2D(P,Hut)<650) Clear=false;
-            for (int32 Stop=0;Stop<3;++Stop)
-                if (FVector::Dist2D(P,MissionId==1 ? Stops2[Stop] : Stops3[Stop])<350) Clear=false;
+            for (const auto& Guard:Definition.Guards)
+                for (const auto& Stop:Guard.Route)
+                    if (FVector::Dist2D(P,Stop.Location)<350) Clear=false;
             if (MissionId==2 && FMath::Abs(P.X-4300)<160 && P.Y>2600 && P.Y<4100) Clear=false;
             if (!Clear) continue;
             const float Clearance=Kind==EForestPart::Rock ? 100.f : 55.f;
@@ -166,12 +165,8 @@ void AOKRTGameMode::BuildAdditionalMission()
     }
     SpawnMissionUnit(Definition.Spawn,false,0,{});
     SpawnMissionUnit(Definition.Spawn+FVector(180,0,0),false,0,{});
-    for (int32 I=0;I<3;++I)
-    {
-        const FVector Stop=MissionId==1 ? Stops2[I] : Stops3[I];
-        SpawnMissionUnit(Stop+FVector(0,0,100),true,0,{
-            {Stop,0,12},{Stop+FVector(180,0,0),90,2},{Stop+FVector(180,0,0),-90,1}});
-    }
+    for (const auto& Guard:Definition.Guards)
+        SpawnMissionUnit(Guard.Spawn,true,Guard.FacingYaw,Guard.Route,Guard.Duty);
     Select(0); CameraTarget=Definition.Spawn+FVector(700,-700,0); CameraTarget.Z=0;
     CameraDistance=5200;
     UE_LOG(LogTemp,Display,TEXT("OK_RT_MISSION_SCENE: id=%d size=%.0f huts=%d guards=%d"),MissionId,Size,Huts.Num(),Enemies.Num());

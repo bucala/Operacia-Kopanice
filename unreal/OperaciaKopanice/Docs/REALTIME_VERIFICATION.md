@@ -1,5 +1,56 @@
 # Real-Time Prototype Verification
 
+## Main Native World and Input: 2026-10-11
+
+This slice changes only the main Unreal game and its documentation. The Canvas
+runtime, web assets and Workers deployment are unchanged. The supplied manuals
+and indexed mission extracts inform the [native world contract](GAME_WORLD.md);
+no original manuals, mission scripts or game artwork are redistributed.
+
+UE 5.8.2 Win64 Development Editor compilation succeeds. Final DLL SHA-256:
+`402D054F241C3C3E1053444C0725244D4D8D4713B70E8BC2A0E4AB1193B1EEDD`.
+Development and upload binaries match. All 101 Source/Config files and all 94
+delivered Content files match between the two checkouts. Content packages are
+unchanged; native DLLs, logs, research captures and build caches remain ignored.
+Preferred-MSVC/optional SDK and engine/input deprecation warnings remain; this
+does not certify an Unreal 5.4 build, shipping EXE, Android or web input parity.
+
+| Rendered run | Result | Local log |
+| --- | --- | --- |
+| Development original/control/world 480 x 800 | 279/279 PASS | DemoSmoke-a2406d7af1b34b879fa9756e3f7ab0b2.log |
+| Upload original/control/world 1920 x 1080 | 279/279 PASS | DemoSmoke-e72d1b1d19f04700aa3aca2a9e5225b0.log |
+| Upload production startup 1920 x 1080 | 11/11 PASS | DemoSmoke-d3d004135a6244459262f0b26330156b.log |
+| Upload original mission, live AI 1280 x 720 | 15/15 PASS | DemoSmoke-89572023955a4c5097c306f1b831b812.log |
+| Upload courier -> command post, live campaign 1920 x 1080 | 286/286 PASS | DemoSmoke-b200331bf0bc4951845f4a1ae394b857.log |
+
+The controls fixture dispatches actual UE mouse/hotkey events as well as projected
+world-pick helpers. It covers LMB movement, double-LMB run promotion, RMB selection,
+Ctrl membership/number hotkeys, cancellation over HUD, explicit silent attack,
+typed E/hand targeting and rejection without losing plans. The real double-click
+test caught UE emitting both pressed and double-click events; normalization now
+issues that second click once. The planning fixture waits for the same complete
+scene-navigation readiness gate as production, not just the first bridge path.
+
+World tests cover all three objective chains, wrong-operation interactions,
+casualty/empty/partial extraction rejection, bridge safety, authored guard data,
+fixed versus mobile disturbance response, near/far stance detection and collision
+occlusion. The original fixture isolates some guard behavior for deterministic
+checks; production startup independently observes autonomous movement/patrols
+without a Space press, then optional pause, queue execution and menu returns.
+Native FHD and portrait order-plan screenshots were visually inspected for a
+nonblank world, supplied assets and usable HUD. They remain under ignored Saved.
+Central scene crops have RGB standard deviations above 59 in both viewports.
+The separate original live-AI playthrough observes forty seconds of safe spawn,
+repeated bridge watches and ten-second crossing windows, then collects TNT,
+crosses, destroys the span and extracts both members at full health without
+teleports, invulnerability or disabled guard brains.
+The campaign fixture traverses native menus, tests forest/HUD behavior, deploys
+the courier, extracts the team, travels through the results/next-operation flow,
+then collects TNT, sabotages the command post and extracts both members. Its
+playthrough phases keep guard brains enabled and use queued navigation/orders;
+sabotage must attract a mobile patrol. Both mission results retain full team
+health. Repeated per-frame layout assertions make the total count timing-dependent.
+
 ## Web Tactical Readability: 2026-10-11
 
 This slice changes only the web runtime/interface and shared documentation. Native

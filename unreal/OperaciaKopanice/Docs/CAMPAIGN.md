@@ -4,17 +4,23 @@ The native demo contains three authored runtime missions. There is no turn/grid
 simulation: the 180 cm footprint unit only sets asset scale and map dimensions.
 All movement uses continuous UE NavMesh paths and the existing two-member party.
 
-| Operation | Playable area | Patrols | Objective |
+| Operation | Playable area | Guards | Objective |
 | --- | --- | --- | --- |
 | 01 / Zimny viadukt | Original compact settlement | 2 | TNT, cross together, destroy bridge, extract |
-| 02 / Lesny kurier | 86.4 x 86.4 m (48 x 48 footprint units) | 3 | Retrieve documents, extract both members |
-| 03 / Tiche velitelstvo | 86.4 x 86.4 m (48 x 48 footprint units) | 3 | Collect TNT, disable command post, evade investigating patrol, extract |
+| 02 / Lesny kurier | 86.4 x 86.4 m (48 x 48 footprint units) | 2 patrols + 1 fixed sentry | Retrieve documents, extract both members |
+| 03 / Tiche velitelstvo | 86.4 x 86.4 m (48 x 48 footprint units) | 2 patrols + 1 fixed sentry | Collect TNT, disable command post, evade investigating patrol, extract |
 
 The new missions have distinct building/vehicle layouts, patrol stops, objective
 positions and safe western bypasses. Returning patrols can briefly face the route;
 the main roads are not intended to be crossed blindly. The courier's north route
 and the command post's western approach offer alternatives. Primary objectives
 alone never win: both living members must reach the extraction radius.
+
+`OKRTMission.cpp` owns guard spawns/facing/duty/timed routes separately from scene
+assembly. Fixed sentries react and turn toward disturbances without chasing off
+their post; mobile patrols investigate through NavMesh. Mission state predicates
+are shared by HUD, objective focus, typed interactions and extraction. See the
+[native world contract](GAME_WORLD.md) for the Commandos manual study and rules.
 
 ## Assets and Placement
 
@@ -105,7 +111,8 @@ occlusion and shrub stance factors; these do not complete mission objectives.
 Both playthroughs navigate into real shrub cover and capture the KRYT badge.
 Fixtures do not overwrite player preferences. See
 [verification](REALTIME_VERIFICATION.md) for completed runs and remaining gaps.
-This is a Windows editor-hosted UE demo; the legacy web game remains separate.
+This is a Windows editor-hosted UE demo; the web adaptation remains separate and
+was not changed by the main-native-only Commandos 2 input revision.
 
 ## Captured Build
 

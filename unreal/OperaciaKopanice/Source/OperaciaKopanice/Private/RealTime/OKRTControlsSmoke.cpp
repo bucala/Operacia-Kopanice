@@ -36,21 +36,25 @@ void AOKRTGameMode::SmokeControlsTests()
     Select(0); TogglePause();
     Click(Ground);
     Require(Party[0]->QueueSize()==0 && Party[1]->QueueSize()==0,
-        TEXT("left-click terrain only selects and never moves"));
+        TEXT("right-click terrain never issues movement"));
     Click(Second,true);
     Require(Party[0]->IsSelected() && Party[1]->IsSelected() && ActiveMember==1,
-        TEXT("Shift click selection uses modifier captured at press"));
+        TEXT("Ctrl right-click selection uses modifier captured at press"));
+    Click(Second,true);
+    Require(Party[0]->IsSelected() && !Party[1]->IsSelected() && ActiveMember==0,
+        TEXT("Ctrl right-click toggles membership and restores a selected active member"));
     Select(0);
     Require(PC->CommandAt(Ground) && Party[0]->QueueSize()==1 && Party[1]->QueueSize()==0,
-        TEXT("right-click terrain queues active unit movement during pause"));
+        TEXT("left-click terrain queues active unit movement during pause"));
     Require(PC->CommandAt(Ground,true) && Party[0]->QueueSize()==1,
-        TEXT("right double-click upgrades paused move without duplicate"));
+        TEXT("left double-click upgrades paused move without duplicate"));
     Require(Party[0]->Stance==EOKStance::Walk && UGameplayStatics::IsGamePaused(GetWorld()),
         TEXT("double-click does not change stance or simulation while paused"));
     Require(!PC->CommandAt(Second) && ActiveMember==0 && !Party[1]->IsSelected() && Party[0]->QueueSize()==1,
-        TEXT("right-click friendly does not select or replace an order"));
+        TEXT("left-click friendly does not select or replace an order"));
     PC->Arm(EOKOrder::Distract);
-    Require(PC->CommandAt(Ground) && !PC->bArmed && Party[0]->QueueSize()==1,
+    Click(Ground);
+    Require(!PC->bArmed && Party[0]->QueueSize()==1,
         TEXT("right-click cancels targeting without cancelling queued movement"));
     PC->Arm(EOKOrder::Distract); Press(EKeys::Escape);
     Require(!PC->bArmed && !bMenu && Party[0]->QueueSize()==1,
@@ -59,13 +63,13 @@ void AOKRTGameMode::SmokeControlsTests()
     Require(Party[0]->Stance==EOKStance::Run && Party[0]->QueueSize()==1,
         TEXT("double-click run begins when tactical pause resumes"));
     Party[0]->CancelOrders(); Party[0]->SetStance(EOKStance::Crouch);
-    Require(PC->CommandAt(Ground),TEXT("right-click accepts a crouched movement order"));
+    Require(PC->CommandAt(Ground),TEXT("left-click accepts a crouched movement order"));
     Party[0]->Tick(0);
     Require(Party[0]->Stance==EOKStance::Crouch,TEXT("ordinary movement preserves stealth stance"));
     Party[0]->CancelOrders(); Party[0]->SetStance(EOKStance::Walk); TogglePause();
     SelectAll();
     Require(PC->CommandAt(Ground) && Party[0]->QueueSize()==1 && Party[1]->QueueSize()==1,
-        TEXT("right-click issues formation movement to selected group"));
+        TEXT("left-click issues formation movement to selected group"));
     Require(PC->CommandAt(Ground,true) && Party[0]->QueueSize()==1 && Party[1]->QueueSize()==1,
         TEXT("double-click promotes both formation destinations once"));
     Party[0]->CancelOrders(); Party[1]->CancelOrders();
@@ -89,12 +93,15 @@ void AOKRTGameMode::SmokeControlsTests()
     const bool bCone=Enemies[0]->Vision->bConeVisible;
     Click(Guard);
     Require(Enemies[0]->Vision->bConeVisible!=bCone && Party[0]->QueueSize()==0,
-        TEXT("left-click enemy inspects vision without attacking"));
-    Require(PC->CommandAt(Guard) && Party[0]->QueueSize()==1 && Party[1]->QueueSize()==0,
-        TEXT("right-click living guard queues contextual takedown"));
+        TEXT("right-click enemy inspects vision without attacking"));
+    Require(!PC->CommandAt(Guard) && Party[0]->QueueSize()==0,
+        TEXT("unarmed left-click cannot accidentally attack a living guard"));
+    PC->Arm(EOKOrder::Takedown);
+    Require(PC->CommandAt(Guard) && !PC->bArmed && Party[0]->QueueSize()==1 && Party[1]->QueueSize()==0,
+        TEXT("armed left-click queues explicit takedown for active specialist"));
     Party[0]->CancelOrders(); Enemies[0]->Health=0;
     Require(PC->CommandAt(Guard) && Party[0]->QueueSize()==1,
-        TEXT("right-click neutralized guard queues body pickup"));
+        TEXT("left-click neutralized guard queues body pickup"));
     Party[0]->CancelOrders(); Enemies[0]->Health=100; Enemies[0]->Vision->bConeVisible=bCone;
     SelectAll(); Press(EKeys::Tab);
     Require(ActiveMember==1 && Party[0]->IsSelected() && Party[1]->IsSelected(),
@@ -106,7 +113,7 @@ void AOKRTGameMode::SmokeControlsTests()
         TEXT("hotkeys and select all exclude dead units"));
     Party[1]->Health=100;
     Require(!PC->CommandAt(FVector2D(25,30)) && Party[0]->QueueSize()==0,
-        TEXT("HUD blocks right-click world commands"));
+        TEXT("HUD blocks left-click world commands"));
     Require(PC->TapAt(Ground) && Party[0]->QueueSize()==1,
         TEXT("touch terrain tap retains movement without mouse selection ambiguity"));
     Press(EKeys::S);
@@ -114,14 +121,42 @@ void AOKRTGameMode::SmokeControlsTests()
         TEXT("S stops selected units during tactical pause"));
     Require(PC->TapAt(Second) && ActiveMember==1 && Party[1]->IsSelected() && !Party[0]->IsSelected(),
         TEXT("touch party tap selects a specialist"));
-    PC->Arm(EOKOrder::Distract); Click(Ground);
+    PC->Arm(EOKOrder::Distract); PC->CommandAt(Ground);
     Require(!PC->bArmed && Party[1]->QueueSize()==1 && Party[0]->QueueSize()==0,
         TEXT("armed left-click still targets an individual ability"));
     Party[1]->CancelOrders();
+    PC->Arm(EOKOrder::Interact);
+    Require(!PC->CommandAt(Ground) && PC->bArmed && Party[1]->QueueSize()==0,
+        TEXT("armed interaction rejects ordinary terrain without replacing orders"));
+    Require(PC->CommandAt(TNT) && !PC->bArmed && Party[1]->QueueSize()==1,
+        TEXT("E hand tool queues a typed approach rather than an immediate nearby action"));
+    Party[1]->CancelOrders();
     bool bDoubleClick=false;
     for (const auto& Binding:PC->InputComponent->KeyBindings)
-        bDoubleClick|=Binding.Chord.Key==EKeys::RightMouseButton && Binding.KeyEvent==IE_DoubleClick && Binding.bExecuteWhenPaused;
-    Require(bDoubleClick,TEXT("right double-click binding executes during tactical pause"));
+        bDoubleClick|=Binding.Chord.Key==EKeys::LeftMouseButton && Binding.KeyEvent==IE_DoubleClick && Binding.bExecuteWhenPaused;
+    Require(bDoubleClick,TEXT("left double-click binding executes during tactical pause"));
+    // Dispatch real mouse bindings as well as the deterministic pick helpers.
+    PC->SetMouseLocation(FMath::RoundToInt(Ground.X),FMath::RoundToInt(Ground.Y));
+    Press(EKeys::LeftMouseButton);
+    Require(Party[1]->QueueSize()==1,TEXT("actual LMB binding issues a movement order"));
+    Key(EKeys::LeftMouseButton,IE_DoubleClick); Key(EKeys::LeftMouseButton,IE_Released);
+    FOKRTOrder MouseOrder;
+    Require(Party[1]->QueueSize()==1 && Party[1]->GetQueuedOrder(0,MouseOrder) && MouseOrder.bRunToDestination,
+        TEXT("actual double LMB dispatch promotes the move without duplicating the plan"));
+    Party[1]->CancelOrders();
+    PC->SetMouseLocation(FMath::RoundToInt(Second.X),FMath::RoundToInt(Second.Y));
+    Select(0); Press(EKeys::RightMouseButton);
+    Require(ActiveMember==1 && Party[1]->IsSelected() && Party[0]->QueueSize()==0 && Party[1]->QueueSize()==0,
+        TEXT("actual RMB press release selects without issuing a command"));
+    Key(EKeys::LeftControl,IE_Pressed); Press(EKeys::RightMouseButton);
+    Require(!Party[0]->IsSelected() && !Party[1]->IsSelected(),TEXT("actual Ctrl RMB dispatch removes the last selected member"));
+    Press(EKeys::One);
+    Require(ActiveMember==0 && Party[0]->IsSelected() && !Party[1]->IsSelected(),TEXT("actual Ctrl number dispatch adds a specialist"));
+    Press(EKeys::RightMouseButton); Key(EKeys::LeftControl,IE_Released);
+    Require(ActiveMember==1 && Party[0]->IsSelected() && Party[1]->IsSelected(),TEXT("actual Ctrl RMB dispatch adds a specialist to the group"));
+    PC->Arm(EOKOrder::Distract); PC->SetMouseLocation(25,30); Press(EKeys::RightMouseButton);
+    Require(!PC->bArmed && ActiveMember==1 && Party[0]->IsSelected() && Party[1]->IsSelected(),
+        TEXT("RMB over a HUD panel cancels a tool without invoking a portrait action"));
     ToggleMenu();
     Require(!PC->CommandAt(Ground) && Party[1]->QueueSize()==0,TEXT("menu gates RTT world commands"));
     ToggleMenu(); TogglePause(); Select(0); PC->CancelPointer(); PC->bArmed=false;

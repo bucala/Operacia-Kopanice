@@ -34,8 +34,10 @@ je zobrazený v nasledujúcej časti.
 ## Unreal Real-Time Prototype
 
 Unreal režim je **stealth real-time tactics (RTT)** v štýle Commandos, nie adventúra
-point-and-click: ľavý klik vyberá jednotky, pravý vydáva kontextové rozkazy a dvojklik
-na terén vyžiada beh. Ctrl+A vyberie tím, Tab prepne aktívnu postavu a Space umožní
+point-and-click. Hlavná verzia používa schému podľa Commandos 2: pravý klik vyberá
+jednotky, ľavý vydáva rozkazy a dvojitý ľavý klik na terén vyžiada beh. Ctrl + pravý
+klik pridáva alebo odoberá jednotku, pravé ťahanie vyberá skupinu. Ctrl+A vyberie tím,
+Tab prepne aktívnu postavu a Space/P umožní
 plánovať rozkazy počas taktickej pauzy. Schopnosti používa iba aktívna postava.
 
 Nový predvolený Unreal režim používa NavMesh, súvislé hliadky, zorné kužele,
@@ -73,6 +75,12 @@ Krížik v paneli úlohy zameria kameru na aktuálny cieľ.
 [Ovládanie a overenie dema](unreal/OperaciaKopanice/PLAY_DEMO.md) ·
 [Architektúra real-time migrácie](unreal/OperaciaKopanice/Docs/REALTIME_STEALTH.md) ·
 [Natívne misie a menu](unreal/OperaciaKopanice/Docs/CAMPAIGN.md).
+
+[Interné pravidlá hlavnej hry](unreal/OperaciaKopanice/Docs/GAME_WORLD.md) oddeľujú
+grafiku, kolízie, vnímanie a postup misie. Definície misií teraz riadia aj stanovištia
+a trasy hliadok. Väčšie misie majú dve mobilné hliadky a jedného pevného strážcu;
+plazenie je vizuálne bezpečné vo vzdialenej zóne, nie v blízkej ani pred hlukom.
+Táto úprava sa týka iba hlavnej Unreal verzie; webové ovládanie zostáva nezmenené.
 
 ![Aktuálny Unreal real-time prototyp: Tiché veliteľstvo](unreal/OperaciaKopanice/Docs/Evidence/2026-10-07/Command-Post-1920x1080.png)
 

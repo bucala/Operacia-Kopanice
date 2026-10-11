@@ -40,6 +40,7 @@ public:
     virtual void StartPlay() override;
     virtual void Tick(float Delta) override;
     void Select(int32 Index,bool bAppend=false);
+    void ToggleSelection(int32 Index);
     void SelectAll();
     bool Command(FOKRTOrder Order,bool bAppend=false);
     void TogglePause();
@@ -70,6 +71,7 @@ public:
     FOKCommandFeedback CommandFeedback;
     bool HasCompletePath(FVector From,FVector To) const;
     FString Objective() const;
+    FOKRTMissionState WorldState() const;
     UPROPERTY(BlueprintReadOnly) TArray<TObjectPtr<AOKRTUnit>> Party;
     UPROPERTY(BlueprintReadOnly) TArray<TObjectPtr<AOKRTUnit>> Enemies;
     UPROPERTY(BlueprintReadOnly) bool bTacticalPause=false;
@@ -111,7 +113,7 @@ private:
     float CameraDistance=4250.f;
     void BuildScene();
     void BuildAdditionalMission();
-    void SpawnMissionUnit(FVector Location,bool Enemy,float Yaw,const TArray<struct FOKRTPatrolStop>& Route);
+    void SpawnMissionUnit(FVector Location,bool Enemy,float Yaw,const TArray<FOKRTPatrolStop>& Route,EOKGuardDuty Duty=EOKGuardDuty::Patrol);
     AStaticMeshActor* MissionProp(const TCHAR* Path,FVector Center,FVector2D Footprint,float Yaw,bool Blocking,FName Tag);
     TArray<FVector> CoverLocations;
     struct FFoliageCover { FVector Base; float Radius; float Height; };
@@ -134,6 +136,7 @@ private:
     FOKRTOrder IndividualOrder(const FOKRTOrder& Order,const AOKRTUnit* Unit) const;
     int32 OrderHUDSmokeStage=0;
     void SmokeControlsTests();
+    void SmokeWorldTests();
     void SmokeNavigationTests();
     void CampaignSmokeTick();
     void SmokeForestTests();

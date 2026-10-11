@@ -218,26 +218,10 @@ void AOKRTGameMode::BuildScene()
     for (auto* Part:Parts) { Part->SetCollisionProfileName(TEXT("NoCollision")); Part->SetCanEverAffectNavigation(false); }
     Bridge->GapBlocker->SetBoxExtent(FVector(140,110,150));
     TNTMarker=Place(TEXT("/Game/Kopanice/WinterGround/SM_OK_SupplyCrate.SM_OK_SupplyCrate"),TNTLocation+FVector(0,0,14));
-    for (int32 I=0;I<4;++I)
-    {
-        const bool Enemy=I>=2;
-        const FVector Location=I==0 ? FVector(300,1380,100) : I==1 ? FVector(480,1380,100) : I==2 ? FVector(660,700,100) : FVector(1740,1200,100);
-        FActorSpawnParameters Params; Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        auto* Unit=GetWorld()->SpawnActor<AOKRTUnit>(Location,FRotator(0,I==2 ? -90 : Enemy ? 90 : 0,0),Params);
-        Unit->Initialize(Enemy,I!=0);
-        if (Enemy)
-        {
-            Enemies.Add(Unit);
-            auto* AI=CastChecked<AOKRTGuardController>(Unit->GetController());
-            // Turn north before returning west, so the cone never sweeps the party spawn.
-            AI->PatrolRoute=I==2 ? TArray<FOKRTPatrolStop>{
-                {FVector(660,700,0),-90,12}, {FVector(840,700,0),0,2}, {FVector(840,700,0),-90,1}} :
-                TArray<FOKRTPatrolStop>{
-                {FVector(1740,1200,0),90,8}, {FVector(1740,1020,0),180,2}, {FVector(1740,1020,0),0,1}};
-            AI->bBrainEnabled=false;
-        }
-        else Party.Add(Unit);
-    }
+    SpawnMissionUnit(Mission().Spawn,false,0,{});
+    SpawnMissionUnit(Mission().Spawn+FVector(180,0,0),false,0,{});
+    for (const auto& Guard:Mission().Guards)
+        SpawnMissionUnit(Guard.Spawn,true,Guard.FacingYaw,Guard.Route,Guard.Duty);
     Select(0);
     }
     else BuildAdditionalMission();
@@ -283,6 +267,16 @@ void AOKRTGameMode::SelectAll()
     for (AOKRTUnit* Unit:Party) Unit->Select(Unit->IsAlive());
     if (!Party.IsValidIndex(ActiveMember) || !Party[ActiveMember]->IsAlive())
         for (int32 I=0;I<Party.Num();++I) if (Party[I]->IsAlive()) { ActiveMember=I; break; }
+}
+void AOKRTGameMode::ToggleSelection(int32 Index)
+{
+    if (bMenu || bWon || bLost || !Party.IsValidIndex(Index) || !Party[Index]->IsAlive()) return;
+    if (!Party[Index]->IsSelected()) { Select(Index,true); return; }
+    Party[Index]->Select(false);
+    if (ActiveMember==Index)
+        for (int32 I=0;I<Party.Num();++I)
+            if (Party[I]->IsAlive() && Party[I]->IsSelected()) { ActiveMember=I; break; }
+    PreviewSpline->ClearSplinePoints();
 }
 bool AOKRTGameMode::Command(FOKRTOrder Order,bool Append)
 {
@@ -377,8 +371,9 @@ void AOKRTGameMode::FocusSelected()
 void AOKRTGameMode::FocusObjective()
 {
     if (bMenu || bWon || bLost) return;
-    CameraTarget=bObjectiveComplete || bBridgeDestroyed ? ExitLocation :
-        Mission().Goal==EOKMissionGoal::Documents || !bHasTNT ? TNTLocation : DetonatorLocation;
+    const auto Stage=OKMissions::Stage(Mission(),WorldState());
+    CameraTarget=Stage==EOKObjectiveStage::Extraction ? ExitLocation :
+        Stage==EOKObjectiveStage::Supply || Mission().Goal==EOKMissionGoal::Documents ? TNTLocation : DetonatorLocation;
     UpdateCamera();
 }
 void AOKRTGameMode::Noise(AOKRTUnit* Source,FVector Location,float Loudness,float Range,FName Tag)
@@ -424,10 +419,11 @@ EOKInteraction AOKRTGameMode::FindInteractionAt(FVector PickedLocation,FVector& 
 void AOKRTGameMode::Interact(AOKRTUnit* Unit,EOKInteraction Kind)
 {
     if (!Unit || !Unit->IsAlive() || bWon || bLost) return;
-    if (Mission().Goal==EOKMissionGoal::Documents && !bObjectiveComplete &&
+    const auto State=WorldState();
+    if (OKMissions::CanExecute(Mission(),State,EOKInteraction::CollectDocuments) &&
         (Kind==EOKInteraction::Nearby || Kind==EOKInteraction::CollectDocuments) && FVector::Dist2D(Unit->Feet(),TNTLocation)<140)
     { bObjectiveComplete=true; if (TNTMarker) TNTMarker->SetActorHiddenInGame(true); Message=TEXT("Dokumenty ziskane. Presunte cely tim k vychodu."); return; }
-    if (Mission().Goal==EOKMissionGoal::CommandPost && bHasTNT && !bObjectiveComplete &&
+    if (OKMissions::CanExecute(Mission(),State,EOKInteraction::SabotageCommandPost) &&
         (Kind==EOKInteraction::Nearby || Kind==EOKInteraction::SabotageCommandPost) && FVector::Dist2D(Unit->Feet(),DetonatorLocation)<140)
     {
         bObjectiveComplete=true;
@@ -438,12 +434,12 @@ void AOKRTGameMode::Interact(AOKRTUnit* Unit,EOKInteraction Kind)
         Unit->CarriedBody.IsValid() && FVector::Dist2D(Unit->Feet(),HideLocation)<170)
     { Unit->DropBody(true); Message=TEXT("Telo ukryte."); return; }
     if ((Kind==EOKInteraction::Nearby || Kind==EOKInteraction::CollectTNT) &&
-        Mission().Goal!=EOKMissionGoal::Documents && !bHasTNT && FVector::Dist2D(Unit->Feet(),TNTLocation)<140)
+        OKMissions::CanExecute(Mission(),State,EOKInteraction::CollectTNT) && FVector::Dist2D(Unit->Feet(),TNTLocation)<140)
     { bHasTNT=true; if (TNTMarker) TNTMarker->SetActorHiddenInGame(true); Message=TEXT("TNT ziskane."); return; }
     if ((Kind==EOKInteraction::Nearby || Kind==EOKInteraction::DetonateBridge) &&
         Mission().Goal==EOKMissionGoal::Bridge && bHasTNT && !bBridgeDestroyed && FVector::Dist2D(Unit->Feet(),DetonatorLocation)<140)
     {
-        if (Party.IsEmpty() || PartyMembersOnSafeBank()!=Party.Num())
+        if (!OKMissions::CanExecute(Mission(),State,EOKInteraction::DetonateBridge))
         { Message=TEXT("Najprv presunte cely tim na vychodny breh."); return; }
         bBridgeDestroyed=true; Bridge->DestroySpan();
         TArray<UStaticMeshComponent*> Parts; Bridge->GetComponents(Parts);
@@ -501,14 +497,29 @@ FString AOKRTGameMode::Objective() const
 {
     if (bLost) return TEXT("Misia zlyhala");
     if (bWon) return TEXT("Misia splnena");
-    if (Mission().Goal==EOKMissionGoal::Documents) return bObjectiveComplete ? TEXT("Ustupte s dokumentmi a celym timom") : TEXT("Ziskajte dokumenty z tabora");
-    if (Mission().Goal==EOKMissionGoal::CommandPost)
-        return bObjectiveComplete ? TEXT("Dosiahnite vychod s oboma clenmi") : !bHasTNT ? TEXT("Ziskajte TNT pri sklade") : TEXT("Vyradte velitelstvo");
-    if (!bHasTNT) return TEXT("Ziskajte TNT");
-    if (bBridgeDestroyed) return TEXT("Dosiahnite vychod s oboma clenmi");
-    const int32 SafeMembers=PartyMembersOnSafeBank();
-    return SafeMembers==Party.Num() && !Party.IsEmpty() ? TEXT("Aktivujte detonator") :
-        FString::Printf(TEXT("Prejdite most: %d/%d v bezpeci"),SafeMembers,Party.Num());
+    const auto State=WorldState();
+    switch (OKMissions::Stage(Mission(),State))
+    {
+    case EOKObjectiveStage::Supply: return Mission().Goal==EOKMissionGoal::CommandPost ? TEXT("Ziskajte TNT pri sklade") : TEXT("Ziskajte TNT");
+    case EOKObjectiveStage::Crossing: return FString::Printf(TEXT("Prejdite most: %d/%d v bezpeci"),State.SafeBankCount,State.PartyCount);
+    case EOKObjectiveStage::Target: return Mission().Goal==EOKMissionGoal::Documents ? TEXT("Ziskajte dokumenty z tabora") :
+        Mission().Goal==EOKMissionGoal::CommandPost ? TEXT("Vyradte velitelstvo") : TEXT("Aktivujte detonator");
+    default: return TEXT("Dosiahnite vychod s celym timom");
+    }
+}
+FOKRTMissionState AOKRTGameMode::WorldState() const
+{
+    FOKRTMissionState State;
+    State.bSupplies=bHasTNT;
+    State.bTargetComplete=Mission().Goal==EOKMissionGoal::Bridge ? bBridgeDestroyed : bObjectiveComplete;
+    State.PartyCount=Party.Num(); State.SafeBankCount=PartyMembersOnSafeBank();
+    for (const AOKRTUnit* Unit:Party)
+        if (Unit && Unit->IsAlive())
+        {
+            ++State.AliveCount;
+            if (FVector::Dist2D(Unit->Feet(),ExitLocation)<160) ++State.ExitedCount;
+        }
+    return State;
 }
 void AOKRTGameMode::Tick(float Delta)
 {
@@ -531,14 +542,12 @@ void AOKRTGameMode::Tick(float Delta)
     {
         for (auto& Pulse:NoisePulses) Pulse.Age+=Delta;
         NoisePulses.RemoveAll([](const auto& P){ return P.Age>1.5f; });
-        bool AllExited=Mission().Goal==EOKMissionGoal::Bridge ? bBridgeDestroyed : bObjectiveComplete;
         for (AOKRTUnit* Unit:Party)
         {
             if (Unit->Feet().Z<-220 && Unit->IsAlive()) Unit->TakeHit(100);
             if (!Unit->IsAlive()) bLost=true;
-            AllExited=AllExited && Unit->IsAlive() && FVector::Dist2D(Unit->Feet(),ExitLocation)<160;
         }
-        if (AllExited && !bLost && !bWon)
+        if (OKMissions::CanExtract(WorldState()) && !bLost && !bWon)
         { bWon=true; CompletedMissions|=1<<MissionId; SavePreferences(); }
         if ((bWon || bLost) && !UGameplayStatics::IsGamePaused(GetWorld()))
         { UGameplayStatics::SetGamePaused(GetWorld(),true); }
