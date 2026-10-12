@@ -14,6 +14,7 @@ class OPERACIAKOPANICE_API AOKRTUnit : public ACharacter
 {
     GENERATED_BODY()
 public:
+    friend class AOKRTGameMode;
     AOKRTUnit();
     virtual void Tick(float Delta) override;
     virtual void GetActorEyesViewPoint(FVector& Location,FRotator& Rotation) const override;
@@ -40,6 +41,8 @@ public:
     UPROPERTY(BlueprintReadOnly) float Health=100;
     UPROPERTY(BlueprintReadOnly) EOKStance Stance=EOKStance::Walk;
     UPROPERTY(BlueprintReadOnly) int32 Distractions=5;
+    UPROPERTY(BlueprintReadOnly) int32 Medkits=2;
+    UPROPERTY(BlueprintReadOnly) EOKSpecialist Specialist=EOKSpecialist::Partisan;
     UPROPERTY(BlueprintReadOnly) float Cooldown=0;
     UPROPERTY(BlueprintReadOnly) bool bInCover=false;
     UPROPERTY(BlueprintReadOnly) bool bHiddenBody=false;
@@ -62,6 +65,9 @@ private:
     float MotionBlend=0;
     float CrouchBlend=0;
     float ProneBlend=0;
+    int32 ReadyBatch=0;
+    bool AwaitSynchronization(const FOKRTOrder& Order);
+    bool IsSyncReady(int32 Batch) const;
     void UpdateAnimation(float Delta);
     void FinishOrder();
     bool ValidateOrder(const FOKRTOrder& Order,bool bExecuting,bool bKeepQueue,FString& Reason) const;

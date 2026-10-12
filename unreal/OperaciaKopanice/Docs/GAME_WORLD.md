@@ -118,12 +118,14 @@ engine, parallel rule simulator or dependency was introduced for this contract.
 
 ## Not Yet Implemented
 
-Specialist-exclusive inventories, disguise, tied/unconscious enemies and recovery,
+Disguise, tied/unconscious enemies and recovery,
 usable vehicles, interiors/floors, ladders, swimming, barracks reinforcements,
 flashlights, real acoustic occlusion, weather-driven perception, arbitrary scripted
-objectives and save/load of a live mission need separate tested implementation.
-Current Partisan/Officer share prototype abilities; portraits do not imply those
-missing roles. Terrain still has simplified collision and animations are procedural.
+objectives need separate tested implementation.
+Officer-only medkits and live mission save/load are implemented in the modernization
+slice below. Takedown/distraction remain shared prototype abilities; portraits do
+not imply a complete specialist skill tree. Terrain still has simplified collision
+and animations are procedural.
 Native editor-hosted testing is not Windows shipping/APK/web parity certification.
 
 ## Authoring and Verification
@@ -138,3 +140,33 @@ authored population/duty, far crawling immunity, near exposure, occlusion and
 sentry/mobile disturbance response. Controls, original integration, live-AI
 bridge playthrough and both campaign playthroughs remain independent fixtures.
 See [verification](REALTIME_VERIFICATION.md) for actual run evidence and limitations.
+
+## Origins-Inspired Modernization
+
+The [official Origins FAQ](https://www.kalypsomedia.com/post/commandos-origins-faq)
+informs coordinated team actions and specialist roles. This remains an original
+Kopanice prototype, not a reproduction of Origins or a claim of equivalent scope.
+
+- Command Mode owns separate one-action-per-member drafts. Cancelling editing
+  preserves normal queues. Commit validates all participating orders before any
+  queue is replaced. A batch then approaches and waits at a readiness barrier;
+  cooldown, reach, rear angle, line of sight and typed mission prerequisites still
+  apply. After release, actions execute in the real-time frame loop.
+- A lost target/path or explicit stop cancels an unreleased batch for the whole
+  participating team. One batch can be active at a time. Completed actions are
+  not rolled back after release. The system is not a future-outcome simulator.
+- SaveGame schema 1 stores stable actor indices, not transient UObject pointers.
+  Validation runs before world mutation; loading rebuilds scene/topology and
+  navigation before restoring saved pause. Ordinary paths restart toward saved
+  destinations, rather than serializing UE path-following internals.
+- The desktop map is a schematic, not a navigation proof or omniscient radar.
+  Enemy dots require current actual party LoS. Clicks focus the camera only.
+- Cabin perimeter shrubs/rocks/crates reuse existing meshes as non-blocking HISM
+  dressing. They do not introduce implicit cover. Existing tactical proxies keep
+  owning cover/navigation. Snow normals use derivative-filtered detail to reduce
+  distant shimmer; masks for existing river/road transitions remain unchanged.
+
+Multiplayer/co-op, a six-specialist roster, disguise, multi-step synchronized
+timelines, fully authored combat/carry animations and AAA-quality terrain/assets
+remain future work. The current menu/save systems are editor-hosted Windows
+features, not a packaged product or web/Android parity promise.

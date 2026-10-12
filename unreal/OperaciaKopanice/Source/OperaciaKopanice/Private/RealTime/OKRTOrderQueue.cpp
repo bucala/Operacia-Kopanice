@@ -14,6 +14,7 @@ namespace
             Order.bRunToDestination ? TEXT("Beh") : TEXT("Presun")};
         case EOKOrder::Takedown: return {TEXT("swords"),TEXT("Tichy utok")};
         case EOKOrder::Distract: return {TEXT("circle_dot"),TEXT("Odlakanie")};
+        case EOKOrder::Heal: return {TEXT("heart_pulse"),TEXT("Osetrenie")};
         case EOKOrder::Carry: return {TEXT("backpack"),Order.Target.IsExplicitlyNull() ? TEXT("Polozit telo") : TEXT("Preniest telo")};
         case EOKOrder::Stance:
             switch (Order.Stance)
@@ -42,6 +43,24 @@ namespace
 void AOKRTHUD::DrawOrderQueue(AOKRTGameMode* G,FVector2D Position,float Width)
 {
     auto* Unit=G->Party[G->ActiveMember].Get();
+    if (G->bCommandMode)
+    {
+        if (Position.Y<0) return;
+        Panels.Add(FBox2D(Position,Position+FVector2D(Width,70)));
+        DrawRect(FLinearColor(.025f,.03f,.035f,.92f),Position.X,Position.Y,Width,70);
+        Label(TEXT("TIMOVY PLAN"),Position.X+8,Position.Y+6,.85f,FLinearColor(.91f,.8f,.52f));
+        for (int32 I=0;I<G->Party.Num();++I)
+        {
+            FOKRTOrder O; const bool Valid=G->GetDraft(I,O);
+            const auto D=Describe(O); const float X=Position.X+8+I*(Width/2);
+            Button(Valid ? D.Icon : FName(TEXT("clock_3")),X,Position.Y+27,36,G->Party[I]->DisplayName+(Valid ? TEXT(" / ")+D.Name : TEXT(" / bez akcie")),
+                [G,I](){ G->Select(I); },G->ActiveMember==I);
+            Buttons.Last().Id=FName(*FString::Printf(TEXT("Draft%d"),I));
+            Label(G->Party[I]->DisplayName,X+42,Position.Y+30,.85f);
+            Label(Valid ? D.Name : TEXT("Bez akcie"),X+42,Position.Y+46,.75f,FLinearColor(.7f,.8f,.76f));
+        }
+        return;
+    }
     if (QueueUnit.Get()!=Unit) { QueueUnit=Unit; QueuePage=0; }
     const int32 Count=Unit->QueueSize(),Pages=FMath::Max(1,FMath::DivideAndRoundUp(Count,5));
     QueuePage=FMath::Clamp(QueuePage,0,Pages-1);

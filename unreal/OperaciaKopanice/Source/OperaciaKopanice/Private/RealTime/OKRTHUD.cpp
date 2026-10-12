@@ -56,6 +56,14 @@ bool AOKRTHUD::Click(FVector2D Point)
     // Copy the callback: restarting can invalidate HUD state on the following frame.
     for (const auto& B:Buttons) if (B.Bounds.IsInsideOrOn(Point))
     { if (B.bEnabled) { auto Action=B.Action; Action(); } return true; }
+    if (MapPanel.bIsValid && MapPanel.IsInsideOrOn(Point))
+    {
+        auto* G=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
+        const auto Bounds=G->TacticalBounds();
+        const FVector2D UV=(Point-MapPanel.Min)/MapPanel.GetSize();
+        const FVector2D World=Bounds.Min+UV*Bounds.GetSize();
+        G->FocusWorld(FVector(World.X,World.Y,0)); return true;
+    }
     return OverUI(Point);
 }
 bool AOKRTHUD::ValidateLayout() const
@@ -91,7 +99,7 @@ void AOKRTHUD::DrawHUD()
     auto* G=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
     auto* PC=Cast<AOKRTPlayerController>(PlayerOwner);
     if (!Canvas || !G || !PC || G->Party.Num()!=2) return;
-    Buttons.Reset(); Panels.Reset();
+    Buttons.Reset(); Panels.Reset(); MapPanel=FBox2D(ForceInit);
     const float W=Canvas->SizeX,H=Canvas->SizeY;
     RenderSize=FVector2D(W,H);
     if (G->bMenu || G->bWon || G->bLost) { DrawMenu(G,W,H); return; }
@@ -129,10 +137,16 @@ void AOKRTHUD::DrawHUD()
         Label(FString::FromInt(Unit->Distractions),X+23,Y+Card+29,.85f);
         Icon(TEXT("move_right"),X+37,Y+Card+29,14,FLinearColor(.8f,.83f,.8f));
         Label(FString::FromInt(Unit->QueueSize()),X+53,Y+Card+29,.85f);
+        if (!Compact && Unit->Specialist==EOKSpecialist::Officer)
+        {
+            Icon(TEXT("heart_pulse"),X+73,Y+Card+29,14,FLinearColor(.68f,.87f,.76f));
+            Label(FString::FromInt(Unit->Medkits),X+91,Y+Card+29,.85f);
+        }
         if (Active && !Compact) Icon(TEXT("crosshair"),X+Card-23,Y+Card+29,16,FLinearColor(.91f,.8f,.52f));
         const FBox2D Bounds(FVector2D(X,Y),FVector2D(X+Card,Y+Card+48));
         Panels.Add(Bounds); Buttons.Add({Bounds,[PC,I](){ PC->SelectMember(I,PC->IsInputKeyDown(EKeys::LeftControl) || PC->IsInputKeyDown(EKeys::RightControl)); },
-            Unit->DisplayName+(Active ? TEXT(" (aktivna)") : TEXT(""))+(Unit->bInCover ? TEXT(" / v kryte") : TEXT(""))});
+            Unit->DisplayName+(Active ? TEXT(" (aktivna)") : TEXT(""))+(Unit->bInCover ? TEXT(" / v kryte") : TEXT(""))+
+            (Unit->Specialist==EOKSpecialist::Officer ? FString::Printf(TEXT(" / lekarnicky: %d"),Unit->Medkits) : TEXT(" / infiltrace"))});
         if (Unit->IsSelected()) WorldRing(Unit->Feet(),42,Active ? FLinearColor(.91f,.8f,.52f,.9f) : FLinearColor(.65f,.9f,.73f,.7f));
     }
     const float ObjectiveWidth=FMath::Min(320.f,W-Card-64);
@@ -142,7 +156,7 @@ void AOKRTHUD::DrawHUD()
     Button(TEXT("crosshair"),W-48,22,28,TEXT("Zamerat aktualny ciel"),[G](){ G->FocusObjective(); });
     Buttons.Last().Id=TEXT("FocusObjective");
     Wrap(G->Objective(),W-ObjectiveWidth-6,54,ObjectiveWidth-20,Compact ? .95f : 1.2f);
-    Label(G->bTacticalPause ? TEXT("TAKTICKA PAUZA") : TEXT("REALNY CAS"),W-ObjectiveWidth-6,106,.9f,
+    Label(G->bCommandMode ? TEXT("SYNCHRONIZOVANY PLAN") : G->ActiveSyncBatch ? TEXT("TIM / SYNCHRONIZACIA") : G->bTacticalPause ? TEXT("TAKTICKA PAUZA") : TEXT("REALNY CAS"),W-ObjectiveWidth-6,106,.9f,
         G->bTacticalPause ? FLinearColor(.91f,.8f,.52f) : FLinearColor(.55f,.83f,.65f));
     for (AOKRTUnit* Enemy:G->Enemies)
     {
@@ -209,7 +223,9 @@ void AOKRTHUD::DrawHUD()
             if (!Compact) Label(Names[I],P.X+12,P.Y-5,.85f);
         }
     }
-    const float X=W-16-7*(S+4),Y=H-16-2*(S+4);
+    DrawDrafts(G);
+    DrawTacticalMap(G,W,H);
+    const float X=W-16-7*(S+4),Y=H-16-3*(S+4);
     auto* Unit=G->Party[G->ActiveMember].Get();
     Button(G->bTacticalPause ? TEXT("play") : TEXT("pause"),X,Y,S,G->bTacticalPause ? TEXT("Pokracovat (Space)") : TEXT("Takticka pauza (Space)"),[G](){ G->TogglePause(); },G->bTacticalPause);
     Button(TEXT("swords"),X+(S+4),Y,S,TEXT("Tichy utok (T)"),[PC](){ PC->Arm(EOKOrder::Takedown); },PC->bArmed && PC->ArmedOrder==EOKOrder::Takedown);
@@ -224,7 +240,22 @@ void AOKRTHUD::DrawHUD()
         Button(StanceIcons[I],X+I*(S+4),Y+S+4,S,StanceNames[I],[PC,I](){ PC->SetPartyStance(static_cast<EOKStance>(I)); },static_cast<int32>(Unit->Stance)==I);
     Button(TEXT("rotate_ccw"),X+4*(S+4),Y+S+4,S,TEXT("Otocit kameru"),[G](){ G->Orbit(G->bSteppedCamera ? -45 : -8,0); });
     Button(TEXT("rotate_cw"),X+5*(S+4),Y+S+4,S,TEXT("Otocit kameru"),[G](){ G->Orbit(G->bSteppedCamera ? 45 : 8,0); });
-    Button(TEXT("minus"),X+6*(S+4),Y+S+4,S,TEXT("Zrusit prikazy (X)"),[G,PC](){ PC->bArmed=false; for (AOKRTUnit* U:G->Party) if (U->IsSelected()) U->CancelOrders(); });
+    Button(TEXT("minus"),X+6*(S+4),Y+S+4,S,TEXT("Zrusit prikazy (X)"),[G,PC](){ PC->bArmed=false; if (G->bCommandMode) G->CancelPlan(); else for (AOKRTUnit* U:G->Party) if (U->IsSelected()) U->CancelOrders(); });
+    const float Third=Y+2*(S+4);
+    Button(TEXT("layers"),X,Third,S,TEXT("Synchronizovany plan (Z)"),[G,PC](){ PC->bArmed=false; G->ToggleCommandMode(); },G->bCommandMode,!G->ActiveSyncBatch);
+    Buttons.Last().Id=TEXT("CommandMode");
+    Button(TEXT("check"),X+(S+4),Third,S,TEXT("Vykonat plan (Enter)"),[G](){ G->ExecutePlan(); },false,G->bCommandMode);
+    Buttons.Last().Id=TEXT("ExecutePlan");
+    Button(TEXT("x"),X+2*(S+4),Third,S,TEXT("Zrusit synchronizaciu"),[G](){ if (G->bCommandMode) G->CancelPlan(); else G->CancelSync(G->ActiveSyncBatch); },false,G->bCommandMode || G->ActiveSyncBatch!=0);
+    Buttons.Last().Id=TEXT("CancelPlan");
+    Button(TEXT("heart_pulse"),X+3*(S+4),Third,S,TEXT("Osetrenie / dostojnik (H)"),[PC](){ PC->Arm(EOKOrder::Heal); },PC->bArmed && PC->ArmedOrder==EOKOrder::Heal,Unit->Specialist==EOKSpecialist::Officer && Unit->Medkits>0);
+    Buttons.Last().Id=TEXT("Heal");
+    Button(TEXT("save"),X+4*(S+4),Third,S,TEXT("Rychle ulozenie (F5)"),[G](){ G->QuickSave(); });
+    Buttons.Last().Id=TEXT("QuickSave");
+    Button(TEXT("folder_open"),X+5*(S+4),Third,S,TEXT("Obnovit misiu (F9)"),[G](){ G->QuickLoad(); },false,G->HasQuickSave());
+    Buttons.Last().Id=TEXT("QuickLoad");
+    Button(TEXT("map"),X+6*(S+4),Third,S,TEXT("Takticka mapa"),[this](){ bMapVisible=!bMapVisible; },bMapVisible,W>=800 && H>=650);
+    Buttons.Last().Id=TEXT("TacticalMap");
     const float MessageW=Compact ? W-32 : FMath::Min(490.f,X-32);
     const float MessageY=Compact ? Y-52 : H-68;
     DrawRect(FLinearColor(.025f,.03f,.035f,.82f),16,MessageY,MessageW,44);
@@ -232,7 +263,7 @@ void AOKRTHUD::DrawHUD()
     const bool RejectedTarget=G->CommandFeedbackOpacity()>0 && G->CommandFeedback.Accepted==0;
     const FString Feedback=PC->bArmed && !RejectedTarget ? PC->ArmedOrder==EOKOrder::Takedown ? TEXT("Tichy utok: vyber hliadku") :
         PC->ArmedOrder==EOKOrder::Carry ? TEXT("Preniest telo: vyber ciel") :
-        PC->ArmedOrder==EOKOrder::Interact ? TEXT("Interakcia: vyber objekt") : TEXT("Odlakanie: vyber miesto") : G->Message;
+        PC->ArmedOrder==EOKOrder::Interact ? TEXT("Interakcia: vyber objekt") : PC->ArmedOrder==EOKOrder::Heal ? TEXT("Osetrenie: zraneny spojenec") : TEXT("Odlakanie: vyber miesto") : G->Message;
     Wrap(Unit->Cooldown>0 ? FString::Printf(TEXT("%s | %.1fs"),*Feedback,Unit->Cooldown) : Feedback,24,MessageY+10,MessageW-16,.95f);
     DrawOrderQueue(G,FVector2D(Compact ? 16 : X,(Compact ? MessageY : Y)-78),Compact ? W-32 : 7*(S+4)-4);
     DrawCommandFeedback();

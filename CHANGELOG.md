@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Main Native Modern Tactics: 2026-10-12
+
+- Add independent one-action-per-member Command Mode drafts (Z), all-or-nothing
+  validation and approach/readiness barriers before synchronized execution (Enter).
+  Cancellation preserves ordinary queues during drafting; lost targets cancel an
+  unreleased batch. Completion never automatically pauses the real-time game.
+- Give the officer two first-aid kits (H): heal a living wounded ally by 60 health
+  with a five-second cooldown, without resurrection. Retain shared stealth skills.
+- Add versioned native quicksave/load (F5/F9) for inventory, queues, drafts, active
+  batches, guards, bodies, mission objectives, bridge topology and camera. Rebuild
+  navigation before restoring a paused wreck. Reject invalid snapshots before mutation.
+- Remove inherited editor F5/F9 debug bindings that conflict with these controls.
+- Add a draft tray, cancellation/execution tools, save/load menu entries and a
+  clickable desktop schematic minimap with party-line-of-sight enemy markers.
+- Instance existing shrubs, limestone rocks and crates around cabin perimeters
+  outside reserved routes; keep this additional dressing nonblocking. Filter fine
+  snow normals, reduce exposure and finish editor render-data compilation before pause.
+- Add a rendered modernization fixture with actual hotkeys, friendly-marker healing,
+  batch cancellation, save/travel/restore and desktop/portrait HUD checks. Include
+  seven small Lucide icon textures, their regeneration tool and ISC license.
+- Only the main Unreal game changes. No new heavy meshes, web deployment, shipping
+  EXE/APK, co-op, six-specialist roster or multi-step synchronized timeline is claimed.
+
 ### Main Native World and Commandos 2 Input: 2026-10-11
 
 - Work only on the main Unreal game. Study the supplied Commandos 2/BEL manuals

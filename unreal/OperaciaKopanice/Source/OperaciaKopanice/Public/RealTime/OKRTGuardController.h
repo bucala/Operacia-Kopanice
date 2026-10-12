@@ -14,6 +14,7 @@ class OPERACIAKOPANICE_API AOKRTGuardController : public AAIController
 {
     GENERATED_BODY()
 public:
+    friend class AOKRTGameMode;
     AOKRTGuardController();
     virtual void Tick(float Delta) override;
     virtual FGenericTeamId GetGenericTeamId() const override;

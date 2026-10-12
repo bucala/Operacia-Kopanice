@@ -44,13 +44,22 @@ void AOKRTHUD::DrawMenu(AOKRTGameMode* G,float W,float H)
         const bool Ended=G->bWon || G->bLost;
         Label(G->bFrontEnd ? TEXT("Hlavne menu") : G->bWon ? TEXT("Operacia uspesna") : G->bLost ? TEXT("Tim bol odhaleny") : TEXT("Operacia pozastavena"),X,Y,1.3f,Gold);
         int32 Index=0;
-        if (!G->bFrontEnd && !Ended) Row(TEXT("Resume"),TEXT("play"),TEXT("Pokracovat v misii"),42+52*Index++,[G](){ G->MenuBack(); });
+        const int32 Rows=4+int32(!G->bFrontEnd)+2*int32(!G->bFrontEnd && !Ended)+int32(G->bWon && G->MissionId+1<OKMissions::Count);
+        const float Spacing=FMath::Min(52.f,(Footer-Y-50)/Rows);
+        auto PauseRow=[&](FName Id,FName Image,const FString& Text,TFunction<void()> Action,bool Enabled=true)
+        {
+            MenuAction(Id,Image,Text,FVector2D(X,Y+42+Spacing*Index++),FVector2D(RowW,Spacing-6),MoveTemp(Action));
+            Buttons.Last().bEnabled=Enabled;
+        };
+        if (!G->bFrontEnd && !Ended) PauseRow(TEXT("Resume"),TEXT("play"),TEXT("Pokracovat v misii"),[G](){ G->MenuBack(); });
         if (G->bWon && G->MissionId+1<OKMissions::Count)
-            Row(TEXT("NextMission"),TEXT("move_right"),TEXT("Dalsia operacia"),42+52*Index++,[G](){ G->PreviewMission=G->MissionId+1; G->OpenMenuPage(EOKMenuPage::Briefing); });
-        Row(TEXT("Missions"),TEXT("grid_2x2"),TEXT("Vyber misie"),42+52*Index++,[Page](){ Page(EOKMenuPage::Missions); });
-        Row(TEXT("Options"),TEXT("settings"),TEXT("Nastavenia"),42+52*Index++,[Page](){ Page(EOKMenuPage::Options); });
-        if (!G->bFrontEnd) Row(TEXT("Restart"),TEXT("rotate_ccw"),TEXT("Restart misie"),42+52*Index++,[Page](){ Page(EOKMenuPage::ConfirmRestart); });
-        Row(TEXT("Quit"),TEXT("menu"),TEXT("Ukoncit hru"),42+52*Index++,[Page](){ Page(EOKMenuPage::ConfirmQuit); });
+            PauseRow(TEXT("NextMission"),TEXT("move_right"),TEXT("Dalsia operacia"),[G](){ G->PreviewMission=G->MissionId+1; G->OpenMenuPage(EOKMenuPage::Briefing); });
+        PauseRow(TEXT("Missions"),TEXT("grid_2x2"),TEXT("Vyber misie"),[Page](){ Page(EOKMenuPage::Missions); });
+        PauseRow(TEXT("Options"),TEXT("settings"),TEXT("Nastavenia"),[Page](){ Page(EOKMenuPage::Options); });
+        if (!G->bFrontEnd && !Ended) PauseRow(TEXT("SaveMission"),TEXT("save"),TEXT("Ulozit rozpracovanu misiu"),[G](){ G->QuickSave(); });
+        PauseRow(TEXT("LoadMission"),TEXT("folder_open"),TEXT("Obnovit ulozenu misiu"),[G](){ G->QuickLoad(); },G->HasQuickSave());
+        if (!G->bFrontEnd) PauseRow(TEXT("Restart"),TEXT("rotate_ccw"),TEXT("Restart misie"),[Page](){ Page(EOKMenuPage::ConfirmRestart); });
+        PauseRow(TEXT("Quit"),TEXT("menu"),TEXT("Ukoncit hru"),[Page](){ Page(EOKMenuPage::ConfirmQuit); });
         if (!Compact)
         {
             const float RX=X+420;

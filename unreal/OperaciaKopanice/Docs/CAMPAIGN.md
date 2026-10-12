@@ -88,9 +88,12 @@ orders explicit; a rejected member retains its prior plan. Hover routes share
 submission's endpoint/navigation checks and the active unit's formation offset.
 
 Preferences and completed-operation flags are saved in local GameUserSettings.
-They are not a mid-mission save system: closing or restarting loses the active
-mission's unfinished progress. Audio mixing, remappable bindings, gamepad menus,
-Android packaging and cloud saves are not implemented by this pass.
+They are separate from the versioned native mid-mission quicksave (F5/F9), which
+restores units, guards, bodies, objectives, bridge state and plans. Closing or
+restarting still loses progress not explicitly quicksaved; only one local slot
+is available. See [saved missions](../PLAY_DEMO.md#saved-missions) for limits.
+Audio mixing, remappable bindings, gamepad menus, Android packaging and cloud
+saves are not implemented.
 
 ## Launch and Verification
 

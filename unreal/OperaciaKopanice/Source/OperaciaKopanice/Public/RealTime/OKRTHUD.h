@@ -20,6 +20,7 @@ public:
     bool FindPartyMarker(int32 Member,FVector2D& Center) const;
     int32 PartyMarkerAt(FVector2D Point) const;
     bool FindCommandFeedback(FVector2D& Center) const;
+    FBox2D GetTacticalMapBounds() const { return MapPanel; }
 private:
     struct FPartyMarker { int32 Member; FBox2D Bounds; FVector2D Anchor; };
     TArray<FPartyMarker> BuildPartyMarkers() const;
@@ -42,4 +43,10 @@ private:
     void DrawOrderQueue(AOKRTGameMode* Game,FVector2D Position,float Width);
     TWeakObjectPtr<AOKRTUnit> QueueUnit;
     int32 QueuePage=0;
+    void DrawTacticalMap(AOKRTGameMode* Game,float Width,float Height);
+    void DrawDrafts(AOKRTGameMode* Game);
+    bool bMapVisible=true;
+    FBox2D MapPanel=FBox2D(ForceInit);
+    TArray<FBox2D> MapBuildings;
+    bool bMapBuilt=false;
 };

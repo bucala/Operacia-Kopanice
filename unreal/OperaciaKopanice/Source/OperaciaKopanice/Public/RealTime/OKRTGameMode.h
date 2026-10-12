@@ -11,6 +11,7 @@ class ACameraActor;
 class UBoxComponent;
 class USplineComponent;
 class AStaticMeshActor;
+class UOKRTSaveGame;
 
 USTRUCT()
 struct FOKNoisePulse
@@ -44,6 +45,25 @@ public:
     void SelectAll();
     bool Command(FOKRTOrder Order,bool bAppend=false);
     void TogglePause();
+    void ToggleCommandMode();
+    bool ExecutePlan();
+    void CancelPlan();
+    bool StagePlan(AOKRTUnit* Unit,const FOKRTOrder& Order);
+    bool GetDraft(int32 Index,FOKRTOrder& Order) const;
+    bool SyncReleased(int32 Batch) const;
+    void CancelSync(int32 Batch);
+    bool QuickSave();
+    bool QuickLoad();
+    bool HasQuickSave() const;
+    UOKRTSaveGame* CaptureSnapshot() const;
+    bool ValidateSnapshot(const UOKRTSaveGame* Save) const;
+    bool ApplySnapshot(const UOKRTSaveGame* Save);
+    void FocusWorld(FVector Location);
+    FBox2D TacticalBounds() const;
+    FVector GetCameraTarget() const { return CameraTarget; }
+    bool TeamSees(const AOKRTUnit* Enemy) const;
+    UPROPERTY(BlueprintReadOnly) bool bCommandMode=false;
+    int32 ActiveSyncBatch=0;
     void ToggleMenu();
     void LoadPreferences();
     void SavePreferences();
@@ -112,6 +132,17 @@ private:
     float CameraTilt=47.f;
     float CameraDistance=4250.f;
     void BuildScene();
+    void DressScene();
+    void BreakBridge();
+    void UpdateSynchronization();
+    FString SaveSlot() const;
+    UPROPERTY() TObjectPtr<UOKRTSaveGame> PendingLoad;
+    UPROPERTY() TArray<FOKRTOrder> Drafts;
+    TArray<bool> DraftValid;
+    TArray<bool> SyncParticipants;
+    bool bSyncReleased=false;
+    bool bPlanPriorPause=false;
+    int32 NextSyncBatch=1;
     void BuildAdditionalMission();
     void SpawnMissionUnit(FVector Location,bool Enemy,float Yaw,const TArray<FOKRTPatrolStop>& Route,EOKGuardDuty Duty=EOKGuardDuty::Patrol);
     AStaticMeshActor* MissionProp(const TCHAR* Path,FVector Center,FVector2D Footprint,float Yaw,bool Blocking,FName Tag);
@@ -137,6 +168,8 @@ private:
     int32 OrderHUDSmokeStage=0;
     void SmokeControlsTests();
     void SmokeWorldTests();
+    void ModernSmokeTick();
+    bool bModernSmoke=false;
     void SmokeNavigationTests();
     void CampaignSmokeTick();
     void SmokeForestTests();

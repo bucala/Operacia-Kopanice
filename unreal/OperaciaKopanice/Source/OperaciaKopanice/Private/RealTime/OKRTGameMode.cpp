@@ -1,4 +1,8 @@
 #include "RealTime/OKRTGameMode.h"
+#include "RealTime/OKRTSaveGame.h"
+#if WITH_EDITOR
+#include "AssetCompilingManager.h"
+#endif
 #include "RealTime/OKRTUnit.h"
 #include "RealTime/OKRTGuardController.h"
 #include "RealTime/OKRTVisionComponent.h"
@@ -79,7 +83,8 @@ void AOKRTGameMode::StartPlay()
     bMissionSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTMissionSmoke"));
     bCampaignSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTCampaignSmoke"));
     bRealtimeSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTRealtimeSmoke"));
-    bSmoke=bCampaignSmoke || bMissionSmoke || bRealtimeSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
+    bModernSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTModernSmoke"));
+    bSmoke=bModernSmoke || bCampaignSmoke || bMissionSmoke || bRealtimeSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
     const FString Requested=UGameplayStatics::ParseOption(OptionsString,TEXT("Mission"));
     if (Requested.IsEmpty()) FParse::Value(FCommandLine::Get(),TEXT("OKMission="),MissionId);
     else MissionId=FCString::Atoi(*Requested);
@@ -92,6 +97,18 @@ void AOKRTGameMode::StartPlay()
     SmokeStarted=StageStarted=FPlatformTime::Seconds();
     if (!bSmoke) LoadPreferences();
     BuildScene();
+    DressScene();
+#if WITH_EDITOR
+    // Imported editor assets may still have pending render-data compilation.
+    // Complete it before entering a paused menu or command-planning view.
+    FAssetCompilingManager::Get().FinishAllCompilation();
+#endif
+    if (UGameplayStatics::HasOption(OptionsString,TEXT("QuickLoad")))
+    {
+        PendingLoad=Cast<UOKRTSaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlot(),0));
+        if (ValidateSnapshot(PendingLoad) && PendingLoad->bBridge) BreakBridge();
+        if (bModernSmoke) SmokeStage=100;
+    }
     if (bCampaignSmoke)
     {
         TogglePause(); ToggleMenu();
@@ -231,7 +248,7 @@ void AOKRTGameMode::BuildScene()
     Lens->bOverrideAspectRatioAxisConstraint=true;
     Lens->SetAspectRatioAxisConstraint(EAspectRatioAxisConstraint::AspectRatio_MaintainXFOV);
     Lens->PostProcessSettings.bOverride_AutoExposureBias=true;
-    Lens->PostProcessSettings.AutoExposureBias=1.15f;
+    Lens->PostProcessSettings.AutoExposureBias=.25f;
     Lens->PostProcessSettings.bOverride_ColorSaturation=true;
     Lens->PostProcessSettings.ColorSaturation=FVector4(.93f,.96f,1.04f,1.f);
     Lens->PostProcessSettings.bOverride_ColorContrast=true;
@@ -289,9 +306,9 @@ bool AOKRTGameMode::Command(FOKRTOrder Order,bool Append)
         {
             ++Requested;
             const auto Individual=IndividualOrder(Order,Unit);
-            const bool Promoted=Order.Kind==EOKOrder::Move && Order.bRunToDestination &&
+            const bool Promoted=!bCommandMode && Order.Kind==EOKOrder::Move && Order.bRunToDestination &&
                 (Append || bTacticalPause || Unit->QueueSize()==1) && Unit->PromoteLastMoveToRun(Individual.Location);
-            if (Promoted || Unit->Submit(Individual,Append)) { ++Accepted; AcceptedName=Unit->DisplayName; }
+            if (Promoted || (bCommandMode ? StagePlan(Unit,Individual) : Unit->Submit(Individual,Append))) { ++Accepted; AcceptedName=Unit->DisplayName; }
             else if (Failure.IsEmpty()) Failure=Unit->DisplayName+TEXT(": ")+Message;
         }
     const FVector Target=Order.Target.IsValid() ? Order.Target->Feet() : Order.Location;
@@ -307,6 +324,7 @@ bool AOKRTGameMode::Command(FOKRTOrder Order,bool Append)
 void AOKRTGameMode::TogglePause()
 {
     if (bInitialPausePending || bWon || bLost || bMenu) return;
+    if (bCommandMode) { ExecutePlan(); return; }
     bTacticalPause=!bTacticalPause;
     UGameplayStatics::SetGamePaused(GetWorld(),bTacticalPause);
     Message=bTacticalPause ? TEXT("Takticka pauza") : TEXT("Prikazy vykonavane.");
@@ -441,12 +459,7 @@ void AOKRTGameMode::Interact(AOKRTUnit* Unit,EOKInteraction Kind)
     {
         if (!OKMissions::CanExecute(Mission(),State,EOKInteraction::DetonateBridge))
         { Message=TEXT("Najprv presunte cely tim na vychodny breh."); return; }
-        bBridgeDestroyed=true; Bridge->DestroySpan();
-        TArray<UStaticMeshComponent*> Parts; Bridge->GetComponents(Parts);
-        for (auto* Part:Parts) { Part->SetCollisionProfileName(TEXT("NoCollision")); Part->SetCanEverAffectNavigation(false); }
-        BridgeFloor->SetCollisionProfileName(TEXT("NoCollision"));
-        BridgeFloor->SetCanEverAffectNavigation(false);
-        FNavigationSystem::UpdateComponentData(*BridgeFloor);
+        BreakBridge();
         Noise(Unit,FVector(1080,720,0),1,1600,TEXT("Explosion"));
         Message=TEXT("Most zniceny. Ustupte spolu."); return;
     }
@@ -477,7 +490,7 @@ bool AOKRTGameMode::PreviewOrder(const FOKRTOrder& Order,bool Append)
     const auto* Unit=Party[ActiveMember].Get();
     if (!Unit->IsAlive() || !Unit->IsSelected()) return false;
     TArray<FVector> Points; FString Reason;
-    if (!Unit->GetOrderPath(IndividualOrder(Order,Unit),Append || bTacticalPause,Points,Reason) || Points.IsEmpty()) return false;
+    if (!Unit->GetOrderPath(IndividualOrder(Order,Unit),!bCommandMode && (Append || bTacticalPause),Points,Reason) || Points.IsEmpty()) return false;
     for (const auto& Point:Points) PreviewSpline->AddSplinePoint(Point+FVector(0,0,8),ESplineCoordinateSpace::World,false);
     PreviewSpline->UpdateSpline();
     return true;
@@ -524,8 +537,11 @@ FOKRTMissionState AOKRTGameMode::WorldState() const
 void AOKRTGameMode::Tick(float Delta)
 {
     Super::Tick(Delta);
-    if (bInitialPausePending && !UNavigationSystemV1::IsNavigationBeingBuiltOrLocked(GetWorld()) &&
-        HasCompletePath(Party[0]->Feet(),DetonatorLocation) && HasCompletePath(Party[0]->Feet(),ExitLocation))
+    const bool LoadedWreck=PendingLoad && ValidateSnapshot(PendingLoad) && PendingLoad->bBridge;
+    const bool ReadyRoutes=bInitialPausePending && (LoadedWreck
+        ? HasCompletePath(Party[0]->Feet(),TNTLocation) && HasCompletePath(PendingLoad->Units[0].Feet,ExitLocation)
+        : HasCompletePath(Party[0]->Feet(),DetonatorLocation) && HasCompletePath(Party[0]->Feet(),ExitLocation));
+    if (bInitialPausePending && !UNavigationSystemV1::IsNavigationBeingBuiltOrLocked(GetWorld()) && ReadyRoutes)
     {
         bInitialPausePending=false;
         for (AOKRTUnit* Guard:Enemies)
@@ -537,9 +553,15 @@ void AOKRTGameMode::Tick(float Delta)
         // to pause explicitly; the realtime fixture exercises the production path.
         if (bSmoke && !bRealtimeSmoke) TogglePause();
         if (bFrontEnd) OpenMenuPage(EOKMenuPage::Pause);
+        if (PendingLoad)
+        {
+            if (!ApplySnapshot(PendingLoad)) Message=TEXT("Obnovenie ulozenej misie zlyhalo.");
+            PendingLoad=nullptr;
+        }
     }
     if (!bTacticalPause && !bMenu)
     {
+        UpdateSynchronization();
         for (auto& Pulse:NoisePulses) Pulse.Age+=Delta;
         NoisePulses.RemoveAll([](const auto& P){ return P.Age>1.5f; });
         for (AOKRTUnit* Unit:Party)
@@ -552,7 +574,8 @@ void AOKRTGameMode::Tick(float Delta)
         if ((bWon || bLost) && !UGameplayStatics::IsGamePaused(GetWorld()))
         { UGameplayStatics::SetGamePaused(GetWorld(),true); }
     }
-    if (bRealtimeSmoke) RealtimeSmokeTick();
+    if (bModernSmoke) ModernSmokeTick();
+    else if (bRealtimeSmoke) RealtimeSmokeTick();
     else if (bCampaignSmoke) CampaignSmokeTick();
     else if (bMissionSmoke) MissionSmokeTick(Delta);
     else if (bSmoke) SmokeTick();

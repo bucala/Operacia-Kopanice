@@ -19,6 +19,11 @@ AOKRTGameMode* AOKRTPlayerController::Game() const { return GetWorld()->GetAuthG
 void AOKRTPlayerController::SetupInputComponent()
 {
     Super::SetupInputComponent();
+#if !UE_BUILD_SHIPPING
+    // Editor-hosted games inherit F5 shader complexity and F9 screenshot binds.
+    PlayerInput->DebugExecBindings.RemoveAll([](const FKeyBind& Binding)
+    { return Binding.Key==EKeys::F5 || Binding.Key==EKeys::F9; });
+#endif
     auto Bind=[this](FKey Key,void (AOKRTPlayerController::*Function)())
     { InputComponent->BindKey(Key,IE_Pressed,this,Function).bExecuteWhenPaused=true; };
     Bind(EKeys::LeftMouseButton,&AOKRTPlayerController::LeftClick);
@@ -37,9 +42,12 @@ void AOKRTPlayerController::SetupInputComponent()
     Bind(EKeys::C,&AOKRTPlayerController::Crouch); Bind(EKeys::V,&AOKRTPlayerController::Prone);
     Bind(EKeys::T,&AOKRTPlayerController::Takedown); Bind(EKeys::F,&AOKRTPlayerController::Throw);
     Bind(EKeys::B,&AOKRTPlayerController::Carry);
+    Bind(EKeys::H,&AOKRTPlayerController::Heal);
+    Bind(EKeys::Z,&AOKRTPlayerController::Plan); Bind(EKeys::Enter,&AOKRTPlayerController::Execute);
+    Bind(EKeys::F9,&AOKRTPlayerController::Load);
     Bind(EKeys::MouseScrollUp,&AOKRTPlayerController::ZoomIn); Bind(EKeys::MouseScrollDown,&AOKRTPlayerController::ZoomOut);
     Bind(EKeys::Q,&AOKRTPlayerController::RotateLeft); Bind(EKeys::RightBracket,&AOKRTPlayerController::RotateRight);
-    Bind(EKeys::Home,&AOKRTPlayerController::Focus); Bind(EKeys::F5,&AOKRTPlayerController::Restart);
+    Bind(EKeys::Home,&AOKRTPlayerController::Focus); Bind(EKeys::F5,&AOKRTPlayerController::Save);
     Bind(EKeys::X,&AOKRTPlayerController::Cancel);
     Bind(EKeys::S,&AOKRTPlayerController::Cancel);
     Bind(EKeys::BackSpace,&AOKRTPlayerController::UndoLastOrder);
@@ -74,6 +82,12 @@ bool AOKRTPlayerController::ClickAt(FVector2D Position,EPointerIntent Intent,boo
     if (Intent==EPointerIntent::Selection && bArmed)
     { bArmed=false; return true; }
     const int32 Member=UI ? UI->PartyMarkerAt(Position) : INDEX_NONE;
+    if (bArmed && ArmedOrder==EOKOrder::Heal && G->Party.IsValidIndex(Member))
+    {
+        FOKRTOrder Order; Order.Kind=EOKOrder::Heal; Order.Target=G->Party[Member]; Order.Location=G->Party[Member]->Feet();
+        if (G->Command(Order,bAppend)) { bArmed=false; return true; }
+        return false;
+    }
     if (G->Party.IsValidIndex(Member))
     {
         if (bCommand || bArmed) return false;
@@ -293,7 +307,7 @@ void AOKRTPlayerController::Menu()
 {
     const bool bCancelTarget=bArmed || bPointerDown;
     CancelPointer(); ResetTouchState(); bArmed=false;
-    if (!bCancelTarget) if (auto* G=Game()) G->ToggleMenu();
+    if (!bCancelTarget) if (auto* G=Game()) { if (G->bCommandMode) G->CancelPlan(); else G->ToggleMenu(); }
 }
 void AOKRTPlayerController::One() { SelectMember(0,IsControlDown()); }
 void AOKRTPlayerController::Two() { SelectMember(1,IsControlDown()); }
@@ -319,6 +333,11 @@ void AOKRTPlayerController::Prone() { SetPartyStance(EOKStance::Prone); }
 void AOKRTPlayerController::Takedown() { Arm(EOKOrder::Takedown); }
 void AOKRTPlayerController::Throw() { Arm(EOKOrder::Distract); }
 void AOKRTPlayerController::Carry() { Arm(EOKOrder::Carry); }
+void AOKRTPlayerController::Heal() { Arm(EOKOrder::Heal); }
+void AOKRTPlayerController::Plan() { if (IsGameplayInputAllowed()) { bArmed=false; Game()->ToggleCommandMode(); } }
+void AOKRTPlayerController::Execute() { if (IsGameplayInputAllowed()) { bArmed=false; Game()->ExecutePlan(); } }
+void AOKRTPlayerController::Save() { if (auto* G=Game()) G->QuickSave(); }
+void AOKRTPlayerController::Load() { if (auto* G=Game()) G->QuickLoad(); }
 void AOKRTPlayerController::ZoomIn() { if (auto* G=Game()) G->Orbit(0,0,-250); }
 void AOKRTPlayerController::ZoomOut() { if (auto* G=Game()) G->Orbit(0,0,250); }
 void AOKRTPlayerController::RotateLeft() { if (auto* G=Game()) G->Orbit(G->bSteppedCamera ? -45 : -8,0); }
@@ -329,6 +348,7 @@ void AOKRTPlayerController::Cancel()
 {
     CancelPointer(); ResetTouchState(); bArmed=false;
     if (!IsGameplayInputAllowed()) return;
+    if (Game()->bCommandMode) { Game()->CancelPlan(); return; }
     if (auto* G=Game()) for (AOKRTUnit* U:G->Party) if (U->IsSelected()) U->CancelOrders();
 }
 void AOKRTPlayerController::UndoLastOrder()
@@ -383,7 +403,7 @@ void AOKRTPlayerController::PlayerTick(float Delta)
             const EOKInteraction Interaction=Unit ? EOKInteraction::Nearby : G->FindInteractionAt(Destination,Destination);
             const bool bInteraction=Interaction!=EOKInteraction::Nearby;
             CurrentMouseCursor=bInteraction ? EMouseCursor::Hand : Unit && !Unit->IsAlive() ? EMouseCursor::GrabHand : EMouseCursor::Crosshairs;
-            if ((Unit && (!Unit->bEnemy || (Unit->IsAlive() && !bArmed))) ||
+            if ((Unit && ((!Unit->bEnemy && !(bArmed && ArmedOrder==EOKOrder::Heal)) || (Unit->IsAlive() && !bArmed))) ||
                 (bArmed && (ArmedOrder==EOKOrder::Distract || (!Unit && ArmedOrder!=EOKOrder::Interact))) ||
                 (bArmed && ArmedOrder==EOKOrder::Interact && !bInteraction))
                 G->PreviewSpline->ClearSplinePoints();

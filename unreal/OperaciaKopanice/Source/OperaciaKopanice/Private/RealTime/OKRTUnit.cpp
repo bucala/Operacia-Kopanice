@@ -48,6 +48,8 @@ AOKRTUnit::AOKRTUnit()
 void AOKRTUnit::Initialize(bool Guard,bool Officer)
 {
     bEnemy=Guard;
+    Specialist=Officer ? EOKSpecialist::Officer : EOKSpecialist::Partisan;
+    Medkits=!Guard && Officer ? 2 : 0;
     DisplayName=Guard ? TEXT("Hliadka") : Officer ? TEXT("Dostojnik") : TEXT("Partizan");
     const TCHAR* Path=Officer ? TEXT("/Game/Kopanice/Supplied/Officer/SM_OK_Officer.SM_OK_Officer") :
         TEXT("/Game/Kopanice/Supplied/Partisan/SM_OK_Partisan.SM_OK_Partisan");
@@ -85,7 +87,7 @@ void AOKRTUnit::GetQueuedLocations(TArray<FVector>& Locations) const
     for (const FOKRTOrder& Order:Orders)
     {
         if (Order.Kind==EOKOrder::Move || (Order.Kind==EOKOrder::Interact && Order.bApproachInteraction)) Locations.Add(Order.Location);
-        else if ((Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Carry) && Order.Target.IsValid())
+        else if ((Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Carry || Order.Kind==EOKOrder::Heal) && Order.Target.IsValid())
             Locations.Add(Order.Target->Feet());
     }
 }
@@ -97,7 +99,7 @@ bool AOKRTUnit::GetQueuedOrder(int32 Index,FOKRTOrder& Order) const
 bool AOKRTUnit::CanUndoLastOrder() const
 {
     const auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
-    return Game && Game->bTacticalPause && GetWorld()->IsPaused() && !Game->bMenu && !Game->bWon && !Game->bLost &&
+    return Game && Game->bTacticalPause && GetWorld()->IsPaused() && !Game->bCommandMode && !Game->bMenu && !Game->bWon && !Game->bLost &&
         IsAlive() && !bEnemy && !Orders.IsEmpty() && (Orders.Num()>1 || !HasStartedOrder());
 }
 bool AOKRTUnit::HasStartedOrder() const
@@ -142,8 +144,22 @@ bool AOKRTUnit::ValidateOrder(const FOKRTOrder& Order,bool bExecuting,bool bKeep
 {
     if (!IsAlive() || bEnemy) { Reason=TEXT("Postava nemoze prijat prikaz."); return false; }
     if (Order.Location.ContainsNaN()) { Reason=TEXT("Neplatna poloha ciela."); return false; }
+    if (Order.Kind==EOKOrder::Heal)
+    {
+        const auto* Target=Order.Target.Get();
+        if (Specialist!=EOKSpecialist::Officer || Medkits<=0 || !Target || Target->bEnemy || !Target->IsAlive() || Target->Health>=100 || CarriedBody.IsValid())
+        { Reason=TEXT("Osetrenie vyzaduje dostojnika, lekarnicku a zraneneho spojenca."); return false; }
+        return true;
+    }
     if (Order.Kind==EOKOrder::Distract && Distractions<=0)
     { Reason=TEXT("Ziadne predmety na odlakanie."); return false; }
+    if (Order.Kind==EOKOrder::Distract && (!bKeepQueue || bExecuting))
+    {
+        FHitResult Hit; FCollisionQueryParams Params(SCENE_QUERY_STAT(OKThrowPlan),false,this);
+        if (FVector::Dist2D(Feet(),Order.Location)>800 ||
+            GetWorld()->LineTraceSingleByChannel(Hit,Feet()+FVector(0,0,120),Order.Location+FVector(0,0,120),ECC_Visibility,Params))
+        { Reason=TEXT("Miesto odlakania je za prekazkou alebo mimo dosahu."); return false; }
+    }
     if (Order.Kind!=EOKOrder::Takedown && Order.Kind!=EOKOrder::Carry) return true;
     if (Order.Kind==EOKOrder::Carry && Order.Target.IsExplicitlyNull())
     {
@@ -183,8 +199,7 @@ bool AOKRTUnit::Submit(const FOKRTOrder& Order,bool bAppend)
     { if (Game) Game->Message=TEXT("Front prikazov je plny."); return false; }
     if (!bKeepQueue)
     {
-        Orders.Reset(); bOrderStarted=false;
-        if (auto* AI=Cast<AAIController>(GetController())) AI->StopMovement();
+        CancelOrders();
     }
     Orders.Add(Order);
     return true;
@@ -197,7 +212,7 @@ bool AOKRTUnit::CanNavigateOrder(const FOKRTOrder& Order,bool bFromQueue,FString
 bool AOKRTUnit::GetOrderPath(const FOKRTOrder& Order,bool bFromQueue,TArray<FVector>& Points,FString& Reason) const
 {
     Points.Reset(); Reason.Reset();
-    const bool bTargetOrder=Order.Kind==EOKOrder::Takedown || (Order.Kind==EOKOrder::Carry && Order.Target.IsValid());
+    const bool bTargetOrder=Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Heal || (Order.Kind==EOKOrder::Carry && Order.Target.IsValid());
     if (Order.Kind!=EOKOrder::Move && !(Order.Kind==EOKOrder::Interact && Order.bApproachInteraction) && !bTargetOrder) return true;
     if (Order.Location.ContainsNaN() || (bTargetOrder && !Order.Target.IsValid()))
     { Reason=TEXT("Neplatny ciel."); return false; }
@@ -236,9 +251,12 @@ bool AOKRTUnit::GetOrderPath(const FOKRTOrder& Order,bool bFromQueue,TArray<FVec
 }
 void AOKRTUnit::FinishOrder()
 {
+    if (!Orders.IsEmpty() && Orders[0].SyncBatch)
+        if (auto* G=GetWorld()->GetAuthGameMode<AOKRTGameMode>(); G && !G->SyncReleased(Orders[0].SyncBatch))
+        { G->CancelSync(Orders[0].SyncBatch); return; }
     if (auto* AI=Cast<AAIController>(GetController())) AI->StopMovement();
     if (Orders.Num()) Orders.RemoveAt(0);
-    bOrderStarted=false;
+    bOrderStarted=false; ReadyBatch=0;
 }
 bool AOKRTUnit::PromoteLastMoveToRun(FVector Destination)
 {
@@ -254,6 +272,9 @@ bool AOKRTUnit::PromoteLastMoveToRun(FVector Destination)
 }
 void AOKRTUnit::CancelOrders()
 {
+    if (!Orders.IsEmpty() && Orders[0].SyncBatch)
+        if (auto* G=GetWorld()->GetAuthGameMode<AOKRTGameMode>()) G->CancelSync(Orders[0].SyncBatch);
+    ReadyBatch=0;
     Orders.Reset(); bOrderStarted=false;
     if (auto* AI=Cast<AAIController>(GetController())) AI->StopMovement();
 }
@@ -271,13 +292,14 @@ void AOKRTUnit::UpdateOrders()
     if (Order.Kind==EOKOrder::Distract)
     {
         if (Cooldown>0) return;
+        if (AwaitSynchronization(Order)) return;
         if (Game->Distract(this,Order.Location)) { --Distractions; Cooldown=6; }
         FinishOrder(); return;
     }
     if (Order.Kind==EOKOrder::Interact && !Order.bApproachInteraction)
-    { Game->Interact(this,Order.Interaction); FinishOrder(); return; }
-    if (Order.Kind==EOKOrder::Carry && Order.Target.IsExplicitlyNull()) { DropBody(); FinishOrder(); return; }
-    const bool bTargetOrder=Order.Kind==EOKOrder::Carry || Order.Kind==EOKOrder::Takedown;
+    { if (AwaitSynchronization(Order)) return; Game->Interact(this,Order.Interaction); FinishOrder(); return; }
+    if (Order.Kind==EOKOrder::Carry && Order.Target.IsExplicitlyNull()) { if (AwaitSynchronization(Order)) return; DropBody(); FinishOrder(); return; }
+    const bool bTargetOrder=Order.Kind==EOKOrder::Carry || Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Heal;
     auto* Target=Order.Target.Get();
     const FVector Destination=bTargetOrder ? Target->Feet() : Order.Location;
     const float Acceptance=bTargetOrder ? 100.f : Order.Kind==EOKOrder::Interact ? 75.f : 25.f;
@@ -311,10 +333,19 @@ void AOKRTUnit::UpdateOrders()
     {
         if (Cooldown>0) return;
         const float Behind=FVector::DotProduct(Target->GetActorForwardVector(),(Feet()-Target->Feet()).GetSafeNormal2D());
+        if (Order.SyncBatch && Behind>=.1f) { Game->Message=TEXT("Tichy utok vyzaduje pristup zozadu."); FinishOrder(); return; }
+        if (AwaitSynchronization(Order)) return;
         if (Behind<.1f)
         { Target->TakeHit(100); Cooldown=3; Game->Message=TEXT("Hliadka neutralizovana."); }
         else Game->Message=TEXT("Tichy utok vyzaduje pristup zozadu.");
     }
+    else if (Order.Kind==EOKOrder::Heal)
+    {
+        if (Cooldown>0 || AwaitSynchronization(Order)) return;
+        Target->Health=FMath::Min(100.f,Target->Health+60); --Medkits; Cooldown=5;
+        Game->Message=TEXT("Spojenec osetreny.");
+    }
+    else if (AwaitSynchronization(Order)) return;
     if (Order.Kind==EOKOrder::Carry && Target && !Target->IsAlive())
     {
         CarriedBody=Target; Target->Carrier=this;
@@ -331,7 +362,7 @@ void AOKRTUnit::TakeHit(float Damage)
     if (!IsAlive()) return;
     Health=FMath::Max(0.f,Health-Damage);
     if (IsAlive()) return;
-    DropBody(); Orders.Reset();
+    DropBody(); CancelOrders();
     if (auto* AI=Cast<AAIController>(GetController())) AI->StopMovement();
     const FVector Foot=Feet();
     GetCharacterMovement()->DisableMovement();

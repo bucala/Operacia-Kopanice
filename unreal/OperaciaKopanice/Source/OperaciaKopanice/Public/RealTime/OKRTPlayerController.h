@@ -41,7 +41,8 @@ private:
     void One(); void Two(); void All();
     void NextUnit();
     void Walk(); void Run(); void Crouch(); void Prone();
-    void Takedown(); void Throw(); void Carry();
+    void Takedown(); void Throw(); void Carry(); void Heal();
+    void Plan(); void Execute(); void Save(); void Load();
     void ZoomIn(); void ZoomOut(); void RotateLeft(); void RotateRight();
     void Focus(); void Restart();
     void Cancel();

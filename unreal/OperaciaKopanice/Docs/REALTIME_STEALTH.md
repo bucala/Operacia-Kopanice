@@ -35,6 +35,17 @@ pass cannot make AI behavior disagree with the tactical rules.
 
 ## Navigation and Collision
 
+The modern native planning layer lives in `OKRTPlanning`: Command Mode edits a
+separate single-action draft per member, validates the entire batch before replacing
+participating queues, then lets normal UE path following approach each target.
+Unit readiness includes cooldown, reach and current target validity. The GameMode
+releases actions after all participants are ready; it ticks before units and does
+not pause on completion. This is not a multi-step synchronized timeline.
+`OKRTSave` serializes versioned stable party/enemy indices, not actor pointers.
+Quickload reconstructs the mission and its bridge topology before restoring actor
+state, queues, drafts and pause. `OKRTDressing` adds nonblocking perimeter instances;
+it does not silently turn decorative shrubs into gameplay cover.
+
 The imported render ground has no cooked collision. Invisible BlockAll boxes
 supply flat playable banks with a river gap and a separate raised bridge surface.
 A cabin proxy blocks both Pawn and Visibility; a crate is functional cover.

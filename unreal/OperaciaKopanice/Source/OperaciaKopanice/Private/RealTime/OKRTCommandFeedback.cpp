@@ -51,7 +51,7 @@ void AOKRTHUD::DrawCommandFeedback()
     }
     const FName Symbol=Feedback.Accepted==0 ? TEXT("minus") : Feedback.Kind==EOKOrder::Move ? TEXT("footprints") :
         Feedback.Kind==EOKOrder::Takedown ? TEXT("swords") : Feedback.Kind==EOKOrder::Carry ? TEXT("backpack") :
-        Feedback.Kind==EOKOrder::Distract ? TEXT("circle_dot") : TEXT("hand");
+        Feedback.Kind==EOKOrder::Distract ? TEXT("circle_dot") : Feedback.Kind==EOKOrder::Heal ? TEXT("heart_pulse") : TEXT("hand");
     DrawRect(FLinearColor(.02f,.03f,.03f,.8f*Opacity),P.X-12,P.Y-12,24,24);
     Icon(Symbol,P.X-10,P.Y-10,20,Color);
     if (Feedback.Requested>1) Label(FString::Printf(TEXT("%d/%d"),Feedback.Accepted,Feedback.Requested),P.X+15,P.Y-7,.85f,Color);

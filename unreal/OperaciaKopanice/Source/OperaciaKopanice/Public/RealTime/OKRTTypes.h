@@ -9,7 +9,9 @@ enum class EOKStance : uint8 { Walk, Run, Crouch, Prone };
 UENUM(BlueprintType)
 enum class EOKAlert : uint8 { Patrol, Investigate, Combat };
 UENUM(BlueprintType)
-enum class EOKOrder : uint8 { Move, Interact, Takedown, Distract, Carry, Stance };
+enum class EOKOrder : uint8 { Move, Interact, Takedown, Distract, Carry, Stance, Heal };
+UENUM(BlueprintType)
+enum class EOKSpecialist : uint8 { Partisan, Officer };
 UENUM(BlueprintType)
 enum class EOKInteraction : uint8 { Nearby, CollectTNT, DetonateBridge, HideBody, CollectDocuments, SabotageCommandPost };
 UENUM(BlueprintType)
@@ -38,4 +40,5 @@ struct FOKRTOrder
     UPROPERTY(EditAnywhere,BlueprintReadWrite) bool bRunToDestination=false;
     UPROPERTY(EditAnywhere,BlueprintReadWrite) bool bApproachInteraction=false;
     UPROPERTY(EditAnywhere,BlueprintReadWrite) EOKInteraction Interaction=EOKInteraction::Nearby;
+    UPROPERTY(BlueprintReadOnly) int32 SyncBatch=0;
 };

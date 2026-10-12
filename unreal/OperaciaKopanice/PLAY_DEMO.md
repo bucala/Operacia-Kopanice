@@ -90,12 +90,16 @@ to nearby guards and deals real-time damage.
 | Pan | Arrow keys or middle-mouse drag; also available during tactical pause |
 | Continuous orbit and tilt | Disable stepped camera in Options; Alt + right drag |
 | Zoom / focus active unit | Mouse wheel / Home |
-| Menu / restart confirmation | Escape / F5 |
+| Synchronization plan / execute | Z / Enter (Space also commits the plan) |
+| Cancel a draft plan | Z or Escape; original orders remain |
+| Officer first aid | H/heart, then LMB wounded ally or its world marker |
+| Quick save / load | F5 / F9; also available in the pause menu |
+| Menu / restart confirmation | Escape / menu Restart |
 | Focus current objective | Crosshair in objective panel |
 
 Numbered party markers remain visible over scenery and select allies on mouse
 right-button release or touch tap. Ctrl toggles an ally; right-clicking a marker never moves or
-attacks. Armed abilities cannot target the marker, but right-click still cancels
+attacks. First aid can target an ally marker; other armed abilities cannot. Right-click still cancels
 targeting. Gold identifies the active selected member, green another selected
 member and grey an unselected ally. Nearby markers separate, avoid HUD panels,
 character bodies and mission interaction targets,
@@ -113,6 +117,42 @@ intercept clicks and are omitted where they would overlap HUD controls. They are
 not noise circles and do not alert guards. Route preview uses the same navigation
 checks as submission, from the queued endpoint during pause/Shift and including
 group formation offset; it no longer draws bank-projected routes into water.
+
+## Modern Team Planning
+
+Z freezes the mission and opens a separate one-action draft for each specialist.
+Select each member and assign a destination or ability. The HUD shows both drafts
+and their NavMesh approaches. Enter (or Space) validates the whole batch, replaces
+only participating members' old orders and resumes real time. Members approach
+their targets first; no synchronized action fires until every member is in reach,
+has line of sight where required, and has finished its cooldown. Invalid targets
+cancel an unreleased batch. Duplicate target actions and unavailable routes are
+rejected before commit. Non-participants keep their current orders.
+
+Cancelling draft editing preserves existing orders and the pause state from
+before Z. This is not a turn: completing a batch leaves simulation running.
+Only one action per member and one pending synchronization batch are supported;
+future multi-step synchronized timelines are not implemented.
+
+The Officer starts with two medkits. First aid restores up to 60 health, consumes
+one kit on success and has a 5-second cooldown. It cannot resurrect or target
+enemies/full-health units. Takedown/distraction remain shared prototype abilities.
+
+The desktop tactical map shows cabin footprints, Mission 1's river/bridge,
+remaining objectives, allies and currently visible living enemies. Click it to
+focus the camera. Its map icon toggles it. Below 800 pixels wide or 650 pixels
+high it is omitted so the portrait/action HUD stays usable.
+
+## Saved Missions
+
+F5 writes one versioned local quicksave in Saved/SaveGames/OK_Quick_v1.sav.
+F9 loads it, rebuilding the mission before restoring positions, stances, health,
+inventory, ordinary queues, drafts/synchronization, guard awareness/timers/body
+discoveries, corpse ownership/hiding, objectives, bridge topology and camera.
+Saved tactical pause is restored after navigation is ready. Menus and ephemeral
+noise rings/hover feedback are not saved. Loading replaces current unsaved progress.
+This file is ignored by Git. No autosave, save-browser, cloud sync or shipping
+save migration is claimed. Native tests use and delete a separate automation slot.
 
 The order tray shows the active specialist's plan, five numbered actions per page,
 up to the existing 32-order limit. Arrows page through the plan; hover or tap an
@@ -187,6 +227,11 @@ fake route segments.
 ## Verification
 
 `./Start-Demo.ps1 -SmokeTest` runs a rendered native integration fixture.
+`./Start-Demo.ps1 -ModernSmokeTest` checks independent drafts, synchronization,
+officer first aid, real hotkeys, quicksave/travel/restore and the modern HUD.
+It disables guard brains and uses controlled setup/teleports for serialization
+cases; it is not a live campaign playthrough. Its separate automation save slot
+cannot overwrite the player's quicksave. Repeat at 480 x 800 for narrow layout.
 `./Start-Demo.ps1 -CampaignSmokeTest -Mission 1` plays both new missions, traverses
 the actual HUD menus and deploys into the next operation with live guards.
 It tests real NavMesh bank connectivity and nonwalkable water, imported meshes,
@@ -226,8 +271,9 @@ Old rules and controls are documented in `Docs/LEGACY_GRID_DEMO.md`.
 
 ## Scope
 
-One real-time mission is playable. The former three grid layouts are preserved
-only in the legacy mode; large 48 x 48 and 96 x 96 real-time missions are not authored.
+Three real-time missions are playable. The two additional areas are 86.4 x 86.4 m,
+matching the approved 48-cell scale envelope without grid movement. A 96-cell-scale
+real-time operation is not yet authored. Former grid layouts remain legacy-only.
 No grid, cell moves, turn counter, undo-turn action or turn coordinator drives
 the new mode. Approved physical building/vehicle envelopes are unchanged.
 
@@ -237,10 +283,12 @@ height. See `Docs/CHARACTER_MOTION.md` for measurements and the Blender pipeline
 Prone/body poses still include placeholder transforms; dedicated production
 takedown/carry clips, foot IK, cloth and historical uniform review remain.
 AI uses a native finite-state controller with Sight/Hearing perception, not a
-Behavior Tree asset. Collision proxies currently cover the playable banks,
-bridge, main cabin and cover crate; imported decorative meshes remain collision-free.
+Behavior Tree asset. Collision proxies cover playable banks, bridge, buildings,
+crates and the larger missions' forest trunks/rocks. Additional perimeter dressing
+remains collision-free and does not grant implicit cover.
 Interiors, advanced cover search, ballistics, weapon effects, production audio,
-save/load, broader acoustic simulation and real-device Android testing remain.
+broader acoustic simulation and real-device Android testing remain future work.
+Native quicksave/load is implemented; see Saved Missions above for its limits.
 
 The water remains an animated surface shader, not a fluid solver.
 Nanite usage is persisted on all seven supplied base materials.

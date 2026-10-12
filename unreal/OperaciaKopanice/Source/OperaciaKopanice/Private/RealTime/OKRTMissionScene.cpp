@@ -37,6 +37,7 @@ void AOKRTGameMode::SpawnMissionUnit(FVector Location,bool Enemy,float Yaw,const
     FActorSpawnParameters Params; Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
     auto* Unit=GetWorld()->SpawnActor<AOKRTUnit>(Location,FRotator(0,Yaw,0),Params);
     Unit->Initialize(Enemy,Enemy || !Party.IsEmpty());
+    Unit->AddTickPrerequisiteActor(this);
     if (Enemy)
     {
         Enemies.Add(Unit);

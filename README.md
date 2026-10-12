@@ -82,6 +82,17 @@ a trasy hliadok. Väčšie misie majú dve mobilné hliadky a jedného pevného 
 plazenie je vizuálne bezpečné vo vzdialenej zóne, nie v blízkej ani pred hlukom.
 Táto úprava sa týka iba hlavnej Unreal verzie; webové ovládanie zostáva nezmenené.
 
+Modernizácia hlavnej verzie pridáva tímový **Command Mode**: Z otvorí samostatný
+návrh jednej akcie pre každú postavu, Enter spustí presun a akcie sa uvoľnia až po
+pripravení všetkých zapojených členov. Neplatný plán nenahradí existujúce rozkazy.
+Space/P zostáva voliteľnou pauzou, nie koncom ťahu. Dôstojník má dve lekárničky;
+H a ľavý klik na zraneného spojenca obnoví 60 zdravia bez oživovania.
+F5 ukladá rozpracovanú misiu, F9 ju obnoví vrátane mosta, hliadok, tiel a plánov.
+Desktopová minimapa zameriava kameru; nepriateľov ukazuje iba pri výhľade tímu.
+Osada využíva ďalšie inštancie dodaných kríkov, skál a debien a jemnejší snehový
+materiál. Ide o prototyp, nie grafickú ani funkčnú zhodu s Commandos Origins;
+kooperácia, šesť špecialistov a viacstupňové synchronizované plány nie sú hotové.
+
 ![Aktuálny Unreal real-time prototyp: Tiché veliteľstvo](unreal/OperaciaKopanice/Docs/Evidence/2026-10-07/Command-Post-1920x1080.png)
 
 ## Web Real-Time Prototype

@@ -32,3 +32,13 @@ captures, no new asset packages. The total includes about 12.8 MiB of committed
 verification captures. This excludes `.git` history/LFS cache,
 ignored build products and high-resolution external originals; it is not the
 size of a packaged Windows game. Git LFS downloads the current asset versions.
+
+The 2026-10-12 native modernization reuses the existing environment meshes;
+it adds no Blender/FBX source payload or new heavy models. Seven 128px Lucide
+HUD textures total 92,995 bytes and use the included ISC license. Three small
+material packages change for filtered snow normals and instanced crate support.
+The delivered Content tree has 103 files totaling 651,873,102 bytes, including
+its Python import/authoring scripts. The upload checkout's current non-ignored
+file payload is approximately 696.4 MiB before this verification text; this is
+still distinct from `.git` history, LFS cache and a packaged game. Build DLLs,
+local SaveGames, logs and rendered test screenshots remain ignored.

@@ -1,5 +1,56 @@
 # Real-Time Prototype Verification
 
+## Main Native Modern Tactics: 2026-10-12
+
+Only the main Unreal game changes. The web runtime, web assets and Workers
+deployment remain untouched. UE 5.8.2 Win64 Development Editor compilation
+succeeds; final DLL SHA-256:
+`15C8C58273226DE35B33DB4362C6389F94A80EB748ACD0144151FF59A43414FC`.
+Development/upload binaries match, as do all 107 Source/Config files and all
+103 delivered Content files. The seven new HUD packages total 92,995 bytes.
+No heavy mesh or source-model payload was added. Build products stay ignored.
+Preferred-MSVC/optional SDK and engine/input deprecation warnings remain.
+
+| Rendered run | Result | Local log |
+| --- | --- | --- |
+| Upload Command Mode/save/load 1920 x 1080 | 40/40 PASS | DemoSmoke-a37390ba239847ea9dd2773d750bf1ae.log |
+| Development Command Mode/save/load 480 x 800 | 39/39 PASS | DemoSmoke-5a78c76de97b4373a3cdb002f9d524ca.log |
+| Upload original/control/world 1920 x 1080 | 279/279 PASS | DemoSmoke-0f55862f9b844726bd8623defa2e93a1.log |
+| Development original/control/world 480 x 800 | 279/279 PASS | DemoSmoke-e84bbc0e4e0c498d922d40a2997505cb.log |
+| Upload production startup 1920 x 1080 | 11/11 PASS | DemoSmoke-695c7047578f47ff9682e8068e483a23.log |
+| Upload original mission, live AI 1280 x 720 | 15/15 PASS | DemoSmoke-df82c6b20b3a4f8a9f3bb7e1f0f1fbbb.log |
+| Upload courier -> command post, live campaign 1920 x 1080 | 302/302 PASS | DemoSmoke-c224a1e483e348a5bbbd0e7e5c262463.log |
+
+`Start-Demo.ps1 -ModernSmokeTest` exercises actual Z/H/F5/F9 input, fresh isolated
+save contents, friendly-marker healing, independent drafts, atomic duplicate-target
+rejection, range validation, cooldown/readiness synchronization, cancellation and
+no automatic pause on completion. Unknown schemas, invalid actor indices and
+non-finite coordinates are rejected without mutating the world. Pending execution
+barriers survive snapshots. A real level travel then restores a wreck, carried
+body, inventory, guard suspicion/timers, camera, drafts and pause; it verifies the
+river is disconnected and executes the restored plan exactly once.
+This fixture disables guard brains and uses controlled setup/teleports for
+serialization cases. It is not a live mission playthrough. Its save slot is separate
+from the player's and is cleaned on success. The live mission/campaign fixtures
+listed above retain active guard brains and complete all three operations with
+both units at full health, without invulnerability, teleports or killed guards
+during their playthrough phases. Campaign layout counts vary with frame timing.
+
+Modern HUD captures were visually inspected at FHD and portrait resolution.
+World-crop RGB standard deviations exceed 55 in all four plan/load captures,
+providing a nonblank sanity check, not a visual-quality score. The first frame
+can still show transient Nanite fallback detail while pages stream; captures
+wait for multiple rendered frames. Imported editor render-data compilation is
+finished before entering the paused scene. Additional nonblocking perimeter
+dressing instances number 8/68/85 in Missions 1/2/3; existing tactical collision
+and concealment are unchanged. Menu save/load rows and draft tools fit both
+viewports; the desktop-only minimap click focuses the camera without unit orders.
+The minimap shows enemies only through current party LoS, not omniscient radar.
+
+No Unreal 5.4 build, packaged Windows EXE, Android build, co-op, six-specialist
+roster, multi-step synchronized timeline or full production animation set is
+certified. This is a tested native prototype, not Commandos Origins visual parity.
+
 ## Main Native World and Input: 2026-10-11
 
 This slice changes only the main Unreal game and its documentation. The Canvas
