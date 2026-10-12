@@ -42,3 +42,12 @@ its Python import/authoring scripts. The upload checkout's current non-ignored
 file payload is approximately 696.4 MiB before this verification text; this is
 still distinct from `.git` history, LFS cache and a packaged game. Build DLLs,
 local SaveGames, logs and rendered test screenshots remain ignored.
+
+The 2026-10-13 bridge replacement adds seven runtime packages totaling
+14,232,951 bytes (13.6 MiB): three Nanite meshes, one material and three 1024px
+PBR textures. The owner's original Blender file, derived FBX/PNG files and
+rendered lighting diagnostics are not uploaded. See [bridge pipeline](BRIDGE_PIPELINE.md).
+The delivered Content tree now has 113 files totaling 666,114,801 bytes,
+including three new Python scripts. The current non-ignored checkout payload
+is approximately 710.0 MiB before the final verification text. This is still
+not a packaged game's size and does not include `.git` history or build caches.

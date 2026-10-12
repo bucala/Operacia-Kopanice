@@ -1,5 +1,87 @@
 # Real-Time Prototype Verification
 
+## Native Rustbound Bridge and Lighting: 2026-10-13
+
+Only the main native game is changed. Web runtime/assets and Workers deployment
+remain untouched. UE 5.8.2 Win64 Development Editor compilation succeeds;
+development/upload DLL SHA-256 matches:
+`EFC780D07B92C52B1864A75F6E4596999FF64849AA7F73208A2846E86DD5537F`.
+All 108 Source/Config files and 113 delivered Content files match between the
+two checkouts. Seven new bridge packages total 14,232,951 bytes; original
+Blender/FBX/PNG sources, build output and captures remain local/ignored.
+The supplied original's SHA-256 is unchanged after the export pipeline.
+Preferred-MSVC/optional SDK and engine/input deprecation warnings remain.
+The upload checkout was later switched externally to `main`. It is left
+untouched. A separate development-branch worktree verifies all 221 source,
+config and Content files against development: text matches after line-ending
+normalization, and every runtime package matches its Git LFS SHA-256 pointer.
+These results concern `codex/native-ue54-environment`, not the old `main` tree.
+
+Final editor asset validation (`BridgeFinalValidation.log`) passes with zero
+commandlet errors/warnings: all three meshes are Nanite, dimensions/rail height
+and material slots match, textures are 1024px with the expected color spaces,
+normal convention and no emissive material input.
+
+| Rendered run | Result | Local log |
+| --- | --- | --- |
+| Development lighting/bridge 1920 x 1080 | 10/10 PASS | DemoSmoke-96fc7ed4624348639889f2f7749b09de.log |
+| Development lighting/bridge 480 x 800 | 10/10 PASS | DemoSmoke-12517d2e777c4e80ad6651148f905e91.log |
+| Upload Command Mode/save/load 1920 x 1080 | 41/41 PASS | DemoSmoke-5bf05ef469cb463694e426bf2121cb20.log |
+| Upload original/control/world 1920 x 1080 | 279/279 PASS | DemoSmoke-dac3e3d4e6ad40afbefbb24959f074f7.log |
+| Upload original mission, live AI 1280 x 720 | 15/15 PASS | DemoSmoke-96bc58af229e4362b8722309e2d15e7f.log |
+| Upload production startup 1920 x 1080 | 11/11 PASS | DemoSmoke-99b7d50100fb4026856d6444fe7eba7e.log |
+| Development courier -> command post, live campaign 1920 x 1080 | 254/254 PASS | DemoSmoke-ab7f025750e04523933455465498a6bb.log |
+
+The lighting fixture captures overview, zoomed and rotated views at all four
+quality levels while paused; exposure/AO remain stable. It checks one movable
+shadow-casting sun, real-time sky capture, nonblack lower-hemisphere bounce,
+bridge deck/collision alignment and complete mission navigation. Low scalability
+intentionally disables dynamic shadows; the other presets retain them. Captures
+were visually inspected for readable wood/uniform detail and grounding shadows.
+The save/load fixture additionally checks that sabotage restores the supplied
+fractured mesh with permanent supports and disconnects river navigation.
+The live Mission 1 run observes forty safe-spawn seconds and repeated patrol
+windows, then moves both units across the new bridge, destroys it and extracts
+with full health. Its playthrough keeps guard brains enabled and does not use
+teleports, invulnerability or killed guards.
+The final stable-checkout campaign run completes document retrieval, team
+extraction, travel to the next mission, command-post sabotage and extraction
+with active guard brains and full team health. Per-frame layout assertions
+make its check count timing-dependent. The overview/close/portrait bridge and
+two campaign world captures were visually inspected; central image-crop RGB
+standard deviations of 64.48/66.78/72.44 provide a nonblank sanity check,
+not a visual-quality score. No material fallback errors appear in these runs.
+
+A same-camera paused FHD comparison uses mixed scene crops, not segmented
+object measurements or a visual-quality score. Mean RGB / pixel-mean below 20:
+
+| Mixed crop | Before | After |
+| --- | --- | --- |
+| Cabin (805,352)-(912,411) | 75.7 / 44.26% | 103.8 / 11.02% |
+| Partisan (607,566)-(627,604) | 45.9 / 38.82% | 63.1 / 0.00% |
+| Officer (664,601)-(681,637) | 55.4 / 41.67% | 69.7 / 0.16% |
+| Snow (425,702)-(580,842) | 202.6 / 0.00% | 210.1 / 0.00% |
+
+No pixels in the snow crop have mean RGB above 250. Character/cabin textures
+are unchanged; editor exports confirm sRGB base color, linear packed masks and
+mostly nonmetallic materials. The fix is authored light/exposure balancing,
+not emissive meshes, removal of occlusion or photometric daylight calibration.
+
+Two DX12 startup attempts hit a GPU MMU/page-fault crash on the NVIDIA adapter
+(`DemoSmoke-9bc79e8aa284498189d4c2e36b3bec0c.log` and
+`DemoSmoke-750aae2ee8c244cbbf4e54f9b853a2cb.log`). The latter crashed at frame 3
+before any completed GPU frame, with 3,541 MiB used against a 7,189 MiB local
+budget. Breadcrumbs include Nanite/VSM work; the dump does not identify a shader
+or establish a driver-versus-engine root cause. Successful rendered runs do not
+establish that this startup instability is resolved. An early material-pin
+error was caught by actual rendering; the
+import script now asserts every connection and final renders have no material
+compilation/default-material fallback errors.
+
+The bridge uses a pre-authored damaged-state swap, not Chaos or falling-debris
+simulation. No UE 5.4 build, packaged Windows EXE or Android build is certified
+by these editor runs. See [pipeline and limits](BRIDGE_PIPELINE.md).
+
 ## Main Native Modern Tactics: 2026-10-12
 
 Only the main Unreal game changes. The web runtime, web assets and Workers
