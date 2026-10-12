@@ -26,6 +26,8 @@ public:
     void RepairSpan();
     UFUNCTION(BlueprintCallable, CallInEditor, Category="Bridge")
     void BuildDemoModel();
+    UFUNCTION(BlueprintCallable, CallInEditor, Category="Bridge")
+    bool BuildSuppliedModel();
     bool IsDemoModelConsistent() const;
     virtual void OnConstruction(const FTransform& Transform) override;
 protected:

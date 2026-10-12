@@ -46,6 +46,11 @@ a front príkazov pri taktickej pauze. Zachováva dodané 3D assety zimnej osady
 Tri natívne misie zahŕňajú sabotáž viaduktu, získanie dokumentov v lesnom tábore
 a vyradenie veliteľského stanovišťa. Dve nové oblasti majú 86,4 × 86,4 metra,
 vlastné hliadky a rozmiestnenie budov, vozidiel, vegetácie a krytov.
+Prvá misia teraz používa dodaný detailný most Rustbound s piliermi, zábradlím
+a samostatnými troskami po sabotáži. Osvetlenie oblohy a odraz od snehu zlepšujú
+čitateľnosť postáv a dreva v tieni; expozícia zostáva stabilná pri zoome aj pauze.
+Postup importu a limity: [Most a zimné svetlo](unreal/OperaciaKopanice/Docs/BRIDGE_PIPELINE.md).
+
 Kmene a skaly v nových misiách blokujú pohyb aj výhľad; kríky poskytujú
 výškovo ohraničené krytie prikrčeným a plaziacim sa postavám. Aktívne krytie
 signalizuje označenie KRYT pri portréte, nie úplná neviditeľnosť.

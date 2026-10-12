@@ -4,6 +4,7 @@
 #include "RealTime/OKRTGuardController.h"
 #include "RealTime/OKRTPlayerController.h"
 #include "RealTime/OKRTHUD.h"
+#include "Navigation/OKViaductActor.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -146,6 +147,8 @@ void AOKRTGameMode::ModernSmokeTick()
     {
         auto* AI=CastChecked<AOKRTGuardController>(Enemies[1]->GetController()); FOKRTOrder A,B;
         Require(bBridgeDestroyed && bHasTNT && bCommandMode && bTacticalPause,TEXT("load restores topology and planning state"));
+        Require(Bridge && Bridge->Tags.Contains(TEXT("RustboundBridge")) && Bridge->bDestroyed && Bridge->IsDemoModelConsistent(),
+            TEXT("loaded sabotage swaps supplied span for fractured asset and preserves piers"));
         Require(P->Health==40 && O->Medkits==1 && P->CarriedBody.Get()==Enemies[0] && Enemies[0]->Carrier.Get()==P,TEXT("load restores specialist inventory and corpse ownership"));
         Require(AI->AlertState==EOKAlert::Investigate && FMath::IsNearlyEqual(AI->Suspicion,.42f) && FMath::IsNearlyEqual(AI->Wait,2.75f),TEXT("load restores suspicion and FSM timers"));
         Require(GetDraft(0,A) && GetDraft(1,B) && B.Kind==EOKOrder::Heal && B.Target.Get()==P && FMath::IsNearlyEqual(CameraYaw,42.f),TEXT("load resolves draft references and camera"));

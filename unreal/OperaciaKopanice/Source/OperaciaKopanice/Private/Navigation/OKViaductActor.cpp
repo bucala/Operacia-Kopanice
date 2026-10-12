@@ -49,6 +49,8 @@ void AOKViaductActor::BuildDemoModel()
         Part->DestroyComponent();
     }
     DemoParts.Reset(); SpanDetails.Reset(); DebrisDetails.Reset();
+    Tags.Remove(TEXT("RustboundBridge"));
+    Rubble->SetStaticMesh(nullptr);
     auto* Cube=LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube"));
     auto* Base=LoadObject<UMaterialInterface>(nullptr,TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
     auto Material=[this,Base](FLinearColor Color)
@@ -98,6 +100,46 @@ void AOKViaductActor::BuildDemoModel()
     }
     Part(FVector(0,0,12),FVector(176,124,2),Snow,1);
     ApplyState();
+}
+
+bool AOKViaductActor::BuildSuppliedModel()
+{
+    auto* SpanMesh=LoadObject<UStaticMesh>(nullptr,TEXT("/Game/Kopanice/Supplied/Bridge/SM_OK_BridgeSpan.SM_OK_BridgeSpan"));
+    auto* SupportMesh=LoadObject<UStaticMesh>(nullptr,TEXT("/Game/Kopanice/Supplied/Bridge/SM_OK_BridgeSupports.SM_OK_BridgeSupports"));
+    auto* RubbleMesh=LoadObject<UStaticMesh>(nullptr,TEXT("/Game/Kopanice/Supplied/Bridge/SM_OK_BridgeRubble.SM_OK_BridgeRubble"));
+    if (!SpanMesh || !SupportMesh || !RubbleMesh)
+    {
+        UE_LOG(LogTemp,Warning,TEXT("OK_BRIDGE_NATIVE: supplied bridge incomplete; keeping blockout fallback"));
+        return false;
+    }
+    for (UStaticMeshComponent* Part:DemoParts)
+    {
+        RemoveInstanceComponent(Part);
+        Part->DestroyComponent();
+    }
+    DemoParts.Reset(); SpanDetails.Reset(); DebrisDetails.Reset();
+    IntactSpan->SetMobility(EComponentMobility::Movable);
+    IntactSpan->EmptyOverrideMaterials();
+    IntactSpan->SetStaticMesh(SpanMesh);
+    IntactSpan->SetRelativeTransform(FTransform::Identity);
+    Rubble->SetMobility(EComponentMobility::Movable);
+    Rubble->EmptyOverrideMaterials();
+    Rubble->SetStaticMesh(RubbleMesh);
+    Rubble->SetRelativeTransform(FTransform::Identity);
+    auto* Supports=NewObject<UStaticMeshComponent>(this);
+    AddInstanceComponent(Supports);
+    Supports->SetMobility(EComponentMobility::Movable);
+    Supports->SetupAttachment(RootComponent);
+    Supports->SetStaticMesh(SupportMesh);
+    Supports->SetCollisionProfileName(TEXT("NoCollision"));
+    Supports->SetCanEverAffectNavigation(false);
+    Supports->RegisterComponent();
+    DemoParts.Add(Supports);
+    SpanDetails.Add(IntactSpan); DebrisDetails.Add(Rubble);
+    Tags.AddUnique(TEXT("RustboundBridge"));
+    ApplyState();
+    UE_LOG(LogTemp,Display,TEXT("OK_BRIDGE_NATIVE: Rustbound deck, permanent piers and fractured span loaded"));
+    return true;
 }
 
 bool AOKViaductActor::IsDemoModelConsistent() const

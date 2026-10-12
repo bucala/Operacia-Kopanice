@@ -84,7 +84,8 @@ void AOKRTGameMode::StartPlay()
     bCampaignSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTCampaignSmoke"));
     bRealtimeSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTRealtimeSmoke"));
     bModernSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTModernSmoke"));
-    bSmoke=bModernSmoke || bCampaignSmoke || bMissionSmoke || bRealtimeSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
+    bLightingSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTLightingSmoke"));
+    bSmoke=bLightingSmoke || bModernSmoke || bCampaignSmoke || bMissionSmoke || bRealtimeSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
     const FString Requested=UGameplayStatics::ParseOption(OptionsString,TEXT("Mission"));
     if (Requested.IsEmpty()) FParse::Value(FCommandLine::Get(),TEXT("OKMission="),MissionId);
     else MissionId=FCString::Atoi(*Requested);
@@ -169,20 +170,30 @@ void AOKRTGameMode::BuildScene()
 {
     GetWorld()->SpawnActor<ASkyAtmosphere>();
     auto* Sun=GetWorld()->SpawnActor<ADirectionalLight>(FVector(0,0,1500),FRotator(-55,-40,0));
-    Sun->GetLightComponent()->SetIntensity(5.2f);
-    Sun->GetLightComponent()->SetLightColor(FLinearColor(1,.96f,.89f));
     auto* SunComponent=CastChecked<UDirectionalLightComponent>(Sun->GetLightComponent());
+    SunComponent->SetMobility(EComponentMobility::Movable);
+    SunComponent->SetIntensity(3.5f);
+    SunComponent->SetLightColor(FLinearColor(1.f,.97f,.93f));
     SunComponent->SetForwardShadingPriority(1);
-    SunComponent->LightSourceAngle=5; SunComponent->SetAtmosphereSunLight(true);
-    auto* Fill=GetWorld()->SpawnActor<ADirectionalLight>(FVector(0,0,1500),FRotator(-45,140,0));
-    Fill->GetLightComponent()->SetIntensity(.65f);
-    Fill->GetLightComponent()->SetLightColor(FLinearColor(.67f,.79f,1));
-    Fill->GetLightComponent()->SetCastShadows(false);
-    CastChecked<UDirectionalLightComponent>(Fill->GetLightComponent())->SetAtmosphereSunLight(false);
+    SunComponent->SetLightSourceAngle(2.f);
+    SunComponent->SetAtmosphereSunLight(true);
+    SunComponent->SetCastShadows(true);
+    // CSM fallback for non-VSM quality/platforms; do not disable contact with the ground.
+    SunComponent->SetDynamicShadowDistanceMovableLight(FMath::Max(12000.f,Mission().MapSize*1.5f));
+    SunComponent->SetDynamicShadowCascades(4);
     auto* Sky=GetWorld()->SpawnActor<ASkyLight>();
-    Sky->GetLightComponent()->SetMobility(EComponentMobility::Movable);
-    Sky->GetLightComponent()->SetIntensity(.85f);
-    Sky->GetLightComponent()->SetLightColor(FLinearColor(.72f,.82f,1.f));
+    auto* SkyComponent=Sky->GetLightComponent();
+    SkyComponent->SetMobility(EComponentMobility::Movable);
+    SkyComponent->SetIntensity(4.f);
+    SkyComponent->SetLightColor(FLinearColor::White);
+    // Capture the atmosphere, not an empty startup frame. Snow also reflects light
+    // upwards: a black lower hemisphere made uniforms and cabin walls silhouettes.
+    SkyComponent->bLowerHemisphereIsBlack=true;
+    SkyComponent->SetLowerHemisphereColor(FLinearColor(.55f,.60f,.66f));
+    SkyComponent->OcclusionMaxDistance=150.f;
+    SkyComponent->SetOcclusionContrast(0.f);
+    SkyComponent->SetOcclusionExponent(.75f);
+    SkyComponent->SetRealTimeCapture(true);
     if (auto* Fog=GetWorld()->SpawnActor<AExponentialHeightFog>(FVector(900,720,80),FRotator::ZeroRotator))
     {
         auto* FogComponent=Fog->GetComponent();
@@ -227,10 +238,18 @@ void AOKRTGameMode::BuildScene()
     Collider(FVector(450,270,235),FVector(340,340,250),TEXT("CabinCollision"));
     Collider(FVector(600,1440,55),FVector(50,65,63),TEXT("StealthCover"));
     Place(TEXT("/Game/Kopanice/WinterGround/SM_OK_SupplyCrate.SM_OK_SupplyCrate"),FVector(600,1440,16),1.7f);
-    BridgeFloor=Collider(FVector(1080,720,0),FVector(140,110,11),TEXT("WalkableBridge"));
-    Bridge=GetWorld()->SpawnActor<AOKViaductActor>(FVector(1080,720,0),FRotator::ZeroRotator);
-    Bridge->BuildDemoModel();
-    Bridge->IntactSpan->SetRelativeScale3D(FVector(2.6,1.5,.22));
+    // The supplied deck has a surface pivot. Its abutment overlaps rest on the
+    // existing banks; the unchanged river-gap proxy owns crossing and sabotage.
+    BridgeFloor=Collider(FVector(1080,720,-18),FVector(140,110,10),TEXT("WalkableBridge"));
+    Bridge=GetWorld()->SpawnActor<AOKViaductActor>(FVector(1080,720,-8),FRotator::ZeroRotator);
+    if (!Bridge->BuildSuppliedModel())
+    {
+        Bridge->BuildDemoModel();
+        Bridge->SetActorLocation(FVector(1080,720,0));
+        Bridge->IntactSpan->SetRelativeScale3D(FVector(2.6,1.5,.22));
+        BridgeFloor->SetWorldLocation(FVector(1080,720,0));
+        BridgeFloor->SetBoxExtent(FVector(140,110,11));
+    }
     TArray<UStaticMeshComponent*> Parts; Bridge->GetComponents(Parts);
     for (auto* Part:Parts) { Part->SetCollisionProfileName(TEXT("NoCollision")); Part->SetCanEverAffectNavigation(false); }
     Bridge->GapBlocker->SetBoxExtent(FVector(140,110,150));
@@ -248,13 +267,25 @@ void AOKRTGameMode::BuildScene()
     Lens->bOverrideAspectRatioAxisConstraint=true;
     Lens->SetAspectRatioAxisConstraint(EAspectRatioAxisConstraint::AspectRatio_MaintainXFOV);
     Lens->PostProcessSettings.bOverride_AutoExposureBias=true;
-    Lens->PostProcessSettings.AutoExposureBias=.25f;
+    Lens->PostProcessSettings.AutoExposureBias=-.65f;
+    // Stable tactical exposure: orbiting from snow to a dark wall must not pump
+    // exposure or retain an adapted dark frame when the simulation is paused.
+    Lens->PostProcessSettings.bOverride_AutoExposureMethod=true;
+    Lens->PostProcessSettings.AutoExposureMethod=AEM_Manual;
+    Lens->PostProcessSettings.bOverride_AutoExposureApplyPhysicalCameraExposure=true;
+    Lens->PostProcessSettings.AutoExposureApplyPhysicalCameraExposure=false;
+    Lens->PostProcessSettings.bOverride_AmbientOcclusionIntensity=true;
+    Lens->PostProcessSettings.AmbientOcclusionIntensity=.45f;
+    Lens->PostProcessSettings.bOverride_AmbientOcclusionRadius=true;
+    Lens->PostProcessSettings.AmbientOcclusionRadius=55.f;
+    Lens->PostProcessSettings.bOverride_AmbientOcclusionRadiusInWS=true;
+    Lens->PostProcessSettings.AmbientOcclusionRadiusInWS=true;
     Lens->PostProcessSettings.bOverride_ColorSaturation=true;
     Lens->PostProcessSettings.ColorSaturation=FVector4(.93f,.96f,1.04f,1.f);
     Lens->PostProcessSettings.bOverride_ColorContrast=true;
-    Lens->PostProcessSettings.ColorContrast=FVector4(1.04f,1.04f,1.04f,1.f);
+    Lens->PostProcessSettings.ColorContrast=FVector4(1.f,1.f,1.f,1.f);
     Lens->PostProcessSettings.bOverride_ColorGamma=true;
-    Lens->PostProcessSettings.ColorGamma=FVector4(1.02f,1.02f,1.04f,1.f);
+    Lens->PostProcessSettings.ColorGamma=FVector4(1.f,1.f,1.f,1.f);
     Lens->PostProcessSettings.bOverride_BloomIntensity=true;
     Lens->PostProcessSettings.BloomIntensity=.1f;
     // Camera orbit and zoom are allowed while tactical pause is active. Do not
@@ -574,7 +605,8 @@ void AOKRTGameMode::Tick(float Delta)
         if ((bWon || bLost) && !UGameplayStatics::IsGamePaused(GetWorld()))
         { UGameplayStatics::SetGamePaused(GetWorld(),true); }
     }
-    if (bModernSmoke) ModernSmokeTick();
+    if (bLightingSmoke) LightingSmokeTick();
+    else if (bModernSmoke) ModernSmokeTick();
     else if (bRealtimeSmoke) RealtimeSmokeTick();
     else if (bCampaignSmoke) CampaignSmokeTick();
     else if (bMissionSmoke) MissionSmokeTick(Delta);

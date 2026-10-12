@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Native Winter Lighting and Rustbound Bridge: 2026-10-13
+
+- Replace the main mission's blockout bridge with the supplied Meshy Rustbound
+  model, separating permanent supports, intact deck/rails and a fractured span.
+  Preserve crossing/sabotage navigation and full-party safety; align the deck
+  and collision surface with both banks. Retain legacy/editor fallback.
+- Preserve horizontal proportions/UVs, normalize a 459.87 x 260 cm footprint and
+  90 cm handrail, and import three Nanite meshes with 1024px PBR textures. Add
+  restrained upward-facing snow in Unreal. Seven runtime packages add 13.6 MiB;
+  original Blender/FBX/PNG sources, logs and build output remain outside upload.
+- Rebalance native winter lighting with one movable soft-shadow sun, live sky
+  capture, nonblack snow-reflected lower hemisphere and local ambient occlusion.
+  Remove the competing shadowless directional fill and contrast darkening.
+- Fix tactical camera exposure so bright snow, dark walls, zoom/orbit and pause
+  do not drive adaptation. Keep character/building textures unchanged.
+- Add a rendered four-quality lighting/bridge fixture and extend native load
+  regression to verify intact/fractured bridge visibility. Work only on Unreal;
+  no web runtime, deployment or new packaged Windows/Android build is changed.
+
 ### Main Native Modern Tactics: 2026-10-12
 
 - Add independent one-action-per-member Command Mode drafts (Z), all-or-nothing

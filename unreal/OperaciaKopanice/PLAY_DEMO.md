@@ -291,6 +291,12 @@ broader acoustic simulation and real-device Android testing remain future work.
 Native quicksave/load is implemented; see Saved Missions above for its limits.
 
 The water remains an animated surface shader, not a fluid solver.
+Mission 1 uses the supplied Rustbound bridge with bank-aligned decking, retained
+piers and a fractured span after sabotage. The main camera now uses stable
+exposure and balanced sky/snow ambient light with dynamic directional shadows.
+Run `./Start-Demo.ps1 -LightingSmokeTest` to capture all four quality levels,
+zoomed/rotated views and the imported bridge. This fixture never saves preferences.
+See `Docs/BRIDGE_PIPELINE.md` for the import pipeline, budgets and limitations.
 Nanite usage is persisted on all seven supplied base materials.
 Asset regeneration, including Blender source work, is not required to play.
 See `Docs/REALTIME_STEALTH.md` for architecture and extension points.
