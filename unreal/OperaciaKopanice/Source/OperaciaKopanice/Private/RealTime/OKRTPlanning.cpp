@@ -60,7 +60,7 @@ bool AOKRTGameMode::ExecutePlan()
         for (int32 J=0;J<I;++J)
         {
             if (DraftValid[J] && Drafts[I].Target.IsValid() && Drafts[I].Target==Drafts[J].Target &&
-                (Drafts[I].Kind==EOKOrder::Takedown || Drafts[I].Kind==EOKOrder::Carry || Drafts[I].Kind==EOKOrder::Heal))
+                (Drafts[I].Kind==EOKOrder::Takedown || Drafts[I].Kind==EOKOrder::Knockout || Drafts[I].Kind==EOKOrder::Bind || Drafts[I].Kind==EOKOrder::Carry || Drafts[I].Kind==EOKOrder::Heal))
             { Message=TEXT("Dve akcie nemozu pouzit rovnaky ciel."); return false; }
             if (DraftValid[J] && Drafts[I].Kind==EOKOrder::Interact && Drafts[J].Kind==EOKOrder::Interact &&
                 Drafts[I].Interaction==Drafts[J].Interaction && Drafts[I].Interaction!=EOKInteraction::HideBody)
@@ -131,10 +131,10 @@ bool AOKRTUnit::IsSyncReady(int32 Batch) const
     const FVector Destination=Target ? Target->Feet() : O.Location;
     const float Reach=Target ? 145.f : O.Kind==EOKOrder::Interact ? 120.f : 70.f;
     if (FVector::Dist2D(Feet(),Destination)>Reach) return false;
-    if (O.Kind==EOKOrder::Takedown || O.Kind==EOKOrder::Heal)
+    if (O.Kind==EOKOrder::Takedown || O.Kind==EOKOrder::Knockout || O.Kind==EOKOrder::Heal)
     {
         if (Cooldown>0 || !Target) return false;
-        if (O.Kind==EOKOrder::Takedown && FVector::DotProduct(Target->GetActorForwardVector(),(Feet()-Target->Feet()).GetSafeNormal2D())>=.1f) return false;
+        if ((O.Kind==EOKOrder::Takedown || O.Kind==EOKOrder::Knockout) && FVector::DotProduct(Target->GetActorForwardVector(),(Feet()-Target->Feet()).GetSafeNormal2D())>=.1f) return false;
     }
     if (Target)
     {

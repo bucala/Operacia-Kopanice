@@ -80,10 +80,12 @@ to nearby guards and deals real-time damage.
 | Cancel armed targeting without stopping movement | Right-click world or Escape |
 | Walk / run / crouch / prone | W / R / C / V or stance icons |
 | Silent takedown | T/swords then left-click guard; approach from behind; unarmed click cannot attack |
+| Nonlethal knockout | K/fist then left-click guard from behind; unbound guard recovers after 45 simulation seconds |
+| Bind unconscious guard | G/link then click, or left-click an unbound unconscious guard |
 | Distraction | F or circle icon, then click ground; 5 charges, 6 s cooldown |
 | Approach TNT / detonator / hide carried body | Left-click near its world marker; active member approaches and interacts |
 | Target an interaction | E or hand icon, then left-click an interactive object |
-| Carry body / drop carried body | Left-click dead guard; B/backpack targets pickup or drops a carried body |
+| Carry body / drop carried body | Left-click dead/bound guard; B/backpack targets pickup or drops a carried body |
 | Toggle one guard's cone | Right-click that guard; no attack is issued |
 | Toggle all cones | Eye icon / Options |
 | Rotate | Q / right bracket or rotate icons |
@@ -119,6 +121,14 @@ checks as submission, from the queued endpoint during pause/Shift and including
 group formation offset; it no longer draws bank-projected routes into water.
 
 ## Modern Team Planning
+
+For a nonlethal route, knock out a guard, bind it and carry it to the hide marker.
+An unbound guard wakes; a bound guard cannot wake on its own, but another mobile
+patrol can discover and free it. Hidden/carried casualties cannot be discovered.
+K, G and B can form a queued chain during pause; reach, target state and obstacles
+are rechecked on arrival. T remains lethal. These are gameplay state transitions
+with provisional body poses, not finished combat/carry animations.
+See [nonlethal rules and save compatibility](Docs/NONLETHAL_STEALTH.md).
 
 Z freezes the mission and opens a separate one-action draft for each specialist.
 Select each member and assign a destination or ability. The HUD shows both drafts

@@ -42,6 +42,7 @@ private:
     void NextUnit();
     void Walk(); void Run(); void Crouch(); void Prone();
     void Takedown(); void Throw(); void Carry(); void Heal();
+    void Knockout(); void BindBody();
     void Plan(); void Execute(); void Save(); void Load();
     void ZoomIn(); void ZoomOut(); void RotateLeft(); void RotateRight();
     void Focus(); void Restart();

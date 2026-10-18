@@ -63,6 +63,8 @@ void AOKRTGameMode::SmokeForestTests()
         TEXT("authored shrub concealment has a finite vertical extent"));
     Require(!IsCover(Shrub+FVector(350,0,0),95),TEXT("shrub concealment ends outside the visible clump"));
     const EOKStance SavedStance=Unit->Stance;
+    const bool WasPaused=bTacticalPause;
+    if (WasPaused) TogglePause();
     Unit->SetActorLocation(Shrub+FVector(0,0,Unit->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
     Unit->SetStance(EOKStance::Walk); Unit->Tick(0);
     Require(!Unit->bInCover && FMath::IsNearlyEqual(Unit->VisibilityFactor(),1.f),TEXT("standing in a shrub does not grant concealment"));
@@ -71,5 +73,6 @@ void AOKRTGameMode::SmokeForestTests()
     Unit->SetStance(EOKStance::Prone); Unit->Tick(0);
     Require(Unit->bInCover && FMath::IsNearlyEqual(Unit->VisibilityFactor(),.045f),TEXT("prone shrub cover retains a positive visibility factor"));
     Unit->SetStance(SavedStance); Unit->SetActorTransform(UnitPose); Unit->Tick(0);
+    if (WasPaused) TogglePause();
     Require(!IsCover(FVector(600,1440,0)),TEXT("larger maps do not inherit the original mission's virtual cover"));
 }

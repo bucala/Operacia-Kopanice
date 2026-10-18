@@ -35,6 +35,9 @@ This is our own documented RTT system, not an exact reproduction of every origin
 | Queue | Shift + LMB, or LMB during tactical pause | Append bounded per-unit orders |
 | Inspect guard | RMB living enemy | Toggle visual cone only; detection continues independently |
 | Silent attack | Arm T/swords, then LMB guard | Active specialist only; rear approach/reach/cooldown checked at execution |
+| Knockout | Arm K/fist, then LMB guard | Nonlethal rear attack; unbound enemy recovers after 45 simulation seconds |
+| Bind | Arm G/link, or LMB unbound unconscious guard | Bind at physical reach; no self-recovery afterward |
+| Carry | B/backpack, or LMB dead/bound guard | Dead or unconscious bound target only |
 | Interact | LMB objective, or arm E/hand then LMB objective | Typed approach; prerequisites checked on arrival |
 | Cancel tool | RMB or Escape | Disarm only; never clear queued movement |
 | Stop | S/X | Explicitly cancel selected units' plans |
@@ -118,7 +121,7 @@ engine, parallel rule simulator or dependency was introduced for this contract.
 
 ## Not Yet Implemented
 
-Disguise, tied/unconscious enemies and recovery,
+Disguise,
 usable vehicles, interiors/floors, ladders, swimming, barracks reinforcements,
 flashlights, real acoustic occlusion, weather-driven perception, arbitrary scripted
 objectives need separate tested implementation.
@@ -155,7 +158,8 @@ Kopanice prototype, not a reproduction of Origins or a claim of equivalent scope
 - A lost target/path or explicit stop cancels an unreleased batch for the whole
   participating team. One batch can be active at a time. Completed actions are
   not rolled back after release. The system is not a future-outcome simulator.
-- SaveGame schema 1 stores stable actor indices, not transient UObject pointers.
+- SaveGame schema 2 stores stable actor indices, not transient UObject pointers;
+  legacy schema 1 remains readable.
   Validation runs before world mutation; loading rebuilds scene/topology and
   navigation before restoring saved pause. Ordinary paths restart toward saved
   destinations, rather than serializing UE path-following internals.
@@ -170,3 +174,12 @@ Multiplayer/co-op, a six-specialist roster, disguise, multi-step synchronized
 timelines, fully authored combat/carry animations and AAA-quality terrain/assets
 remain future work. The current menu/save systems are editor-hosted Windows
 features, not a packaged product or web/Android parity promise.
+
+## Nonlethal Stealth
+
+The manual-based knockout/bind/carry/hide/recovery cycle is now implemented.
+Mobile guards can free an observed casualty after real navigation and physical
+reach; fixed sentries keep their post. Enemy health and operational status are
+separate, so incapacitated enemies do not patrol, see, hear or shoot.
+See [nonlethal contract](NONLETHAL_STEALTH.md) for reference pages, own timings,
+typed queue rules, save migration and animation/AI limitations.

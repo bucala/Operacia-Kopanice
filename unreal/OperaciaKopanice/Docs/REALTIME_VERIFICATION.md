@@ -1,5 +1,73 @@
 # Real-Time Prototype Verification
 
+## Manual-Based Nonlethal Stealth: 2026-10-18
+
+Only the main native game is changed. See [rules and reference pages](NONLETHAL_STEALTH.md).
+UE 5.8.2 Win64 Development Editor compilation succeeds. The final HUD build
+is copied into the development project; its DLL SHA-256 matches the short-path build:
+`DB099F597B6CD6D9F15E91FFD3452895BCBA882A7837C61654199CA0662C49D0`.
+Preferred-MSVC/optional SDK and engine/input deprecation warnings remain.
+There is no new packaged Windows/Android/web release.
+
+Final rendered runs, with no failed checks or material fallback errors:
+
+| Run | Result | Local log |
+| --- | --- | --- |
+| Nonlethal lifecycle, 1280 x 720 | 59/59 PASS | DemoSmoke-ee1b174b32a34351a8dad30f86b1d2ff.log |
+| Nonlethal lifecycle, 480 x 800 | 59/59 PASS | DemoSmoke-0e38e661516d4b08a6e0dc093dd555da.log |
+| Command Mode, healing, save/load, 1280 x 720 | 41/41 PASS | DemoSmoke-b42fabf49b804231bfc7a3345a19c0da.log |
+
+These exercise actual K/G bindings, rear/front attack rules, a real-time queued
+knockout -> bind -> carry chain, contextual LMB binding, carry speed/no-run rules,
+drop-before-run promotion without duplicate orders, hidden casualties, timed
+unbound recovery, pause-frame gating, mobile assistance with real NavMesh arrival,
+fixed-sentry duty, wall obstruction, snapshot rejection and F9 scene reconstruction.
+Schema 1 validation remains supported; newly written saves use schema 2.
+HUD control bounds and supplied rig initialization are checked. Desktop/portrait
+captures were visually inspected; this is not packaged/device certification.
+
+The complete preceding gameplay build
+`39584845D921E3C0DA9E28B3E4EC69A6D86E1E88CFE580ADB5B03B54C17622DA`
+also passed the following. The only subsequent runtime change is clipping casualty
+indicators outside the viewport or under existing portrait/objective panels:
+
+| Run | Result | Local log |
+| --- | --- | --- |
+| Original navigation/input/world integration, 1280 x 720 | 279/279 PASS | DemoSmoke-c330b63b8002467ab137c91b9e27c18a.log |
+| Production real-time startup, 1280 x 720 | 11/11 PASS | DemoSmoke-32c29b14e54840b694be501da8dd93b7.log |
+| Mission 1, live AI, 1280 x 720 | 15/15 PASS | DemoSmoke-50eaf60e0f684d5d86f056a76bcc1ba3.log |
+
+The live courier -> command-post campaign passed 249 checks in
+`DemoSmoke-5f634147bbe948ceb7d4f5e1b343ed5e.log` on build
+`6456254A51400C56AE125FB6271349BBA372D44B2CEB3FB187E9AE183126B81C`.
+Both missions retain living enabled guard brains and finish with full party health.
+Its per-frame layout assertions make the count timing-dependent. That campaign run
+precedes the final initial-pose/queued-run refinements; the whole campaign was not
+repeated on the final HUD build. The subsequent lifecycle and integration fixtures
+cover those refinements separately.
+
+The isolated development-branch upload worktree matches 225 Source/Config/Content
+files after text line-ending normalization, including 98 runtime package SHA-256
+checks against Git LFS pointers. Two new icon packages total 29,780 bytes.
+The icon import commandlet succeeds with zero commandlet errors/warnings.
+33 generated-header include positions and `git diff --check` pass.
+Original meshes, manuals, generated PNG sources, logs, captures and build output
+are not added to the upload. The independently updated `C:/GitHub/Operacia-Kopanice`
+`main` checkout is left unchanged; publication targets the native development branch.
+
+Five earlier DX12 attempts failed with GPU MMU/page faults before the first
+completed GPU frame: `DemoSmoke-dcf71d6da82640cb8ea49e4f95fde5f1.log`,
+`DemoSmoke-24cf344035da44509296b15d35cbd494.log`,
+`DemoSmoke-d784ee910bcb4b2d843069aec2d78a7c.log`,
+`DemoSmoke-7f5818608dde416a893d5fd3518def30.log` and
+`DemoSmoke-96340e1664fe4e59aa71aeb720481249.log`.
+Successful runs do not prove this renderer/driver-path instability resolved, and
+the dumps do not identify a root cause. The initial-pose fix is not claimed as a GPU
+crash fix. An early pause-clock failure was corrected with explicit unit/guard
+pause gates; paused synthetic-tick fixtures now explicitly resume before execution.
+Authored knockout/binding/carry animations and production assistance AI remain
+future work; current poses and instant-at-arrival assistance are prototype behavior.
+
 ## Native Rustbound Bridge and Lighting: 2026-10-13
 
 Only the main native game is changed. Web runtime/assets and Workers deployment

@@ -33,6 +33,13 @@ je zobrazený v nasledujúcej časti.
 
 ## Unreal Real-Time Prototype
 
+Natívna verzia má aj nesmrteľný stealth postup podľa dodaných manuálov:
+K omráči hliadku zozadu, G ju zviaže a B umožní preniesť zviazaného alebo mŕtveho
+nepriateľa do úkrytu. Nezviazaný vojak sa po 45 sekundách herného času zotaví;
+mobilná hliadka môže objaveného spolubojovníka oslobodiť až po príchode.
+T zostáva smrteľný útok. Stav a čas zotavenia sa ukladajú v natívnej hre.
+[Pravidlá a limity](unreal/OperaciaKopanice/Docs/NONLETHAL_STEALTH.md).
+
 Unreal režim je **stealth real-time tactics (RTT)** v štýle Commandos, nie adventúra
 point-and-click. Hlavná verzia používa schému podľa Commandos 2: pravý klik vyberá
 jednotky, ľavý vydáva rozkazy a dvojitý ľavý klik na terén vyžiada beh. Ctrl + pravý

@@ -45,7 +45,7 @@ void AOKRTGameMode::SmokeOrderTests()
     Unit->bEnemy=true;
     Require(!Unit->UndoLastOrder(),TEXT("enemy units cannot use party order undo")); Unit->bEnemy=false;
     Unit->CancelOrders(); Unit->Submit(Saved[0],true);
-    Unit->Tick(0);
+    TogglePause(); Unit->Tick(0); TogglePause();
     auto* Path=CastChecked<AAIController>(Unit->GetController())->GetPathFollowingComponent();
     const auto Request=Path->GetCurrentRequestId();
     Require(Unit->HasStartedOrder() && !Unit->UndoLastOrder() && Unit->QueueSize()==1,

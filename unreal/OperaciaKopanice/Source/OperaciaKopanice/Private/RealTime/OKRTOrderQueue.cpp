@@ -13,6 +13,8 @@ namespace
         case EOKOrder::Move: return {Order.bRunToDestination ? TEXT("move_right") : TEXT("footprints"),
             Order.bRunToDestination ? TEXT("Beh") : TEXT("Presun")};
         case EOKOrder::Takedown: return {TEXT("swords"),TEXT("Tichy utok")};
+        case EOKOrder::Knockout: return {TEXT("hand_fist"),TEXT("Omracenie")};
+        case EOKOrder::Bind: return {TEXT("link"),TEXT("Zviazanie")};
         case EOKOrder::Distract: return {TEXT("circle_dot"),TEXT("Odlakanie")};
         case EOKOrder::Heal: return {TEXT("heart_pulse"),TEXT("Osetrenie")};
         case EOKOrder::Carry: return {TEXT("backpack"),Order.Target.IsExplicitlyNull() ? TEXT("Polozit telo") : TEXT("Preniest telo")};

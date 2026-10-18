@@ -127,7 +127,7 @@ stance multiplier. Hearing remains independent. Suspicion decays while unseen.
 Visual cones are rebuilt at most every 0.12 s while visible and clipped by rays.
 Hidden/carried bodies are excluded from discovery.
 
-Guards investigate an audible event or newly seen dead guard, search for four
+Guards investigate an audible event or newly seen dead/unconscious guard, search for four
 seconds, then resume waypoint patrol. Combat broadcasts once to guards within
 1400 cm, tracks last seen location, shoots for 35 damage at 1.1 s intervals after
 an initial reaction delay and searches after six seconds without sight.
@@ -205,12 +205,20 @@ Identical endpoints use bounded NavMesh point projection, preserving same-positi
 moves and takedown-then-pickup plans without admitting points in water. Double-click
 run promotion also validates the new click before modifying an existing move.
 Targets are validated again at execution; stale targets cancel their own approach path.
-Friendly takedowns and carrying living/hidden/already-carried guards are rejected.
+Friendly attacks and carrying conscious, unbound unconscious, hidden or
+already-carried guards are rejected.
 Both takedown and pickup check vertical reach and a Visibility trace at arrival;
 the body cannot be attached through a wall just because it is inside AI MoveTo's
 acceptance radius. These checks do not introduce automatic rear-approach routing.
 A carry may be queued behind a takedown of the same guard, but still requires a
-dead body when executed. Cooldowns retain the pending attack/throw; empty inventory,
+dead body when executed. Knockout -> bind -> carry can also be queued for the same
+target, but pickup still requires a bound unconscious target at execution.
+Unbound unconscious enemies recover after 45 simulation seconds; a mobile guard
+can free a seen casualty only after a complete approach and physical reach.
+Pause/menu explicitly gate already-scheduled unit/guard ticks as well as world
+time, so recovery cannot advance on the pause activation frame.
+See [nonlethal stealth](NONLETHAL_STEALTH.md) for the full state/save contract.
+Cooldowns retain the pending attack/throw; empty inventory,
 invalid targets and blocked/out-of-range throws produce feedback and end the order.
 Invalid armed targeting remains armed for correction; Escape/right-click cancels
 only targeting, while S/X also stops the selected units. Right-clicking

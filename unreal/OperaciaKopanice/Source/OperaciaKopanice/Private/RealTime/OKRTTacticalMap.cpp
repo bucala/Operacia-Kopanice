@@ -53,7 +53,7 @@ void AOKRTHUD::DrawTacticalMap(AOKRTGameMode* G,float W,float H)
     }
     for (AOKRTUnit* E:G->Enemies)
         if (E->IsAlive() && G->TeamSees(E))
-        { const auto A=Project(FVector2D(E->Feet())); DrawRect(FLinearColor(.95f,.26f,.21f),A.X-2,A.Y-2,4,4); }
+        { const auto A=Project(FVector2D(E->Feet())); DrawRect(E->bUnconscious ? FLinearColor(.9f,.72f,.34f) : FLinearColor(.95f,.26f,.21f),A.X-2,A.Y-2,4,4); }
     for (int32 I=0;I<G->Party.Num();++I)
         if (G->Party[I]->IsAlive())
         {

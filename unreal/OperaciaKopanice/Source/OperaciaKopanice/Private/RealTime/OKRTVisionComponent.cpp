@@ -30,7 +30,7 @@ bool UOKRTVisionComponent::Sees(const AOKRTUnit* Target,bool& bPrimary) const
 {
     bPrimary=false;
     auto* Owner=Cast<AOKRTUnit>(GetOwner());
-    if (!Owner || !Target || Target->bHiddenBody || Target->Carrier.IsValid()) return false;
+    if (!Owner || !Owner->IsOperational() || !Target || Target->bHiddenBody || Target->Carrier.IsValid()) return false;
     FVector Eye; FRotator Rotation;
     Owner->GetActorEyesViewPoint(Eye,Rotation);
     FVector TargetEye; FRotator Ignored;
@@ -51,7 +51,7 @@ void UOKRTVisionComponent::TickComponent(float Delta,ELevelTick Type,FActorCompo
 {
     Super::TickComponent(Delta,Type,Function);
     auto* Unit=Cast<AOKRTUnit>(GetOwner());
-    SetVisibility(bConeVisible && Unit && Unit->IsAlive());
+    SetVisibility(bConeVisible && Unit && Unit->IsOperational());
     Accumulator+=Delta;
     if (IsVisible() && Accumulator>.12f) { Accumulator=0; Refresh(); }
 }

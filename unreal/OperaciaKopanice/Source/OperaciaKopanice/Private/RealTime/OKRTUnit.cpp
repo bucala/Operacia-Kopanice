@@ -73,6 +73,7 @@ void AOKRTUnit::Initialize(bool Guard,bool Officer)
     }
     UE_LOG(LogTemp,Display,TEXT("OK_RT_SIZE: %s enemy=%d height=%.1f cm"),*DisplayName,bEnemy,VisualHeight);
     SetStance(EOKStance::Walk);
+    UpdateAnimation(0);
     Vision->bConeVisible=Guard;
     Stimuli->RegisterWithPerceptionSystem();
     SpawnDefaultController();
@@ -87,7 +88,7 @@ void AOKRTUnit::GetQueuedLocations(TArray<FVector>& Locations) const
     for (const FOKRTOrder& Order:Orders)
     {
         if (Order.Kind==EOKOrder::Move || (Order.Kind==EOKOrder::Interact && Order.bApproachInteraction)) Locations.Add(Order.Location);
-        else if ((Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Carry || Order.Kind==EOKOrder::Heal) && Order.Target.IsValid())
+        else if ((Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Knockout || Order.Kind==EOKOrder::Bind || Order.Kind==EOKOrder::Carry || Order.Kind==EOKOrder::Heal) && Order.Target.IsValid())
             Locations.Add(Order.Target->Feet());
     }
 }
@@ -115,12 +116,13 @@ bool AOKRTUnit::UndoLastOrder()
 }
 void AOKRTUnit::GetActorEyesViewPoint(FVector& Location,FRotator& Rotation) const
 {
-    const float Height=!IsAlive() ? 20 : Stance==EOKStance::Prone ? 30 : Stance==EOKStance::Crouch ? 95 : 145;
+    const float Height=IsBody() ? 20 : Stance==EOKStance::Prone ? 30 : Stance==EOKStance::Crouch ? 95 : 145;
     Location=Feet()+FVector(0,0,Height);
     Rotation=GetActorRotation();
 }
 void AOKRTUnit::SetStance(EOKStance Value)
 {
+    if (CarriedBody.IsValid() && Value==EOKStance::Run) Value=EOKStance::Walk;
     Stance=Value;
     const bool bLow=Value==EOKStance::Crouch || Value==EOKStance::Prone;
     if (!bLow) bInCover=false;
@@ -142,8 +144,15 @@ float AOKRTUnit::VisibilityFactor() const
 }
 bool AOKRTUnit::ValidateOrder(const FOKRTOrder& Order,bool bExecuting,bool bKeepQueue,FString& Reason) const
 {
-    if (!IsAlive() || bEnemy) { Reason=TEXT("Postava nemoze prijat prikaz."); return false; }
+    if (!IsOperational() || bEnemy) { Reason=TEXT("Postava nemoze prijat prikaz."); return false; }
     if (Order.Location.ContainsNaN()) { Reason=TEXT("Neplatna poloha ciela."); return false; }
+    if (CarriedBody.IsValid() && ((Order.Kind==EOKOrder::Stance && Order.Stance==EOKStance::Run) ||
+        (Order.Kind==EOKOrder::Move && Order.bRunToDestination)))
+    {
+        const bool bQueuedDrop=!bExecuting && bKeepQueue && Orders.ContainsByPredicate([](const FOKRTOrder& Pending)
+        { return Pending.Kind==EOKOrder::Carry && Pending.Target.IsExplicitlyNull(); });
+        if (!bQueuedDrop) { Reason=TEXT("S telom nie je mozne bezat. Najprv ho poloz."); return false; }
+    }
     if (Order.Kind==EOKOrder::Heal)
     {
         const auto* Target=Order.Target.Get();
@@ -160,7 +169,7 @@ bool AOKRTUnit::ValidateOrder(const FOKRTOrder& Order,bool bExecuting,bool bKeep
             GetWorld()->LineTraceSingleByChannel(Hit,Feet()+FVector(0,0,120),Order.Location+FVector(0,0,120),ECC_Visibility,Params))
         { Reason=TEXT("Miesto odlakania je za prekazkou alebo mimo dosahu."); return false; }
     }
-    if (Order.Kind!=EOKOrder::Takedown && Order.Kind!=EOKOrder::Carry) return true;
+    if (Order.Kind!=EOKOrder::Takedown && Order.Kind!=EOKOrder::Knockout && Order.Kind!=EOKOrder::Bind && Order.Kind!=EOKOrder::Carry) return true;
     if (Order.Kind==EOKOrder::Carry && Order.Target.IsExplicitlyNull())
     {
         const bool bQueuedPickup=!bExecuting && bKeepQueue && Orders.ContainsByPredicate([](const FOKRTOrder& Pending)
@@ -171,17 +180,26 @@ bool AOKRTUnit::ValidateOrder(const FOKRTOrder& Order,bool bExecuting,bool bKeep
     const auto* Target=Order.Target.Get();
     if (!Target || !Target->bEnemy || Target==this || Target->bHiddenBody || Target->Carrier.IsValid())
     { Reason=TEXT("Vyber dostupnu nepriatelsku hliadku."); return false; }
-    if (Order.Kind==EOKOrder::Takedown)
+    if (Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Knockout)
     {
-        if (!Target->IsAlive()) { Reason=TEXT("Hliadka je uz neutralizovana."); return false; }
+        if (!Target->IsOperational()) { Reason=TEXT("Hliadka je uz neutralizovana."); return false; }
         if (CarriedBody.IsValid()) { Reason=TEXT("Najprv poloz telo."); return false; }
+    }
+    else if (Order.Kind==EOKOrder::Bind)
+    {
+        const bool bQueuedKnockout=!bExecuting && bKeepQueue && Orders.ContainsByPredicate([Target](const FOKRTOrder& Pending)
+        { return Pending.Kind==EOKOrder::Knockout && Pending.Target.Get()==Target; });
+        if (!Target->IsAlive() || Target->bBound || (!Target->bUnconscious && !bQueuedKnockout) || CarriedBody.IsValid())
+        { Reason=TEXT("Zviazanie vyzaduje omracenu nezviazanu hliadku a volne ruky."); return false; }
     }
     else
     {
         const bool bQueuedTakedown=!bExecuting && bKeepQueue && Orders.ContainsByPredicate([Target](const FOKRTOrder& Pending)
         { return Pending.Kind==EOKOrder::Takedown && Pending.Target.Get()==Target; });
-        if (Target->IsAlive() && !bQueuedTakedown)
-        { Reason=TEXT("Najprv neutralizuj hliadku."); return false; }
+        const bool bQueuedBinding=!bExecuting && bKeepQueue && Orders.ContainsByPredicate([Target](const FOKRTOrder& Pending)
+        { return Pending.Kind==EOKOrder::Bind && Pending.Target.Get()==Target; });
+        if (Target->IsAlive() && !(Target->bUnconscious && Target->bBound) && !bQueuedTakedown && !bQueuedBinding)
+        { Reason=TEXT("Prenasat sa da iba mrtva alebo zviazana hliadka."); return false; }
         if (CarriedBody.IsValid()) { Reason=TEXT("Postava uz nesie telo."); return false; }
     }
     return true;
@@ -212,7 +230,7 @@ bool AOKRTUnit::CanNavigateOrder(const FOKRTOrder& Order,bool bFromQueue,FString
 bool AOKRTUnit::GetOrderPath(const FOKRTOrder& Order,bool bFromQueue,TArray<FVector>& Points,FString& Reason) const
 {
     Points.Reset(); Reason.Reset();
-    const bool bTargetOrder=Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Heal || (Order.Kind==EOKOrder::Carry && Order.Target.IsValid());
+    const bool bTargetOrder=Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Knockout || Order.Kind==EOKOrder::Bind || Order.Kind==EOKOrder::Heal || (Order.Kind==EOKOrder::Carry && Order.Target.IsValid());
     if (Order.Kind!=EOKOrder::Move && !(Order.Kind==EOKOrder::Interact && Order.bApproachInteraction) && !bTargetOrder) return true;
     if (Order.Location.ContainsNaN() || (bTargetOrder && !Order.Target.IsValid()))
     { Reason=TEXT("Neplatny ciel."); return false; }
@@ -262,9 +280,9 @@ bool AOKRTUnit::PromoteLastMoveToRun(FVector Destination)
 {
     if (!IsAlive() || Orders.IsEmpty() || Orders.Last().Kind!=EOKOrder::Move ||
         FVector::Dist2D(Orders.Last().Location,Destination)>60) return false;
-    FOKRTOrder Requested=Orders.Last(); Requested.Location=Destination;
+    FOKRTOrder Requested=Orders.Last(); Requested.Location=Destination; Requested.bRunToDestination=true;
     FString Reason;
-    if (!CanNavigateOrder(Requested,true,Reason)) return false;
+    if (!ValidateOrder(Requested,false,true,Reason) || !CanNavigateOrder(Requested,true,Reason)) return false;
     Orders.Last().bRunToDestination=true;
     // Reapply pace once on execution/resume, including an already-started move.
     if (Orders.Num()==1) bOrderStarted=false;
@@ -299,7 +317,7 @@ void AOKRTUnit::UpdateOrders()
     if (Order.Kind==EOKOrder::Interact && !Order.bApproachInteraction)
     { if (AwaitSynchronization(Order)) return; Game->Interact(this,Order.Interaction); FinishOrder(); return; }
     if (Order.Kind==EOKOrder::Carry && Order.Target.IsExplicitlyNull()) { if (AwaitSynchronization(Order)) return; DropBody(); FinishOrder(); return; }
-    const bool bTargetOrder=Order.Kind==EOKOrder::Carry || Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Heal;
+    const bool bTargetOrder=Order.Kind==EOKOrder::Carry || Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Knockout || Order.Kind==EOKOrder::Bind || Order.Kind==EOKOrder::Heal;
     auto* Target=Order.Target.Get();
     const FVector Destination=bTargetOrder ? Target->Feet() : Order.Location;
     const float Acceptance=bTargetOrder ? 100.f : Order.Kind==EOKOrder::Interact ? 75.f : 25.f;
@@ -329,15 +347,24 @@ void AOKRTUnit::UpdateOrders()
             GetWorld()->LineTraceSingleByChannel(Hit,GetActorLocation(),Target->GetActorLocation(),ECC_Visibility,Params))
         { Game->Message=TEXT("Prekazka blokuje pristup k cielu."); FinishOrder(); return; }
     }
-    if (Order.Kind==EOKOrder::Takedown && Target)
+    if ((Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Knockout) && Target)
     {
         if (Cooldown>0) return;
         const float Behind=FVector::DotProduct(Target->GetActorForwardVector(),(Feet()-Target->Feet()).GetSafeNormal2D());
         if (Order.SyncBatch && Behind>=.1f) { Game->Message=TEXT("Tichy utok vyzaduje pristup zozadu."); FinishOrder(); return; }
         if (AwaitSynchronization(Order)) return;
         if (Behind<.1f)
-        { Target->TakeHit(100); Cooldown=3; Game->Message=TEXT("Hliadka neutralizovana."); }
+        {
+            if (Order.Kind==EOKOrder::Knockout) { Target->KnockOut(); Game->Message=TEXT("Hliadka omracena. Nezviazana sa zotavi."); }
+            else { Target->TakeHit(100); Game->Message=TEXT("Hliadka neutralizovana."); }
+            Cooldown=3;
+        }
         else Game->Message=TEXT("Tichy utok vyzaduje pristup zozadu.");
+    }
+    else if (Order.Kind==EOKOrder::Bind)
+    {
+        if (AwaitSynchronization(Order)) return;
+        Target->BindBody(); Game->Message=TEXT("Hliadka zviazana. Mozes ju odniest do ukrytu.");
     }
     else if (Order.Kind==EOKOrder::Heal)
     {
@@ -346,7 +373,7 @@ void AOKRTUnit::UpdateOrders()
         Game->Message=TEXT("Spojenec osetreny.");
     }
     else if (AwaitSynchronization(Order)) return;
-    if (Order.Kind==EOKOrder::Carry && Target && !Target->IsAlive())
+    if (Order.Kind==EOKOrder::Carry && Target && Target->IsBody())
     {
         CarriedBody=Target; Target->Carrier=this;
         Target->GetCapsuleComponent()->SetCollisionProfileName(TEXT("NoCollision"));
@@ -362,8 +389,13 @@ void AOKRTUnit::TakeHit(float Damage)
     if (!IsAlive()) return;
     Health=FMath::Max(0.f,Health-Damage);
     if (IsAlive()) return;
+    bUnconscious=false; bBound=false; RecoveryRemaining=0;
+    IncapacitatedPose();
+}
+void AOKRTUnit::IncapacitatedPose()
+{
     DropBody(); CancelOrders();
-    if (auto* AI=Cast<AAIController>(GetController())) AI->StopMovement();
+    if (auto* AI=Cast<AAIController>(GetController())) { AI->StopMovement(); AI->ClearFocus(EAIFocusPriority::Gameplay); }
     const FVector Foot=Feet();
     GetCharacterMovement()->DisableMovement();
     GetCapsuleComponent()->SetCapsuleHalfHeight(30);
@@ -374,6 +406,42 @@ void AOKRTUnit::TakeHit(float Damage)
     Visual->SetRelativeLocation(FVector(-75,0,-18));
     Visual->SetRelativeRotation(FRotator(90,0,0));
     Vision->bConeVisible=false; Vision->SetVisibility(false);
+}
+bool AOKRTUnit::KnockOut(float Duration)
+{
+    if (!bEnemy || !IsOperational() || !FMath::IsFinite(Duration) || Duration<=0) return false;
+    bUnconscious=true; bBound=false; RecoveryRemaining=FMath::Clamp(Duration,.1f,3600.f);
+    IncapacitatedPose(); return true;
+}
+bool AOKRTUnit::BindBody()
+{
+    if (!bEnemy || !IsAlive() || !bUnconscious || bBound || bHiddenBody || Carrier.IsValid()) return false;
+    bBound=true; RecoveryRemaining=0; return true;
+}
+bool AOKRTUnit::WakeUp()
+{
+    if (!bEnemy || !IsAlive() || !bUnconscious || bHiddenBody || Carrier.IsValid()) return false;
+    const FVector Foot=Feet();
+    // Never revive inside a moved prop or under a low ceiling.
+    FCollisionQueryParams Params(SCENE_QUERY_STAT(OKWake),false,this);
+    if (GetWorld()->OverlapBlockingTestByChannel(Foot+FVector(0,0,91),FQuat::Identity,ECC_Pawn,
+        FCollisionShape::MakeCapsule(30,89),Params)) return false;
+    bUnconscious=bBound=false; RecoveryRemaining=0;
+    GetCharacterMovement()->UnCrouch(false);
+    GetCapsuleComponent()->SetCapsuleSize(30,90);
+    GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn"));
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+    GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility,ECR_Block);
+    SetActorLocation(Foot+FVector(0,0,90),false,nullptr,ETeleportType::TeleportPhysics);
+    GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+    Visual->SetRelativeRotation(FRotator::ZeroRotator);
+    Visual->SetRelativeLocation(FVector(0,0,-87));
+    SmoothedSpeed=MotionBlend=CrouchBlend=ProneBlend=0;
+    SetStance(EOKStance::Walk); UpdateAnimation(0);
+    if (auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>()) Vision->bConeVisible=Game->bCones;
+    if (auto* AI=Cast<AOKRTGuardController>(GetController()))
+    { AI->AlertState=EOKAlert::Patrol; AI->Investigate(Foot); }
+    return true;
 }
 void AOKRTUnit::DropBody(bool bHide)
 {
@@ -389,7 +457,7 @@ void AOKRTUnit::DropBody(bool bHide)
         Body->GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Ignore);
         Body->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility,ECR_Block);
     }
-    else Body->Stimuli->UnregisterFromPerceptionSystem();
+    else { Body->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision); Body->Stimuli->UnregisterFromPerceptionSystem(); }
     CarriedBody.Reset(); SetStance(Stance);
 }
 void AOKRTUnit::Tick(float Delta)
@@ -397,7 +465,13 @@ void AOKRTUnit::Tick(float Delta)
     Super::Tick(Delta);
     if (!IsAlive()) return;
     auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
-    if (!Game || Game->bWon || Game->bLost) return;
+    if (!Game || Game->bWon || Game->bLost || Game->bTacticalPause || Game->bMenu) return;
+    if (bUnconscious)
+    {
+        if (!bBound && !Carrier.IsValid() && !bHiddenBody)
+        { RecoveryRemaining=FMath::Max(0.f,RecoveryRemaining-Delta); if (RecoveryRemaining<=0) WakeUp(); }
+        return;
+    }
     Cooldown=FMath::Max(0.f,Cooldown-Delta);
     bInCover=(Stance==EOKStance::Crouch || Stance==EOKStance::Prone) &&
         Game->IsCover(Feet(),Stance==EOKStance::Prone ? 35.f : 95.f);

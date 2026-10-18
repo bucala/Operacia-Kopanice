@@ -85,7 +85,8 @@ void AOKRTGameMode::StartPlay()
     bRealtimeSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTRealtimeSmoke"));
     bModernSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTModernSmoke"));
     bLightingSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTLightingSmoke"));
-    bSmoke=bLightingSmoke || bModernSmoke || bCampaignSmoke || bMissionSmoke || bRealtimeSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
+    bNonlethalSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTNonlethalSmoke"));
+    bSmoke=bNonlethalSmoke || bLightingSmoke || bModernSmoke || bCampaignSmoke || bMissionSmoke || bRealtimeSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
     const FString Requested=UGameplayStatics::ParseOption(OptionsString,TEXT("Mission"));
     if (Requested.IsEmpty()) FParse::Value(FCommandLine::Get(),TEXT("OKMission="),MissionId);
     else MissionId=FCString::Atoi(*Requested);
@@ -109,6 +110,7 @@ void AOKRTGameMode::StartPlay()
         PendingLoad=Cast<UOKRTSaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlot(),0));
         if (ValidateSnapshot(PendingLoad) && PendingLoad->bBridge) BreakBridge();
         if (bModernSmoke) SmokeStage=100;
+        if (bNonlethalSmoke) SmokeStage=100;
     }
     if (bCampaignSmoke)
     {
@@ -605,7 +607,8 @@ void AOKRTGameMode::Tick(float Delta)
         if ((bWon || bLost) && !UGameplayStatics::IsGamePaused(GetWorld()))
         { UGameplayStatics::SetGamePaused(GetWorld(),true); }
     }
-    if (bLightingSmoke) LightingSmokeTick();
+    if (bNonlethalSmoke) NonlethalSmokeTick();
+    else if (bLightingSmoke) LightingSmokeTick();
     else if (bModernSmoke) ModernSmokeTick();
     else if (bRealtimeSmoke) RealtimeSmokeTick();
     else if (bCampaignSmoke) CampaignSmokeTick();

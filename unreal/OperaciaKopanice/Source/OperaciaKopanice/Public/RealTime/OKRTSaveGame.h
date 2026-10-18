@@ -31,6 +31,9 @@ struct FOKSavedUnit
     UPROPERTY(SaveGame) bool bSelected=false;
     UPROPERTY(SaveGame) bool bHidden=false;
     UPROPERTY(SaveGame) bool bCone=true;
+    UPROPERTY(SaveGame) bool bUnconscious=false;
+    UPROPERTY(SaveGame) bool bBound=false;
+    UPROPERTY(SaveGame) float RecoveryRemaining=0;
     UPROPERTY(SaveGame) int32 CarriedBody=INDEX_NONE;
     UPROPERTY(SaveGame) TArray<FOKSavedOrder> Orders;
 };
@@ -47,6 +50,7 @@ struct FOKSavedGuard
     UPROPERTY(SaveGame) float LostSight=0;
     UPROPERTY(SaveGame) float ShotClock=0;
     UPROPERTY(SaveGame) int32 CombatTarget=INDEX_NONE;
+    UPROPERTY(SaveGame) int32 RescueTarget=INDEX_NONE;
     UPROPERTY(SaveGame) TArray<int32> DiscoveredBodies;
 };
 UCLASS()
@@ -54,7 +58,7 @@ class OPERACIAKOPANICE_API UOKRTSaveGame : public USaveGame
 {
     GENERATED_BODY()
 public:
-    UPROPERTY(SaveGame) int32 Version=1;
+    UPROPERTY(SaveGame) int32 Version=2;
     UPROPERTY(SaveGame) int32 MissionId=0;
     UPROPERTY(SaveGame) FDateTime SavedAt;
     UPROPERTY(SaveGame) bool bTNT=false;

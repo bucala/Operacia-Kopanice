@@ -170,6 +170,8 @@ private:
     void SmokeWorldTests();
     void ModernSmokeTick();
     bool bModernSmoke=false;
+    void NonlethalSmokeTick();
+    bool bNonlethalSmoke=false;
     void LightingSmokeTick();
     bool bLightingSmoke=false;
     void SmokeNavigationTests();

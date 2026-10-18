@@ -47,6 +47,7 @@ UOKRTSaveGame* AOKRTGameMode::CaptureSnapshot() const
         FOKSavedUnit V; V.Feet=U->Feet(); V.Yaw=U->GetActorRotation().Yaw; V.Health=U->Health; V.Cooldown=U->Cooldown;
         V.Distractions=U->Distractions; V.Medkits=U->Medkits; V.Stance=U->Stance; V.bSelected=U->IsSelected();
         V.bHidden=U->bHiddenBody; V.bCone=U->Vision->bConeVisible; V.CarriedBody=Units.IndexOfByKey(U->CarriedBody.Get());
+        V.bUnconscious=U->bUnconscious; V.bBound=U->bBound; V.RecoveryRemaining=U->RecoveryRemaining;
         for (const auto& O:U->Orders) V.Orders.Add(Encode(O,Units)); S->Units.Add(V);
     }
     for (AOKRTUnit* U:Enemies)
@@ -55,6 +56,8 @@ UOKRTSaveGame* AOKRTGameMode::CaptureSnapshot() const
         V.Alert=AI->AlertState; V.Suspicion=AI->Suspicion; V.LastKnown=AI->LastKnown; V.PatrolIndex=AI->PatrolIndex;
         V.bAtStop=AI->bAtPatrolStop; V.Wait=AI->Wait; V.LostSight=AI->LostSight; V.ShotClock=AI->ShotClock;
         V.CombatTarget=Party.IndexOfByKey(AI->CombatTarget.Get());
+        if (const auto* Body=AI->RescueTarget.Get(); Body && Body->bUnconscious && Body->IsAlive() && AI->AlertState==EOKAlert::Investigate)
+            V.RescueTarget=Enemies.IndexOfByKey(Body);
         for (const auto& B:AI->DiscoveredBodies) if (B.IsValid()) V.DiscoveredBodies.Add(Enemies.IndexOfByKey(B.Get()));
         S->Guards.Add(V);
     }
@@ -62,7 +65,7 @@ UOKRTSaveGame* AOKRTGameMode::CaptureSnapshot() const
 }
 bool AOKRTGameMode::ValidateSnapshot(const UOKRTSaveGame* S) const
 {
-    if (!S || S->Version!=1 || S->MissionId<0 || S->MissionId>=OKMissions::Count) return false;
+    if (!S || (S->Version!=1 && S->Version!=2) || S->MissionId<0 || S->MissionId>=OKMissions::Count) return false;
     const auto& M=OKMissions::Get(S->MissionId); const int32 Count=2+M.Guards.Num();
     if (S->Units.Num()!=Count || S->Guards.Num()!=M.Guards.Num() || S->ActiveMember<0 || S->ActiveMember>=2 ||
         !Finite(S->CameraTarget) || !FMath::IsFinite(S->CameraYaw) || !FMath::IsFinite(S->CameraTilt) ||
@@ -77,10 +80,11 @@ bool AOKRTGameMode::ValidateSnapshot(const UOKRTSaveGame* S) const
         (S->bCommandMode && (S->Drafts.Num()!=2 || !S->bPaused || S->ActiveBatch))) return false;
     auto ValidOrder=[Count,S](const FOKSavedOrder& O)
     {
-        return uint8(O.Kind)<=uint8(EOKOrder::Heal) && uint8(O.Stance)<=uint8(EOKStance::Prone) &&
+        return uint8(O.Kind)<=uint8(S->Version==1 ? EOKOrder::Heal : EOKOrder::Bind) && uint8(O.Stance)<=uint8(EOKStance::Prone) &&
             uint8(O.Interaction)<=uint8(EOKInteraction::SabotageCommandPost) && Finite(O.Location) &&
             O.Target>=INDEX_NONE && O.Target<Count && (O.Batch==0 || O.Batch==S->ActiveBatch) &&
-            (O.Kind!=EOKOrder::Takedown || O.Target>=2) &&
+            ((O.Kind!=EOKOrder::Takedown && O.Kind!=EOKOrder::Knockout && O.Kind!=EOKOrder::Bind && O.Kind!=EOKOrder::Carry) || O.Target==INDEX_NONE || O.Target>=2) &&
+            ((O.Kind!=EOKOrder::Takedown && O.Kind!=EOKOrder::Knockout && O.Kind!=EOKOrder::Bind) || O.Target>=2) &&
             (O.Kind!=EOKOrder::Heal || (O.Target>=0 && O.Target<2));
     };
     TSet<int32> Bodies;
@@ -90,10 +94,17 @@ bool AOKRTGameMode::ValidateSnapshot(const UOKRTSaveGame* S) const
         if (!Finite(U.Feet) || !FMath::IsFinite(U.Yaw) || !FMath::IsFinite(U.Health) || U.Health<0 || U.Health>100 ||
             !FMath::IsFinite(U.Cooldown) || U.Cooldown<0 || U.Cooldown>3600 || U.Distractions<0 || U.Distractions>100 ||
             U.Medkits<0 || U.Medkits>100 || uint8(U.Stance)>uint8(EOKStance::Prone) || U.Orders.Num()>32 ||
-            (U.bHidden && U.Health>0) || U.CarriedBody<INDEX_NONE || U.CarriedBody>=Count) return false;
+            !FMath::IsFinite(U.RecoveryRemaining) || U.RecoveryRemaining<0 || U.RecoveryRemaining>3600 ||
+            (U.bUnconscious && (I<2 || U.Health<=0)) || (U.bBound && !U.bUnconscious) ||
+            ((!U.bUnconscious || U.bBound) && U.RecoveryRemaining!=0) ||
+            (S->Version==1 && (U.bUnconscious || U.bBound || U.RecoveryRemaining!=0)) ||
+            (U.bHidden && (I<2 || (U.Health>0 && !(U.bUnconscious && U.bBound)))) ||
+            U.CarriedBody<INDEX_NONE || U.CarriedBody>=Count) return false;
         if (U.CarriedBody!=INDEX_NONE)
         {
-            if (I>=2 || U.CarriedBody<2 || S->Units[U.CarriedBody].Health>0 || S->Units[U.CarriedBody].bHidden || Bodies.Contains(U.CarriedBody) || U.Health<=0) return false;
+            const auto& B=S->Units[U.CarriedBody];
+            if (I>=2 || U.CarriedBody<2 || (B.Health>0 && !(B.bUnconscious && B.bBound)) ||
+                B.bHidden || Bodies.Contains(U.CarriedBody) || U.Health<=0 || U.bUnconscious) return false;
             Bodies.Add(U.CarriedBody);
         }
         for (const auto& O:U.Orders)
@@ -106,7 +117,10 @@ bool AOKRTGameMode::ValidateSnapshot(const UOKRTSaveGame* S) const
         if (uint8(G.Alert)>uint8(EOKAlert::Combat) || !FMath::IsFinite(G.Suspicion) || G.Suspicion<0 || G.Suspicion>1 ||
             !Finite(G.LastKnown) || !M.Guards[I].Route.IsValidIndex(G.PatrolIndex) || !FMath::IsFinite(G.Wait) || G.Wait<0 ||
             !FMath::IsFinite(G.LostSight) || G.LostSight<0 || !FMath::IsFinite(G.ShotClock) ||
-            G.CombatTarget<INDEX_NONE || G.CombatTarget>=2 || G.DiscoveredBodies.Num()>M.Guards.Num()) return false;
+            G.CombatTarget<INDEX_NONE || G.CombatTarget>=2 || G.DiscoveredBodies.Num()>M.Guards.Num() ||
+            G.RescueTarget<INDEX_NONE || G.RescueTarget>=M.Guards.Num() || (S->Version==1 && G.RescueTarget!=INDEX_NONE)) return false;
+        if (G.RescueTarget!=INDEX_NONE && (!S->Units[G.RescueTarget+2].bUnconscious ||
+            G.RescueTarget==I || G.Alert!=EOKAlert::Investigate || M.Guards[I].Duty!=EOKGuardDuty::Patrol)) return false;
         for (int32 B:G.DiscoveredBodies) if (!S->Guards.IsValidIndex(B)) return false;
     }
     return true;
@@ -138,7 +152,12 @@ bool AOKRTGameMode::ApplySnapshot(const UOKRTSaveGame* S)
     {
         auto* U=Units[I]; const auto& V=S->Units[I];
         U->CancelOrders(); U->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-        U->CarriedBody.Reset(); U->Carrier.Reset(); U->Health=100; U->bHiddenBody=false; U->SetActorHiddenInGame(false);
+        U->CarriedBody.Reset(); U->Carrier.Reset(); U->Health=100; U->bUnconscious=U->bBound=false; U->RecoveryRemaining=0; U->bHiddenBody=false; U->SetActorHiddenInGame(false);
+        U->Visual->SetRelativeRotation(FRotator::ZeroRotator);
+        U->Visual->SetRelativeLocation(FVector(0,0,-87));
+        U->SmoothedSpeed=U->MotionBlend=0;
+        U->CrouchBlend=V.Stance==EOKStance::Crouch ? 1.f : 0.f;
+        U->ProneBlend=V.Stance==EOKStance::Prone ? 1.f : 0.f;
         U->GetCharacterMovement()->UnCrouch(false); U->GetCapsuleComponent()->SetCapsuleSize(30,90);
         U->GetCapsuleComponent()->SetCollisionProfileName(TEXT("Pawn")); U->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
         U->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Visibility,ECR_Block);
@@ -146,6 +165,8 @@ bool AOKRTGameMode::ApplySnapshot(const UOKRTSaveGame* S)
         U->SetStance(V.Stance); U->SetActorLocation(V.Feet+FVector(0,0,90),false,nullptr,ETeleportType::TeleportPhysics);
         U->SetActorRotation(FRotator(0,V.Yaw,0));
         if (V.Health<=0) U->TakeHit(100); else { U->Health=V.Health; U->UpdateAnimation(0); }
+        if (V.bUnconscious)
+        { U->bUnconscious=true; U->bBound=V.bBound; U->RecoveryRemaining=V.RecoveryRemaining; U->IncapacitatedPose(); }
         U->bHiddenBody=V.bHidden; U->SetActorHiddenInGame(V.bHidden);
         if (V.bHidden) U->GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
         if (V.bHidden) U->Stimuli->UnregisterFromPerceptionSystem(); else U->Stimuli->RegisterWithPerceptionSystem();
@@ -170,6 +191,7 @@ bool AOKRTGameMode::ApplySnapshot(const UOKRTSaveGame* S)
         AI->AlertState=V.Alert; AI->Suspicion=V.Suspicion; AI->LastKnown=V.LastKnown;
         AI->PatrolIndex=V.PatrolIndex; AI->bAtPatrolStop=V.bAtStop; AI->Wait=V.Wait; AI->LostSight=V.LostSight; AI->ShotClock=V.ShotClock; AI->MoveRetry=0;
         AI->CombatTarget=Party.IsValidIndex(V.CombatTarget) ? Party[V.CombatTarget].Get() : nullptr;
+        AI->RescueTarget=Enemies.IsValidIndex(V.RescueTarget) ? Enemies[V.RescueTarget].Get() : nullptr;
         AI->DiscoveredBodies.Reset(); for (int32 B:V.DiscoveredBodies) AI->DiscoveredBodies.Add(Enemies[B].Get());
     }
     bHasTNT=S->bTNT; bObjectiveComplete=S->bObjective; if (S->bBridge && !bBridgeDestroyed) BreakBridge();

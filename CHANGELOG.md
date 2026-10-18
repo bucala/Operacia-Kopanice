@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Native Manual-Based Nonlethal Stealth: 2026-10-14
+
+- Add explicit rear knockout (K) and binding (G), grounded unconscious/bound
+  states and a 45-second real-time recovery interval for unbound guards.
+  Retain lethal T; carrying requires a dead or bound unconscious enemy.
+  Carrying disables running rather than retaining running footstep noise.
+- Integrate typed knockout -> bind -> carry queues, contextual body clicks,
+  HUD/queue/feedback icons, party-LoS casualty indicators and synchronized planning.
+- Disable sight/hearing/patrol/combat while unconscious. Mobile patrols can free
+  observed allies after complete navigation and unobstructed physical reach;
+  fixed sentries remain at their post. Hidden/carried casualties cannot be freed.
+- Stop already-scheduled unit/guard logic on the pause activation frame. Add
+  save schema 2 body/timer/assistance state with backward reading of schema 1.
+- Initialize the imported rig pose and grounded visual before its first tick,
+  including paused startup/menu views.
+- Add controlled rendered regression, actual K/G/F9 input, snapshot validation
+  and load/reassembly checks, plus two small Lucide icon packages.
+- Document manual references, own timings and provisional animations. Work only
+  on native development branch; no web runtime or packaged EXE/APK update.
+
 ### Native Winter Lighting and Rustbound Bridge: 2026-10-13
 
 - Replace the main mission's blockout bridge with the supplied Meshy Rustbound

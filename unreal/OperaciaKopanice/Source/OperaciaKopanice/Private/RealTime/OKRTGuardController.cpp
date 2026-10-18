@@ -43,7 +43,7 @@ void AOKRTGuardController::Perceived(AActor* Actor,FAIStimulus Stimulus)
 {
     auto* Unit=Cast<AOKRTUnit>(GetPawn());
     auto* Source=Cast<AOKRTUnit>(Actor);
-    if (!bBrainEnabled || !Unit || !Unit->bEnemy || !Unit->IsAlive() || !Source || Source->bEnemy ||
+    if (!bBrainEnabled || !Unit || !Unit->bEnemy || !Unit->IsOperational() || !Source || Source->bEnemy ||
         !Stimulus.WasSuccessfullySensed() || Stimulus.Type!=UAISense::GetSenseID<UAISense_Hearing>()) return;
     // Hearing events carry an explicit max range. Walls further reduce audibility.
     FHitResult Hit; FCollisionQueryParams Params(SCENE_QUERY_STAT(OKRTHearing),false,Unit);
@@ -54,7 +54,10 @@ void AOKRTGuardController::Perceived(AActor* Actor,FAIStimulus Stimulus)
 }
 void AOKRTGuardController::Investigate(FVector Location)
 {
+    const auto* Unit=Cast<AOKRTUnit>(GetPawn());
+    if (!Unit || !Unit->IsOperational()) return;
     if (AlertState==EOKAlert::Combat) return;
+    RescueTarget.Reset();
     AlertState=EOKAlert::Investigate; LastKnown=Location;
     bAtPatrolStop=false;
     Suspicion=FMath::Max(Suspicion,.3f); Wait=0;
@@ -64,7 +67,8 @@ void AOKRTGuardController::Investigate(FVector Location)
 void AOKRTGuardController::Alert(AOKRTUnit* Target,bool bBroadcast)
 {
     auto* Unit=Cast<AOKRTUnit>(GetPawn());
-    if (!Unit || !Unit->IsAlive() || !Target || !Target->IsAlive()) return;
+    if (!Unit || !Unit->IsOperational() || !Target || !Target->IsOperational()) return;
+    RescueTarget.Reset();
     const bool bNew=AlertState!=EOKAlert::Combat;
     AlertState=EOKAlert::Combat; Suspicion=1; CombatTarget=Target; LastKnown=Target->Feet();
     bAtPatrolStop=false;
@@ -89,7 +93,13 @@ void AOKRTGuardController::Tick(float Delta)
     Super::Tick(Delta);
     auto* Unit=Cast<AOKRTUnit>(GetPawn());
     auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
-    if (!bBrainEnabled || !Unit || !Unit->bEnemy || !Unit->IsAlive() || !Game || Game->bWon || Game->bLost) return;
+    if (!bBrainEnabled || !Unit || !Unit->bEnemy || !Unit->IsOperational() || !Game || Game->bWon || Game->bLost || Game->bTacticalPause || Game->bMenu) return;
+    auto RescuePath=[Unit](AOKRTUnit* Body)
+    {
+        FOKRTOrder Order; Order.Kind=EOKOrder::Bind; Order.Target=Body;
+        TArray<FVector> Points; FString Reason;
+        return Unit->GetOrderPath(Order,false,Points,Reason);
+    };
     MoveRetry=FMath::Max(0.f,MoveRetry-Delta);
     bool Seen=false;
     AOKRTUnit* SeenUnit=nullptr;
@@ -114,8 +124,17 @@ void AOKRTGuardController::Tick(float Delta)
     for (AOKRTUnit* Body:Game->Enemies)
     {
         bool Primary=false;
-        if (Body!=Unit && !Body->IsAlive() && !DiscoveredBodies.Contains(Body) && Unit->Vision->Sees(Body,Primary))
-        { DiscoveredBodies.Add(Body); Investigate(Body->Feet()); }
+        if (Body->IsOperational()) DiscoveredBodies.Remove(Body);
+        if (Body!=Unit && Body->IsBody() && !DiscoveredBodies.Contains(Body) && Unit->Vision->Sees(Body,Primary))
+        {
+            DiscoveredBodies.Add(Body);
+            if (AlertState==EOKAlert::Combat) continue;
+            Investigate(Body->Feet());
+            // Fixed sentries keep their post. Mobile guards remember an observed
+            // casualty, but still need a complete route and physical reach.
+            if (Body->bUnconscious && Duty==EOKGuardDuty::Patrol && RescuePath(Body))
+                RescueTarget=Body;
+        }
     }
     if (!Seen && AlertState!=EOKAlert::Combat) Suspicion=FMath::Max(0.f,Suspicion-Delta*.09f);
     if (AlertState==EOKAlert::Combat)
@@ -158,6 +177,32 @@ void AOKRTGuardController::Tick(float Delta)
         if (LostSight>6 || !Target || !Target->IsAlive())
         { AlertState=EOKAlert::Investigate; CombatTarget.Reset(); PursuitTarget.Reset(); ClearFocus(EAIFocusPriority::Gameplay); Wait=0; }
         return;
+    }
+    if (auto* Body=RescueTarget.Get())
+    {
+        if (!Body->bUnconscious || !Body->IsAlive() || Body->bHiddenBody || Body->Carrier.IsValid() || Duty!=EOKGuardDuty::Patrol)
+        { StopMovement(); RescueTarget.Reset(); Wait=0; }
+        else
+        {
+            LastKnown=Body->Feet();
+            if (GetMoveStatus()!=EPathFollowingStatus::Idle) return;
+            if (FVector::Dist2D(Unit->Feet(),Body->Feet())>145)
+            {
+                if (MoveRetry<=0)
+                {
+                    MoveRetry=.5f;
+                    if (!RescuePath(Body) ||
+                        MoveToActor(Body,100,false,true,true,nullptr,false)==EPathFollowingRequestResult::Failed)
+                        RescueTarget.Reset();
+                }
+                return;
+            }
+            FHitResult Hit; FCollisionQueryParams Params(SCENE_QUERY_STAT(OKRescue),false,Unit); Params.AddIgnoredActor(Body);
+            const bool Blocked=FMath::Abs(Unit->Feet().Z-Body->Feet().Z)>75 ||
+                GetWorld()->LineTraceSingleByChannel(Hit,Unit->GetActorLocation(),Body->GetActorLocation(),ECC_Visibility,Params);
+            if (!Blocked && Body->WakeUp()) Game->Message=TEXT("Hliadka oslobodila omraceneho spolubojovnika.");
+            RescueTarget.Reset(); Wait=0;
+        }
     }
     if (GetMoveStatus()!=EPathFollowingStatus::Idle) return;
     if (AlertState==EOKAlert::Investigate)

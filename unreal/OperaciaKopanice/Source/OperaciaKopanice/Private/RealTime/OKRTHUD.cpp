@@ -160,6 +160,19 @@ void AOKRTHUD::DrawHUD()
         G->bTacticalPause ? FLinearColor(.91f,.8f,.52f) : FLinearColor(.55f,.83f,.65f));
     for (AOKRTUnit* Enemy:G->Enemies)
     {
+        if (Enemy->bUnconscious)
+        {
+            FVector2D P;
+            if (G->TeamSees(Enemy) && PC->ProjectWorldLocationToScreen(Enemy->Feet()+FVector(0,0,65),P))
+            {
+                const FBox2D Bounds(P-FVector2D(9,9),P+FVector2D(Enemy->bBound ? 9 : 50,10));
+                if (Bounds.Min.X<0 || Bounds.Min.Y<0 || Bounds.Max.X>W || Bounds.Max.Y>H ||
+                    Panels.ContainsByPredicate([&Bounds](const FBox2D& Panel){ return Bounds.Intersect(Panel); })) continue;
+                Icon(Enemy->bBound ? TEXT("link") : TEXT("hand_fist"),P.X-8,P.Y-8,16,FLinearColor(.93f,.8f,.5f));
+                if (!Enemy->bBound) Label(FString::Printf(TEXT("%.0fs"),Enemy->RecoveryRemaining),P.X+11,P.Y-7,.85f);
+            }
+            continue;
+        }
         if (!Enemy->IsAlive()) continue;
         FVector2D P;
         if (PC->ProjectWorldLocationToScreen(Enemy->Feet()+FVector(0,0,215),P))
@@ -226,9 +239,14 @@ void AOKRTHUD::DrawHUD()
     DrawDrafts(G);
     DrawTacticalMap(G,W,H);
     const float X=W-16-7*(S+4),Y=H-16-3*(S+4);
+    const float SkillsY=Y-S-4;
     auto* Unit=G->Party[G->ActiveMember].Get();
+    Button(TEXT("hand_fist"),X,SkillsY,S,TEXT("Omracit zozadu (K)"),[PC](){ PC->Arm(EOKOrder::Knockout); },PC->bArmed && PC->ArmedOrder==EOKOrder::Knockout,!Unit->CarriedBody.IsValid());
+    Buttons.Last().Id=TEXT("Knockout");
+    Button(TEXT("link"),X+S+4,SkillsY,S,TEXT("Zviazat omracenu hliadku (G)"),[PC](){ PC->Arm(EOKOrder::Bind); },PC->bArmed && PC->ArmedOrder==EOKOrder::Bind,!Unit->CarriedBody.IsValid());
+    Buttons.Last().Id=TEXT("Bind");
     Button(G->bTacticalPause ? TEXT("play") : TEXT("pause"),X,Y,S,G->bTacticalPause ? TEXT("Pokracovat (Space)") : TEXT("Takticka pauza (Space)"),[G](){ G->TogglePause(); },G->bTacticalPause);
-    Button(TEXT("swords"),X+(S+4),Y,S,TEXT("Tichy utok (T)"),[PC](){ PC->Arm(EOKOrder::Takedown); },PC->bArmed && PC->ArmedOrder==EOKOrder::Takedown);
+    Button(TEXT("swords"),X+(S+4),Y,S,TEXT("Smrtelny tichy utok (T)"),[PC](){ PC->Arm(EOKOrder::Takedown); },PC->bArmed && PC->ArmedOrder==EOKOrder::Takedown);
     Button(TEXT("circle_dot"),X+2*(S+4),Y,S,TEXT("Odlakanie (F)"),[PC](){ PC->Arm(EOKOrder::Distract); },PC->bArmed && PC->ArmedOrder==EOKOrder::Distract);
     Button(TEXT("hand"),X+3*(S+4),Y,S,TEXT("Interakcia (E)"),[PC](){ PC->Arm(EOKOrder::Interact); },PC->bArmed && PC->ArmedOrder==EOKOrder::Interact);
     Button(TEXT("backpack"),X+4*(S+4),Y,S,TEXT("Preniest / polozit telo (B)"),[PC](){ PC->Arm(EOKOrder::Carry); });
@@ -237,7 +255,7 @@ void AOKRTHUD::DrawHUD()
     const FName StanceIcons[]={TEXT("footprints"),TEXT("move_right"),TEXT("chevron_down"),TEXT("minus")};
     const TCHAR* StanceNames[]={TEXT("Chodza (W)"),TEXT("Beh (R)"),TEXT("Prikrcenie (C)"),TEXT("Plazenie (V)")};
     for (int32 I=0;I<4;++I)
-        Button(StanceIcons[I],X+I*(S+4),Y+S+4,S,StanceNames[I],[PC,I](){ PC->SetPartyStance(static_cast<EOKStance>(I)); },static_cast<int32>(Unit->Stance)==I);
+        Button(StanceIcons[I],X+I*(S+4),Y+S+4,S,StanceNames[I],[PC,I](){ PC->SetPartyStance(static_cast<EOKStance>(I)); },static_cast<int32>(Unit->Stance)==I,I!=1 || !Unit->CarriedBody.IsValid());
     Button(TEXT("rotate_ccw"),X+4*(S+4),Y+S+4,S,TEXT("Otocit kameru"),[G](){ G->Orbit(G->bSteppedCamera ? -45 : -8,0); });
     Button(TEXT("rotate_cw"),X+5*(S+4),Y+S+4,S,TEXT("Otocit kameru"),[G](){ G->Orbit(G->bSteppedCamera ? 45 : 8,0); });
     Button(TEXT("minus"),X+6*(S+4),Y+S+4,S,TEXT("Zrusit prikazy (X)"),[G,PC](){ PC->bArmed=false; if (G->bCommandMode) G->CancelPlan(); else for (AOKRTUnit* U:G->Party) if (U->IsSelected()) U->CancelOrders(); });
@@ -257,15 +275,17 @@ void AOKRTHUD::DrawHUD()
     Button(TEXT("map"),X+6*(S+4),Third,S,TEXT("Takticka mapa"),[this](){ bMapVisible=!bMapVisible; },bMapVisible,W>=800 && H>=650);
     Buttons.Last().Id=TEXT("TacticalMap");
     const float MessageW=Compact ? W-32 : FMath::Min(490.f,X-32);
-    const float MessageY=Compact ? Y-52 : H-68;
+    const float MessageY=Compact ? SkillsY-52 : H-68;
     DrawRect(FLinearColor(.025f,.03f,.035f,.82f),16,MessageY,MessageW,44);
     Panels.Add(FBox2D(FVector2D(16,MessageY),FVector2D(16+MessageW,MessageY+44)));
     const bool RejectedTarget=G->CommandFeedbackOpacity()>0 && G->CommandFeedback.Accepted==0;
     const FString Feedback=PC->bArmed && !RejectedTarget ? PC->ArmedOrder==EOKOrder::Takedown ? TEXT("Tichy utok: vyber hliadku") :
+        PC->ArmedOrder==EOKOrder::Knockout ? TEXT("Omracenie: pristup k hliadke zozadu") :
+        PC->ArmedOrder==EOKOrder::Bind ? TEXT("Zviazanie: vyber omracenu hliadku") :
         PC->ArmedOrder==EOKOrder::Carry ? TEXT("Preniest telo: vyber ciel") :
         PC->ArmedOrder==EOKOrder::Interact ? TEXT("Interakcia: vyber objekt") : PC->ArmedOrder==EOKOrder::Heal ? TEXT("Osetrenie: zraneny spojenec") : TEXT("Odlakanie: vyber miesto") : G->Message;
     Wrap(Unit->Cooldown>0 ? FString::Printf(TEXT("%s | %.1fs"),*Feedback,Unit->Cooldown) : Feedback,24,MessageY+10,MessageW-16,.95f);
-    DrawOrderQueue(G,FVector2D(Compact ? 16 : X,(Compact ? MessageY : Y)-78),Compact ? W-32 : 7*(S+4)-4);
+    DrawOrderQueue(G,FVector2D(Compact ? 16 : X,(Compact ? MessageY : SkillsY)-78),Compact ? W-32 : 7*(S+4)-4);
     DrawCommandFeedback();
     DrawPartyMarkers();
     float MouseX,MouseY;

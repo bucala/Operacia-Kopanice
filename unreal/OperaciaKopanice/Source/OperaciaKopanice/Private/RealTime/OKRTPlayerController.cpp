@@ -41,6 +41,7 @@ void AOKRTPlayerController::SetupInputComponent()
     Bind(EKeys::W,&AOKRTPlayerController::Walk); Bind(EKeys::R,&AOKRTPlayerController::Run);
     Bind(EKeys::C,&AOKRTPlayerController::Crouch); Bind(EKeys::V,&AOKRTPlayerController::Prone);
     Bind(EKeys::T,&AOKRTPlayerController::Takedown); Bind(EKeys::F,&AOKRTPlayerController::Throw);
+    Bind(EKeys::K,&AOKRTPlayerController::Knockout); Bind(EKeys::G,&AOKRTPlayerController::BindBody);
     Bind(EKeys::B,&AOKRTPlayerController::Carry);
     Bind(EKeys::H,&AOKRTPlayerController::Heal);
     Bind(EKeys::Z,&AOKRTPlayerController::Plan); Bind(EKeys::Enter,&AOKRTPlayerController::Execute);
@@ -115,12 +116,12 @@ bool AOKRTPlayerController::ClickAt(FVector2D Position,EPointerIntent Intent,boo
         if (!bCommand)
         {
             if (!Unit->bEnemy && Unit->IsAlive()) SelectMember(G->Party.IndexOfByKey(Unit),bAppend);
-            else if (Unit->bEnemy && Unit->IsAlive()) Unit->Vision->bConeVisible=!Unit->Vision->bConeVisible;
+            else if (Unit->bEnemy && Unit->IsOperational()) Unit->Vision->bConeVisible=!Unit->Vision->bConeVisible;
             return true;
         }
         if (!Unit->bEnemy || bRun) return false;
-        if (Unit->IsAlive()) { G->Message=TEXT("Najprv vyber schopnost ticheho utoku."); return false; }
-        FOKRTOrder Order; Order.Kind=EOKOrder::Carry;
+        if (Unit->IsOperational()) { G->Message=TEXT("Najprv vyber schopnost ticheho utoku alebo omracenia."); return false; }
+        FOKRTOrder Order; Order.Kind=Unit->bUnconscious && !Unit->bBound ? EOKOrder::Bind : EOKOrder::Carry;
         Order.Target=Unit; Order.Location=Unit->Feet();
         return G->Command(Order,bAppend);
     }
@@ -331,6 +332,8 @@ void AOKRTPlayerController::Run() { SetPartyStance(EOKStance::Run); }
 void AOKRTPlayerController::Crouch() { SetPartyStance(EOKStance::Crouch); }
 void AOKRTPlayerController::Prone() { SetPartyStance(EOKStance::Prone); }
 void AOKRTPlayerController::Takedown() { Arm(EOKOrder::Takedown); }
+void AOKRTPlayerController::Knockout() { Arm(EOKOrder::Knockout); }
+void AOKRTPlayerController::BindBody() { Arm(EOKOrder::Bind); }
 void AOKRTPlayerController::Throw() { Arm(EOKOrder::Distract); }
 void AOKRTPlayerController::Carry() { Arm(EOKOrder::Carry); }
 void AOKRTPlayerController::Heal() { Arm(EOKOrder::Heal); }
@@ -402,15 +405,15 @@ void AOKRTPlayerController::PlayerTick(float Delta)
             FVector Destination=Hit.ImpactPoint;
             const EOKInteraction Interaction=Unit ? EOKInteraction::Nearby : G->FindInteractionAt(Destination,Destination);
             const bool bInteraction=Interaction!=EOKInteraction::Nearby;
-            CurrentMouseCursor=bInteraction ? EMouseCursor::Hand : Unit && !Unit->IsAlive() ? EMouseCursor::GrabHand : EMouseCursor::Crosshairs;
-            if ((Unit && ((!Unit->bEnemy && !(bArmed && ArmedOrder==EOKOrder::Heal)) || (Unit->IsAlive() && !bArmed))) ||
+            CurrentMouseCursor=bInteraction ? EMouseCursor::Hand : Unit && Unit->IsBody() ? EMouseCursor::GrabHand : EMouseCursor::Crosshairs;
+            if ((Unit && ((!Unit->bEnemy && !(bArmed && ArmedOrder==EOKOrder::Heal)) || (Unit->IsOperational() && !bArmed))) ||
                 (bArmed && (ArmedOrder==EOKOrder::Distract || (!Unit && ArmedOrder!=EOKOrder::Interact))) ||
                 (bArmed && ArmedOrder==EOKOrder::Interact && !bInteraction))
                 G->PreviewSpline->ClearSplinePoints();
             else
             {
                 FOKRTOrder Order; Order.Location=Destination;
-                Order.Kind=bArmed ? ArmedOrder : Unit ? EOKOrder::Carry : bInteraction ? EOKOrder::Interact : EOKOrder::Move;
+                Order.Kind=bArmed ? ArmedOrder : Unit ? (Unit->bUnconscious && !Unit->bBound ? EOKOrder::Bind : EOKOrder::Carry) : bInteraction ? EOKOrder::Interact : EOKOrder::Move;
                 Order.Target=Unit; Order.Interaction=Interaction; Order.bApproachInteraction=bInteraction;
                 G->PreviewOrder(Order,IsShiftDown());
             }

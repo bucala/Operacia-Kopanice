@@ -24,8 +24,13 @@ public:
     UFUNCTION(BlueprintCallable) void CancelOrders();
     UFUNCTION(BlueprintCallable) void SetStance(EOKStance Value);
     void TakeHit(float Damage);
+    bool KnockOut(float Duration=45.f);
+    bool BindBody();
+    bool WakeUp();
     void DropBody(bool bHide=false);
     bool IsAlive() const { return Health>0; }
+    bool IsOperational() const { return IsAlive() && !bUnconscious; }
+    bool IsBody() const { return !IsAlive() || bUnconscious; }
     float VisibilityFactor() const;
     FVector Feet() const;
     int32 QueueSize() const { return Orders.Num(); }
@@ -46,6 +51,9 @@ public:
     UPROPERTY(BlueprintReadOnly) float Cooldown=0;
     UPROPERTY(BlueprintReadOnly) bool bInCover=false;
     UPROPERTY(BlueprintReadOnly) bool bHiddenBody=false;
+    UPROPERTY(BlueprintReadOnly) bool bUnconscious=false;
+    UPROPERTY(BlueprintReadOnly) bool bBound=false;
+    UPROPERTY(BlueprintReadOnly) float RecoveryRemaining=0;
     UPROPERTY(BlueprintReadOnly) FString DisplayName;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly) TObjectPtr<UStaticMeshComponent> Visual;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly) TObjectPtr<UPoseableMeshComponent> AnimatedVisual;
@@ -69,6 +77,7 @@ private:
     bool AwaitSynchronization(const FOKRTOrder& Order);
     bool IsSyncReady(int32 Batch) const;
     void UpdateAnimation(float Delta);
+    void IncapacitatedPose();
     void FinishOrder();
     bool ValidateOrder(const FOKRTOrder& Order,bool bExecuting,bool bKeepQueue,FString& Reason) const;
     bool CanNavigateOrder(const FOKRTOrder& Order,bool bFromQueue,FString& Reason);

@@ -9,7 +9,7 @@ enum class EOKStance : uint8 { Walk, Run, Crouch, Prone };
 UENUM(BlueprintType)
 enum class EOKAlert : uint8 { Patrol, Investigate, Combat };
 UENUM(BlueprintType)
-enum class EOKOrder : uint8 { Move, Interact, Takedown, Distract, Carry, Stance, Heal };
+enum class EOKOrder : uint8 { Move, Interact, Takedown, Distract, Carry, Stance, Heal, Knockout, Bind };
 UENUM(BlueprintType)
 enum class EOKSpecialist : uint8 { Partisan, Officer };
 UENUM(BlueprintType)

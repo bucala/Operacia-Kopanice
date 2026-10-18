@@ -34,6 +34,7 @@ protected:
 private:
     UPROPERTY() TWeakObjectPtr<AOKRTUnit> CombatTarget;
     UPROPERTY() TWeakObjectPtr<AOKRTUnit> PursuitTarget;
+    UPROPERTY() TWeakObjectPtr<AOKRTUnit> RescueTarget;
     TSet<TWeakObjectPtr<AOKRTUnit>> DiscoveredBodies;
     int32 PatrolIndex=0;
     bool bAtPatrolStop=false;
