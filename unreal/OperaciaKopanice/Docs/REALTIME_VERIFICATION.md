@@ -1,5 +1,72 @@
 # Real-Time Prototype Verification
 
+## Winter Readability and Tactical UI: 2026-10-20
+
+The main native game fixes a confirmed rig assignment defect: both underlying
+skeletal asset slots reference WorldGridMaterial, not the supplied uniforms.
+Runtime component overrides now bind the canonical materials for players and
+guards. `InspectReadability-20261020.log` records source-slot paths/parameters;
+the rendered fixture checks every animated unit's actual assigned material.
+No skeletal mesh/texture reimport or large asset upload is needed.
+
+UE 5.8.2 Win64 Development Editor builds successfully. Current development and
+short-path DLL SHA-256 is
+`58D8D6B21075A3FD22E60993FF30DFE95F89BA65CC78B43419ED5FDDE1DD30DA`.
+The lighting run uses production-identical build
+`28FEA6A35BFFB5BA94A3C00A39EF3B9FD415A5A3B642FA71BA0B9195CCCFBB0F`;
+only the Modern fixture's bounded cooldown wait/diagnostic changed afterward.
+
+| Rendered run | Result | Local log |
+| --- | --- | --- |
+| Four-quality lighting, uniform bindings, zoom/orbit | 18/18 PASS | DemoSmoke-de8e427626804815bd6053a4e2853722.log |
+| Team plans, medic, save/reload and menu, 1280 x 720 | 41/41 PASS | DemoSmoke-531acad8321f4a2bb4b6d238552b879d.log |
+| Same UI/plan regression, 480 x 800 | 40/40 PASS | DemoSmoke-3ae0986c122e461ca9fcdb1c95aa0990.log |
+| Navigation/input/world integration | 279/279 PASS | DemoSmoke-962371f66d724e03b911413323dfcc9b.log |
+| Distraction lifecycle and F9 reload, 480 x 800 | 43/43 PASS | DemoSmoke-ddb7cad1734b4613a6c021004c464033.log |
+
+These total 421 checks with no failed checks/material fallbacks. The portrait
+fixture omits the desktop-only minimap assertion. Captures were visually reviewed.
+The previous live mission/campaign runs below precede this visual pass; they are
+not represented as fresh complete campaign playthroughs on this renderer build.
+
+The same 1280 x 720 Q2 close view is saved under local
+`Saved/VisualReview-20261020/Before` and `After`. These are actual rendered captures,
+not retouched images. Display-luma means use RGB weights .2126/.7152/.0722 on the
+listed fixed rectangles, not physical light measurements or isolated surface masks:
+
+| Screen rectangle (left,top,right,bottom) | Before | After |
+| --- | --- | --- |
+| Partisan coat (365,443,379,463) | 42.7 | 61.8 |
+| Officer coat (448,511,461,529) | 41.0 | 51.3 |
+| Shadowed cabin wall (650,220,720,270) | 30.7 | 64.2 |
+| Snow (420,150,470,190) | 210.8 | 208.2 |
+
+The scene review region (240,140)-(900,500) has 0% pixels at >=250 in every RGB
+channel in both images. This supports improved dark-surface readability without
+merely raising the snow exposure; it is not a full photometric quality benchmark.
+Low probe intensity was rejected as too dark and the high-intensity experiment
+as washed out, despite their settings-only checks passing. Final intensity is 3.5
+with lower fog, bounded AO and moderated PBR normals. Sun shadows remain enabled.
+
+One startup (`DemoSmoke-7434037bdfd04f92a1120f4504778801.log`) repeats the existing
+DX12 page fault at frame 3 before any completed GPU frame. It is not claimed fixed.
+The subsequent Modern attempt (`DemoSmoke-7844c964761741be88e8b641be466972.log`)
+exposed a fixture assuming 1.7 wall-clock seconds equals a simulation cooldown.
+The fixture now waits for batch completion with a 12-second wall-clock bound and
+retains its exact resource/queue assertions; no production cooldown was shortened.
+Final diagnostics show batch=0, ammo=4/4 and empty queues, and subsequent runs pass.
+
+The material commandlet finishes with zero errors/two existing deprecated-API
+warnings (`ReadabilityMaterials-20261020-final.log`). Four material packages total
+70,850 bytes. Original textures/rigs, generated sources, logs, captures and binaries
+stay outside upload. Engine/compiler deprecation warnings remain. This is an
+editor-hosted prototype, not a packaged Windows/Android release or web update.
+See [visual rules and limits](VISUAL_READABILITY.md).
+
+Upload staging matches 231 native Source/Config/Content files and all 99 runtime
+packages. Four changed material index/LFS hashes match the tested development
+files. Only the native development branch is published; main remains untouched.
+
 ## Distraction Tactics: 2026-10-18
 
 Main native game only; [rules, controls and reference distinction](DISTRACTION_TACTICS.md).

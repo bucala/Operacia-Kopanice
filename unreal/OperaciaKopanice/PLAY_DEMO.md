@@ -64,6 +64,9 @@ to nearby guards and deals real-time damage.
 
 ## Controls
 
+Current lighting/PBR treatment and compact status/action/menu states:
+[Winter Readability and Tactical UI](Docs/VISUAL_READABILITY.md).
+
 | Action | Input |
 | --- | --- |
 | Select Partisan / Officer / both | 1 / 2 / 3 or Ctrl+A; portraits or right-click a party member |

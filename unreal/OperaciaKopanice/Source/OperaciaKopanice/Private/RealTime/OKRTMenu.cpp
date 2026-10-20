@@ -13,7 +13,8 @@ void AOKRTHUD::MenuAction(FName Id,FName Image,const FString& Text,FVector2D P,F
     const FBox2D Bounds(P,P+Size);
     float X=0,Y=0;
     const bool Hover=PlayerOwner->GetMousePosition(X,Y) && Bounds.IsInsideOrOn(FVector2D(X,Y));
-    DrawRect(Active ? FLinearColor(.24f,.3f,.27f,.98f) : Hover ? FLinearColor(.13f,.17f,.17f,.98f) : FLinearColor(.07f,.085f,.09f,.96f),P.X,P.Y,Size.X,Size.Y);
+    DrawRect(Active ? FLinearColor(.17f,.23f,.20f,.98f) : Hover ? FLinearColor(.10f,.16f,.14f,.98f) : FLinearColor(.035f,.055f,.052f,.97f),P.X,P.Y,Size.X,Size.Y);
+    DrawRect(Active ? FLinearColor(.90f,.76f,.44f) : Hover ? FLinearColor(.48f,.70f,.59f) : FLinearColor(.20f,.29f,.25f),P.X,P.Y,3,Size.Y);
     if (!Image.IsNone()) Icon(Image,P.X+10,P.Y+(Size.Y-22)/2,22,FLinearColor(.88f,.79f,.54f));
     Label(Text,P.X+(Image.IsNone() ? 12 : 44),P.Y+(Size.Y-16)/2,1.f,Active ? FLinearColor(.95f,.87f,.65f) : FLinearColor(.85f,.89f,.88f));
     Buttons.Add({Bounds,MoveTemp(Action),Text,Id});
@@ -21,12 +22,12 @@ void AOKRTHUD::MenuAction(FName Id,FName Image,const FString& Text,FVector2D P,F
 void AOKRTHUD::DrawMenu(AOKRTGameMode* G,float W,float H)
 {
     Buttons.Reset(); Panels.Reset(); Panels.Add(FBox2D(FVector2D::ZeroVector,FVector2D(W,H)));
-    DrawRect(FLinearColor(.018f,.026f,.028f,.92f),0,0,W,H);
+    DrawRect(FLinearColor(.012f,.023f,.022f,.76f),0,0,W,H);
     const bool Compact=W<800;
     const float MW=FMath::Min(920.f,W-40),MX=(W-MW)/2;
     const float Top=FMath::Max(20.f,(H-650)/2);
     const FLinearColor Gold(.91f,.8f,.52f);
-    Label(TEXT("OPERACIA KOPANICE"),MX,Top,Compact ? 1.6f : 2.3f,Gold);
+    Label(TEXT("OPERACIA KOPANICE"),MX,Top,Compact ? 1.6f : 2.1f,Gold);
     Label(TEXT("TAKTICKA OPERACIA / ZIMA 1944"),MX,Top+40,.9f,FLinearColor(.57f,.68f,.67f));
     DrawLine(MX,Top+66,MX+MW,Top+66,FLinearColor(.35f,.43f,.4f),1);
     const float X=MX,Y=Top+88;
@@ -50,6 +51,7 @@ void AOKRTHUD::DrawMenu(AOKRTGameMode* G,float W,float H)
         {
             MenuAction(Id,Image,Text,FVector2D(X,Y+42+Spacing*Index++),FVector2D(RowW,Spacing-6),MoveTemp(Action));
             Buttons.Last().bEnabled=Enabled;
+            if (!Enabled) DrawRect(FLinearColor(.02f,.03f,.03f,.55f),X,Y+42+Spacing*(Index-1),RowW,Spacing-6);
         };
         if (!G->bFrontEnd && !Ended) PauseRow(TEXT("Resume"),TEXT("play"),TEXT("Pokracovat v misii"),[G](){ G->MenuBack(); });
         if (G->bWon && G->MissionId+1<OKMissions::Count)
@@ -100,7 +102,11 @@ void AOKRTHUD::DrawMenu(AOKRTGameMode* G,float W,float H)
         for (int32 I=0;I<3;++I)
             MenuAction(FName(*FString::Printf(TEXT("OptionsTab%d"),I)),NAME_None,Tabs[I],FVector2D(X+I*(MW/3),Y),FVector2D(MW/3-4,40),[this,I](){ OptionsTab=I; },OptionsTab==I);
         auto Toggle=[&](FName Id,const TCHAR* Text,float DY,bool Value,TFunction<void()> Action)
-        { Row(Id,Value ? TEXT("circle_dot") : TEXT("minus"),Text,DY,MoveTemp(Action),Value); };
+        {
+            Row(Id,NAME_None,Text,DY,MoveTemp(Action),Value);
+            DrawRect(Value ? FLinearColor(.34f,.62f,.48f) : FLinearColor(.2f,.25f,.23f),X+RowW-48,Y+DY+13,34,18);
+            DrawRect(FLinearColor(.9f,.94f,.88f),X+RowW-45+(Value ? 16 : 0),Y+DY+16,12,12);
+        };
         if (OptionsTab==0)
         {
             Label(TEXT("Kvalita renderovania"),X,Y+65,1.05f,Gold);

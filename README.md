@@ -33,6 +33,11 @@ je zobrazený v nasledujúcej časti.
 
 ## Unreal Real-Time Prototype
 
+Vizuál hlavnej Unreal verzie má upravené PBR materiály uniformy a dreva, stabilné
+denné osvetlenie tieňov a jemnejšie prepojenie budov so snehom. Kompaktnejší HUD
+ukazuje postoj, zdravie a pripravenosť; dok schopností aj menu majú jednotnejšie
+stavy. [Vizuálne pravidlá a limity](unreal/OperaciaKopanice/Docs/VISUAL_READABILITY.md).
+
 Odlákanie má po novom let kameňa a zvuk až pri dopade (F). Partizán vie zapískať
 (Y), čím pritiahne blízku hliadku k svojej polohe. Múry tlmia hluk, pevná stráž
 neopúšťa stanovište a náhľad ukazuje oblúk hodu. Obe schopnosti fungujú v tímovom

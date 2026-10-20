@@ -24,11 +24,13 @@
 #include "Camera/CameraComponent.h"
 #include "Engine/DirectionalLight.h"
 #include "Engine/SkyLight.h"
+#include "Engine/TextureCube.h"
 #include "Engine/ExponentialHeightFog.h"
 #include "Components/ExponentialHeightFogComponent.h"
 #include "Engine/StaticMeshActor.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "NavigationSystem.h"
 #include "NavigationPath.h"
 #include "Perception/AISense_Hearing.h"
@@ -176,7 +178,7 @@ void AOKRTGameMode::BuildScene()
     auto* Sun=GetWorld()->SpawnActor<ADirectionalLight>(FVector(0,0,1500),FRotator(-55,-40,0));
     auto* SunComponent=CastChecked<UDirectionalLightComponent>(Sun->GetLightComponent());
     SunComponent->SetMobility(EComponentMobility::Movable);
-    SunComponent->SetIntensity(3.5f);
+    SunComponent->SetIntensity(3.f);
     SunComponent->SetLightColor(FLinearColor(1.f,.97f,.93f));
     SunComponent->SetForwardShadingPriority(1);
     SunComponent->SetLightSourceAngle(2.f);
@@ -188,35 +190,42 @@ void AOKRTGameMode::BuildScene()
     auto* Sky=GetWorld()->SpawnActor<ASkyLight>();
     auto* SkyComponent=Sky->GetLightComponent();
     SkyComponent->SetMobility(EComponentMobility::Movable);
-    SkyComponent->SetIntensity(4.f);
+    SkyComponent->SetIntensity(3.5f);
     SkyComponent->SetLightColor(FLinearColor::White);
-    // Capture the atmosphere, not an empty startup frame. Snow also reflects light
-    // upwards: a black lower hemisphere made uniforms and cabin walls silhouettes.
+    // A specified daylight probe works at low quality and in a paused first frame.
+    // It does not depend on realtime sky-capture support or its startup history.
+    SkyComponent->SourceType=SLS_SpecifiedCubemap;
+    SkyComponent->SetCubemap(LoadObject<UTextureCube>(nullptr,TEXT("/Engine/MapTemplates/Sky/DaylightAmbientCubemap.DaylightAmbientCubemap")));
     SkyComponent->bLowerHemisphereIsBlack=true;
     SkyComponent->SetLowerHemisphereColor(FLinearColor(.55f,.60f,.66f));
-    SkyComponent->OcclusionMaxDistance=150.f;
+    SkyComponent->OcclusionMaxDistance=80.f;
     SkyComponent->SetOcclusionContrast(0.f);
-    SkyComponent->SetOcclusionExponent(.75f);
-    SkyComponent->SetRealTimeCapture(true);
+    SkyComponent->SetOcclusionExponent(1.f);
+    SkyComponent->SetMinOcclusion(.2f);
+    SkyComponent->SetRealTimeCapture(false);
+    SkyComponent->RecaptureSky();
     if (auto* Fog=GetWorld()->SpawnActor<AExponentialHeightFog>(FVector(900,720,80),FRotator::ZeroRotator))
     {
         auto* FogComponent=Fog->GetComponent();
-        FogComponent->SetFogDensity(.012f);
+        FogComponent->SetFogDensity(.005f);
         FogComponent->SetFogHeightFalloff(.18f);
         FogComponent->SetFogInscatteringColor(FLinearColor(.72f,.82f,.94f));
         FogComponent->SetDirectionalInscatteringExponent(4.f);
         FogComponent->SetDirectionalInscatteringStartDistance(700.f);
         FogComponent->SetDirectionalInscatteringColor(FLinearColor(.88f,.93f,1.f));
-        FogComponent->SetSecondFogDensity(.003f);
+        FogComponent->SetSecondFogDensity(.001f);
         FogComponent->SetSecondFogHeightFalloff(.08f);
         FogComponent->SetSecondFogHeightOffset(420.f);
         FogComponent->SetVolumetricFog(true);
-        FogComponent->SetVolumetricFogExtinctionScale(.18f);
+        FogComponent->SetVolumetricFogExtinctionScale(.12f);
         FogComponent->SetVolumetricFogScatteringDistribution(.35f);
     }
     if (MissionId==0)
     {
     GetWorld()->SpawnActor<AOKWinterEnvironmentActor>()->BuildEnvironment();
+    for (TActorIterator<AStaticMeshActor> It(GetWorld());It;++It)
+        if (const UStaticMesh* Asset=It->GetStaticMeshComponent()->GetStaticMesh(); Asset && Asset->GetName()==TEXT("SM_OK_WinterCobbles"))
+            It->SetActorScale3D(FVector(1,1,.45f)); // Embed visual paving; navigation remains on the bank proxies.
     auto* Cabin=LoadObject<UStaticMesh>(nullptr,TEXT("/Game/Kopanice/Supplied/Cabin/SM_OK_Cabin.SM_OK_Cabin"));
     if (Cabin)
     {
@@ -279,9 +288,9 @@ void AOKRTGameMode::BuildScene()
     Lens->PostProcessSettings.bOverride_AutoExposureApplyPhysicalCameraExposure=true;
     Lens->PostProcessSettings.AutoExposureApplyPhysicalCameraExposure=false;
     Lens->PostProcessSettings.bOverride_AmbientOcclusionIntensity=true;
-    Lens->PostProcessSettings.AmbientOcclusionIntensity=.45f;
+    Lens->PostProcessSettings.AmbientOcclusionIntensity=.2f;
     Lens->PostProcessSettings.bOverride_AmbientOcclusionRadius=true;
-    Lens->PostProcessSettings.AmbientOcclusionRadius=55.f;
+    Lens->PostProcessSettings.AmbientOcclusionRadius=35.f;
     Lens->PostProcessSettings.bOverride_AmbientOcclusionRadiusInWS=true;
     Lens->PostProcessSettings.AmbientOcclusionRadiusInWS=true;
     Lens->PostProcessSettings.bOverride_ColorSaturation=true;

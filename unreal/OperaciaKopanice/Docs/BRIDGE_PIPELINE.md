@@ -1,5 +1,9 @@
 # Rustbound Bridge and Winter Lighting
 
+The 2026-10-20 [readability pass](VISUAL_READABILITY.md) supersedes the lighting
+balance below with a specified daylight probe and calibrated PBR materials.
+Bridge geometry, scale, collision and destruction rules remain unchanged.
+
 ## Delivered Asset
 
 Mission 1 now uses the project owner's supplied

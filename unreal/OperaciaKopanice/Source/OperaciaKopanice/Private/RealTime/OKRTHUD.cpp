@@ -27,7 +27,7 @@ void AOKRTHUD::Wrap(const FString& Text,float X,float Y,float Width,float Scale)
     for (const auto& Word:Words)
     {
         float W,H; GetTextSize(Line+TEXT(" ")+Word,W,H,GEngine->GetSmallFont(),Scale);
-        if (W>Width && !Line.IsEmpty()) { Label(Line,X,Y,Scale); Y+=20*Scale; Line=Word; }
+        if (W>Width && !Line.IsEmpty()) { Label(Line,X,Y,Scale); Y+=16*Scale; Line=Word; }
         else Line+=(Line.IsEmpty() ? TEXT("") : TEXT(" "))+Word;
     }
     Label(Line,X,Y,Scale);
@@ -40,8 +40,10 @@ void AOKRTHUD::Button(FName Name,float X,float Y,float Size,const FString& Tip,T
 {
     float MX=0,MY=0;
     const bool Hover=Enabled && PlayerOwner->GetMousePosition(MX,MY) && MX>=X && MY>=Y && MX<X+Size && MY<Y+Size;
-    DrawRect(Active ? FLinearColor(.35f,.31f,.18f,.95f) : Hover ? FLinearColor(.14f,.18f,.18f,.96f) : FLinearColor(.035f,.04f,.045f,.88f),X,Y,Size,Size);
-    Icon(Name,X+8,Y+8,Size-16,Enabled ? FLinearColor(.91f,.8f,.52f) : FLinearColor(.4f,.44f,.43f));
+    DrawRect(Active ? FLinearColor(.22f,.24f,.21f,.98f) : Hover ? FLinearColor(.14f,.18f,.17f,.98f) : FLinearColor(.035f,.043f,.044f,.96f),X,Y,Size,Size);
+    const FLinearColor Edge=Active ? FLinearColor(.93f,.77f,.43f) : Hover ? FLinearColor(.44f,.65f,.58f) : FLinearColor(.20f,.25f,.24f);
+    DrawRect(Edge,X,Y+Size-2,Size,2);
+    Icon(Name,X+9,Y+9,Size-18,!Enabled ? FLinearColor(.28f,.32f,.31f) : Active ? FLinearColor(.98f,.85f,.57f) : FLinearColor(.84f,.89f,.86f));
     Buttons.Add({FBox2D(FVector2D(X,Y),FVector2D(X+Size,Y+Size)),MoveTemp(Action),Tip});
     Buttons.Last().bEnabled=Enabled;
 }
@@ -104,7 +106,7 @@ void AOKRTHUD::DrawHUD()
     RenderSize=FVector2D(W,H);
     if (G->bMenu || G->bWon || G->bLost) { DrawMenu(G,W,H); return; }
     const bool Compact=W<800;
-    const float Card=Compact ? 88 : 132;
+    const float Card=Compact ? 88 : 216;
     const float S=Compact ? 38 : 44;
     FBox2D Selection;
     if (PC->GetSelectionBounds(Selection))
@@ -118,39 +120,53 @@ void AOKRTHUD::DrawHUD()
     for (int32 I=0;I<2;++I)
     {
         auto* Unit=G->Party[I].Get();
-        const float X=16,Y=18+I*(Card+58);
-        DrawRect(FLinearColor(.035f,.04f,.045f,.92f),X,Y,Card,Card+48);
+        const float X=16,Y=18+I*(Compact ? Card+58 : 122);
+        const float PanelHeight=Compact ? Card+48 : 110;
+        const float Portrait=Compact ? Card-14 : 78;
+        DrawRect(FLinearColor(.026f,.038f,.039f,.96f),X,Y,Card,PanelHeight);
         const bool Active=Unit->IsSelected() && G->ActiveMember==I;
         DrawRect(Active ? FLinearColor(.81f,.68f,.36f) : Unit->IsSelected() ? FLinearColor(.45f,.72f,.55f) : FLinearColor(.22f,.23f,.22f),X,Y,Card,3);
         if (auto* T=Texture(I==0 ? TEXT("Partisan") : TEXT("Officer")))
-            DrawTexture(T,X+7,Y+8,Card-14,Card-14,I==0 ? .395f : .385f,I==0 ? .077f : .032f,I==0 ? .23f : .245f,I==0 ? .265f : .25f,FLinearColor::White,BLEND_Translucent);
+            DrawTexture(T,X+7,Y+8,Portrait,Portrait,I==0 ? .395f : .385f,I==0 ? .077f : .032f,I==0 ? .23f : .245f,I==0 ? .265f : .25f,FLinearColor::White,BLEND_Translucent);
         if (Unit->bInCover)
         {
-            DrawRect(FLinearColor(.035f,.12f,.07f,.95f),X+7,Y+Card-28,Card-14,18);
-            Icon(TEXT("eye"),X+10,Y+Card-27,16,FLinearColor(.6f,.9f,.7f));
-            Label(TEXT("KRYT"),X+31,Y+Card-26,.85f,FLinearColor(.7f,.94f,.77f));
+            const float CY=Compact ? Y+Card-28 : Y+86;
+            DrawRect(FLinearColor(.035f,.12f,.07f,.95f),X+7,CY,Portrait,18);
+            Icon(TEXT("eye"),X+10,CY+1,16,FLinearColor(.6f,.9f,.7f));
+            Label(TEXT("KRYT"),X+31,CY+2,.85f,FLinearColor(.7f,.94f,.77f));
         }
-        Label(Unit->DisplayName,X+7,Y+Card,Compact ? 1 : 1.15f,FLinearColor(.91f,.8f,.52f));
-        DrawRect(FLinearColor(.15f,.15f,.15f),X+7,Y+Card+23,Card-14,4);
-        DrawRect(FLinearColor(.35f,.66f,.45f),X+7,Y+Card+23,(Card-14)*Unit->Health/100,4);
-        Icon(TEXT("circle_dot"),X+7,Y+Card+29,14,FLinearColor(.8f,.83f,.8f));
-        Label(FString::FromInt(Unit->Distractions),X+23,Y+Card+29,.85f);
-        Icon(TEXT("move_right"),X+37,Y+Card+29,14,FLinearColor(.8f,.83f,.8f));
-        Label(FString::FromInt(Unit->QueueSize()),X+53,Y+Card+29,.85f);
-        if (!Compact && Unit->Specialist==EOKSpecialist::Officer)
+        const float TX=Compact ? X+7 : X+96;
+        const float NameY=Compact ? Y+Card : Y+13;
+        Label(Unit->DisplayName,TX,NameY,1.1f,FLinearColor(.94f,.91f,.79f));
+        const float HealthY=Compact ? Y+Card+23 : Y+54;
+        const float HealthW=Compact ? Card-14 : Card-106;
+        DrawRect(FLinearColor(.13f,.18f,.17f),TX,HealthY,HealthW,5);
+        DrawRect(Unit->Health>35 ? FLinearColor(.39f,.72f,.56f) : FLinearColor(.88f,.36f,.28f),TX,HealthY,HealthW*Unit->Health/100,5);
+        const float StatsY=Compact ? Y+Card+29 : Y+69;
+        Icon(TEXT("circle_dot"),TX,StatsY,14,FLinearColor(.73f,.81f,.78f));
+        Label(FString::FromInt(Unit->Distractions),TX+17,StatsY,.85f);
+        Icon(TEXT("move_right"),TX+42,StatsY,14,FLinearColor(.73f,.81f,.78f));
+        Label(FString::FromInt(Unit->QueueSize()),TX+59,StatsY,.85f);
+        if (!Compact)
         {
-            Icon(TEXT("heart_pulse"),X+73,Y+Card+29,14,FLinearColor(.68f,.87f,.76f));
-            Label(FString::FromInt(Unit->Medkits),X+91,Y+Card+29,.85f);
+            const TCHAR* Stances[]={TEXT("Chodza"),TEXT("Beh"),TEXT("Prikrceny"),TEXT("Plazenie")};
+            Label(Unit->IsAlive() ? Stances[int32(Unit->Stance)] : TEXT("Vyradeny"),TX,Y+35,.85f,FLinearColor(.64f,.76f,.71f));
+            Label(FString::Printf(TEXT("%.0f"),Unit->Health),X+Card-30,Y+36,.8f,FLinearColor(.73f,.82f,.78f));
+            if (Unit->Specialist==EOKSpecialist::Officer)
+            { Icon(TEXT("heart_pulse"),X+Card-31,StatsY,14,FLinearColor(.56f,.82f,.7f)); Label(FString::FromInt(Unit->Medkits),X+Card-16,StatsY,.85f); }
+            Label(Unit->Cooldown>0 ? FString::Printf(TEXT("%.1f s"),Unit->Cooldown) : TEXT("Pripraveny"),TX,Y+90,.8f,
+                Unit->Cooldown>0 ? FLinearColor(.94f,.77f,.43f) : FLinearColor(.60f,.74f,.68f));
+            Label(FString::FromInt(I+1),X+13,Y+89,.8f,FLinearColor(.94f,.77f,.43f));
         }
-        if (Active && !Compact) Icon(TEXT("crosshair"),X+Card-23,Y+Card+29,16,FLinearColor(.91f,.8f,.52f));
-        const FBox2D Bounds(FVector2D(X,Y),FVector2D(X+Card,Y+Card+48));
+        const FBox2D Bounds(FVector2D(X,Y),FVector2D(X+Card,Y+PanelHeight));
         Panels.Add(Bounds); Buttons.Add({Bounds,[PC,I](){ PC->SelectMember(I,PC->IsInputKeyDown(EKeys::LeftControl) || PC->IsInputKeyDown(EKeys::RightControl)); },
             Unit->DisplayName+(Active ? TEXT(" (aktivna)") : TEXT(""))+(Unit->bInCover ? TEXT(" / v kryte") : TEXT(""))+
             (Unit->Specialist==EOKSpecialist::Officer ? FString::Printf(TEXT(" / lekarnicky: %d"),Unit->Medkits) : TEXT(" / infiltrace"))});
         if (Unit->IsSelected()) WorldRing(Unit->Feet(),42,Active ? FLinearColor(.91f,.8f,.52f,.9f) : FLinearColor(.65f,.9f,.73f,.7f));
     }
     const float ObjectiveWidth=FMath::Min(320.f,W-Card-64);
-    DrawRect(FLinearColor(.025f,.03f,.035f,.83f),W-ObjectiveWidth-16,18,ObjectiveWidth,112);
+    DrawRect(FLinearColor(.026f,.038f,.039f,.96f),W-ObjectiveWidth-16,18,ObjectiveWidth,112);
+    DrawRect(FLinearColor(.8f,.68f,.4f),W-ObjectiveWidth-16,18,3,112);
     Panels.Add(FBox2D(FVector2D(W-ObjectiveWidth-16,18),FVector2D(W-16,130)));
     Label(G->Mission().Name,W-ObjectiveWidth-6,28,.9f,FLinearColor(.91f,.8f,.52f));
     Button(TEXT("crosshair"),W-48,22,28,TEXT("Zamerat aktualny ciel"),[G](){ G->FocusObjective(); });
@@ -254,6 +270,8 @@ void AOKRTHUD::DrawHUD()
     const float X=W-16-7*(S+4),Y=H-16-3*(S+4);
     const float SkillsY=Y-S-4;
     auto* Unit=G->Party[G->ActiveMember].Get();
+    DrawRect(FLinearColor(.018f,.027f,.028f,.90f),X-6,SkillsY-6,7*(S+4)+8,H-SkillsY-4);
+    Panels.Add(FBox2D(FVector2D(X-6,SkillsY-6),FVector2D(W-12,H-10)));
     Button(TEXT("hand_fist"),X,SkillsY,S,TEXT("Omracit zozadu (K)"),[PC](){ PC->Arm(EOKOrder::Knockout); },PC->bArmed && PC->ArmedOrder==EOKOrder::Knockout,!Unit->CarriedBody.IsValid());
     Buttons.Last().Id=TEXT("Knockout");
     Button(TEXT("link"),X+S+4,SkillsY,S,TEXT("Zviazat omracenu hliadku (G)"),[PC](){ PC->Arm(EOKOrder::Bind); },PC->bArmed && PC->ArmedOrder==EOKOrder::Bind,!Unit->CarriedBody.IsValid());
@@ -262,7 +280,7 @@ void AOKRTHUD::DrawHUD()
         Unit->Specialist==EOKSpecialist::Partisan && !Unit->CarriedBody.IsValid());
     Buttons.Last().Id=TEXT("Whistle");
     Button(G->bTacticalPause ? TEXT("play") : TEXT("pause"),X,Y,S,G->bTacticalPause ? TEXT("Pokracovat (Space)") : TEXT("Takticka pauza (Space)"),[G](){ G->TogglePause(); },G->bTacticalPause);
-    Button(TEXT("swords"),X+(S+4),Y,S,TEXT("Smrtelny tichy utok (T)"),[PC](){ PC->Arm(EOKOrder::Takedown); },PC->bArmed && PC->ArmedOrder==EOKOrder::Takedown);
+    Button(TEXT("swords"),X+(S+4),Y,S,TEXT("Smrtelny tichy utok (T)"),[PC](){ PC->Arm(EOKOrder::Takedown); },PC->bArmed && PC->ArmedOrder==EOKOrder::Takedown,!Unit->CarriedBody.IsValid());
     Button(TEXT("circle_dot"),X+2*(S+4),Y,S,TEXT("Hodit kamen (F)"),[PC](){ PC->Arm(EOKOrder::Distract); },PC->bArmed && PC->ArmedOrder==EOKOrder::Distract,
         Unit->Distractions>0 && !Unit->CarriedBody.IsValid());
     Button(TEXT("hand"),X+3*(S+4),Y,S,TEXT("Interakcia (E)"),[PC](){ PC->Arm(EOKOrder::Interact); },PC->bArmed && PC->ArmedOrder==EOKOrder::Interact);

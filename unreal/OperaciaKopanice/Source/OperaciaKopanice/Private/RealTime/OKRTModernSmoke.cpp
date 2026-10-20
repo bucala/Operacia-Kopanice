@@ -98,7 +98,10 @@ void AOKRTGameMode::ModernSmokeTick()
         { auto* S=CaptureSnapshot(); Require(S->ActiveBatch!=0 && ApplySnapshot(S) && ActiveSyncBatch!=0,TEXT("pending execution barrier survives snapshot restore")); }
         Next(); break;
     case 4:
-        if (Now-StageStarted<1.7) return;
+        // Cooldowns use simulation time; shader/texture warmup can stall wall time.
+        if (ActiveSyncBatch!=0 && Now-StageStarted<12) return;
+        UE_LOG(LogTemp,Display,TEXT("OK_RT_SYNC_REVIEW: batch=%d ammo=%d/%d cooldown=%.2f/%.2f queue=%d/%d"),
+            ActiveSyncBatch,P->Distractions,O->Distractions,P->Cooldown,O->Cooldown,P->QueueSize(),O->QueueSize());
         Require(P->Distractions==4 && O->Distractions==4 && ActiveSyncBatch==0 && P->QueueSize()==0 && O->QueueSize()==0,TEXT("barrier releases both actions once"));
         Require(!bTacticalPause && !GetWorld()->IsPaused(),TEXT("batch completion never auto-pauses real time"));
         TogglePause(); P->Health=40; O->Cooldown=0; Select(0);

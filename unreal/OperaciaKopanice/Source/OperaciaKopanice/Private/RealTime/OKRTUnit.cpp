@@ -7,6 +7,7 @@
 #include "Components/PoseableMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/StaticMesh.h"
+#include "Materials/MaterialInterface.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
@@ -71,6 +72,16 @@ void AOKRTUnit::Initialize(bool Guard,bool Officer)
         AnimatedVisual->SetVisibility(false);
         UE_LOG(LogTemp,Warning,TEXT("OK_RT_ANIMATION: missing rig for %s; static fallback"),*DisplayName);
     }
+    const FString MaterialPath=FString::Printf(TEXT("/Game/Kopanice/Supplied/%s/M_%s.M_%s"),
+        Officer ? TEXT("Officer") : TEXT("Partisan"),Officer ? TEXT("Officer") : TEXT("Partisan"),Officer ? TEXT("Officer") : TEXT("Partisan"));
+    if (auto* Material=LoadObject<UMaterialInterface>(nullptr,*MaterialPath))
+    {
+        // Derived rigs can retain FBX's WorldGridMaterial placeholder. Bind the
+        // canonical textured material to the rendered component, not just the mesh asset.
+        for (int32 I=0;I<Visual->GetNumMaterials();++I) Visual->SetMaterial(I,Material);
+        for (int32 I=0;I<AnimatedVisual->GetNumMaterials();++I) AnimatedVisual->SetMaterial(I,Material);
+    }
+    else UE_LOG(LogTemp,Error,TEXT("OK_RT_MATERIAL: missing character material %s"),*MaterialPath);
     UE_LOG(LogTemp,Display,TEXT("OK_RT_SIZE: %s enemy=%d height=%.1f cm"),*DisplayName,bEnemy,VisualHeight);
     SetStance(EOKStance::Walk);
     UpdateAnimation(0);

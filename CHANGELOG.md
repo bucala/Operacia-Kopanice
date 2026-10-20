@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Native Winter Readability and Tactical UI: 2026-10-20
+
+- Fix derived rigs retaining WorldGridMaterial: explicitly bind the supplied
+  textured material to player/guard render slots and verify every animated unit.
+- Rebalance ambient light with a deterministic daylight probe, retain real sun
+  shadows and reduce excessive local AO/near-camera fog.
+- Rebuild four small PBR materials with albedo, roughness and normal controls,
+  zero emission and a ground-snow fringe. Keep original textures/meshes/UVs/rigs;
+  embed visual paving without changing navigation or object footprints.
+- Add compact desktop status frames, unified action states and dock-gap input
+  protection. Improve menu hierarchy, disabled rows and binary switches while
+  preserving real-time commands, save state and narrow layout.
+
 ### Native Distraction Tactics: 2026-10-18
 
 - Replace instant stone noise with a visible swept arc and delayed impact.

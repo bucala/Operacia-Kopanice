@@ -1,7 +1,10 @@
 #include "RealTime/OKRTGameMode.h"
 #include "RealTime/OKRTUnit.h"
+#include "RealTime/OKRTPlayerController.h"
 #include "Navigation/OKViaductActor.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PoseableMeshComponent.h"
+#include "Materials/MaterialInterface.h"
 #include "Components/BoxComponent.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
@@ -27,6 +30,17 @@ void AOKRTGameMode::LightingSmokeTick()
     };
     if (SmokeStage==0)
     {
+        auto* PC=CastChecked<AOKRTPlayerController>(GetWorld()->GetFirstPlayerController());
+        int32 W,H; PC->GetViewportSize(W,H); PC->SetMouseLocation(W-2,H-2);
+        TArray<AOKRTUnit*> Units; for (const auto& U:Party) Units.Add(U); for (const auto& U:Enemies) Units.Add(U);
+        for (const auto* U:Units)
+        {
+            const TCHAR* MaterialRole=U->Specialist==EOKSpecialist::Officer ? TEXT("Officer") : TEXT("Partisan");
+            auto* Expected=LoadObject<UMaterialInterface>(nullptr,*FString::Printf(TEXT("/Game/Kopanice/Supplied/%s/M_%s.M_%s"),MaterialRole,MaterialRole,MaterialRole));
+            Require(Expected && U->AnimatedVisual->GetNumMaterials()>0,TEXT("animated unit has canonical textured material"));
+            for (int32 Slot=0;Slot<U->AnimatedVisual->GetNumMaterials();++Slot)
+                Require(U->AnimatedVisual->GetMaterial(Slot)==Expected,TEXT("player and enemy render uniform instead of WorldGrid placeholder"));
+        }
         int32 Suns=0,Skies=0;
         for (TActorIterator<ADirectionalLight> It(GetWorld());It;++It)
         {
@@ -39,9 +53,9 @@ void AOKRTGameMode::LightingSmokeTick()
         {
             ++Skies;
             const auto* Light=It->GetLightComponent();
-            Require(Light->bRealTimeCapture && Light->IsRealTimeCaptureEnabled() &&
+            Require(!Light->bRealTimeCapture && Light->SourceType==SLS_SpecifiedCubemap && Light->Cubemap &&
                 Light->LowerHemisphereColor.GetLuminance()>.3f && Light->CastShadows,
-                TEXT("captured atmosphere and snow hemisphere provide occluded ambient light"));
+                TEXT("deterministic daylight probe and snow hemisphere provide shadowed ambient light"));
         }
         Require(Suns==1 && Skies==1,TEXT("lighting has no competing directional fill light"));
         Require(bTacticalPause && UGameplayStatics::IsGamePaused(GetWorld()),
