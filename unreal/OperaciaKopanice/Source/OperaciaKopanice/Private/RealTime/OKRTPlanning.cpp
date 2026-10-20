@@ -125,7 +125,7 @@ bool AOKRTUnit::IsSyncReady(int32 Batch) const
     FString Reason;
     const auto& O=Orders[0];
     if (!ValidateOrder(O,true,true,Reason)) return false;
-    if (O.Kind==EOKOrder::Distract) return Cooldown<=0;
+    if (O.Kind==EOKOrder::Distract || O.Kind==EOKOrder::Whistle) return Cooldown<=0;
     if (O.Kind==EOKOrder::Carry && O.Target.IsExplicitlyNull()) return CarriedBody.IsValid();
     const auto* Target=O.Target.Get();
     const FVector Destination=Target ? Target->Feet() : O.Location;

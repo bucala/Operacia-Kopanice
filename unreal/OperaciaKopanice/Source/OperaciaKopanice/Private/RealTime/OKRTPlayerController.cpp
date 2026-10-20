@@ -42,6 +42,7 @@ void AOKRTPlayerController::SetupInputComponent()
     Bind(EKeys::C,&AOKRTPlayerController::Crouch); Bind(EKeys::V,&AOKRTPlayerController::Prone);
     Bind(EKeys::T,&AOKRTPlayerController::Takedown); Bind(EKeys::F,&AOKRTPlayerController::Throw);
     Bind(EKeys::K,&AOKRTPlayerController::Knockout); Bind(EKeys::G,&AOKRTPlayerController::BindBody);
+    Bind(EKeys::Y,&AOKRTPlayerController::Whistle);
     Bind(EKeys::B,&AOKRTPlayerController::Carry);
     Bind(EKeys::H,&AOKRTPlayerController::Heal);
     Bind(EKeys::Z,&AOKRTPlayerController::Plan); Bind(EKeys::Enter,&AOKRTPlayerController::Execute);
@@ -335,6 +336,12 @@ void AOKRTPlayerController::Takedown() { Arm(EOKOrder::Takedown); }
 void AOKRTPlayerController::Knockout() { Arm(EOKOrder::Knockout); }
 void AOKRTPlayerController::BindBody() { Arm(EOKOrder::Bind); }
 void AOKRTPlayerController::Throw() { Arm(EOKOrder::Distract); }
+void AOKRTPlayerController::Whistle()
+{
+    if (!IsGameplayInputAllowed()) return;
+    bArmed=false; FOKRTOrder Order; Order.Kind=EOKOrder::Whistle;
+    Game()->Command(Order,IsShiftDown());
+}
 void AOKRTPlayerController::Carry() { Arm(EOKOrder::Carry); }
 void AOKRTPlayerController::Heal() { Arm(EOKOrder::Heal); }
 void AOKRTPlayerController::Plan() { if (IsGameplayInputAllowed()) { bArmed=false; Game()->ToggleCommandMode(); } }
@@ -405,9 +412,10 @@ void AOKRTPlayerController::PlayerTick(float Delta)
             FVector Destination=Hit.ImpactPoint;
             const EOKInteraction Interaction=Unit ? EOKInteraction::Nearby : G->FindInteractionAt(Destination,Destination);
             const bool bInteraction=Interaction!=EOKInteraction::Nearby;
+            if (bArmed && ArmedOrder==EOKOrder::Distract) Destination=Hit.ImpactPoint;
             CurrentMouseCursor=bInteraction ? EMouseCursor::Hand : Unit && Unit->IsBody() ? EMouseCursor::GrabHand : EMouseCursor::Crosshairs;
             if ((Unit && ((!Unit->bEnemy && !(bArmed && ArmedOrder==EOKOrder::Heal)) || (Unit->IsOperational() && !bArmed))) ||
-                (bArmed && (ArmedOrder==EOKOrder::Distract || (!Unit && ArmedOrder!=EOKOrder::Interact))) ||
+                (bArmed && (!Unit && ArmedOrder!=EOKOrder::Interact && ArmedOrder!=EOKOrder::Distract)) ||
                 (bArmed && ArmedOrder==EOKOrder::Interact && !bInteraction))
                 G->PreviewSpline->ClearSplinePoints();
             else

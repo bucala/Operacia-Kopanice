@@ -40,6 +40,7 @@ UOKRTSaveGame* AOKRTGameMode::CaptureSnapshot() const
     S->ActiveMember=ActiveMember; S->CompletedMissions=CompletedMissions;
     S->CameraTarget=CameraTarget; S->CameraYaw=CameraYaw; S->CameraTilt=CameraTilt; S->CameraDistance=CameraDistance;
     S->ActiveBatch=ActiveSyncBatch; S->NextBatch=NextSyncBatch; S->bReleased=bSyncReleased; S->Participants=SyncParticipants;
+    S->Stones=Stones; for (auto& Stone:S->Stones) Stone.Visual=nullptr;
     TArray<AOKRTUnit*> Units; for (AOKRTUnit* U:Party) Units.Add(U); for (AOKRTUnit* U:Enemies) Units.Add(U);
     S->DraftValid=DraftValid; for (const auto& O:Drafts) S->Drafts.Add(Encode(O,Units));
     for (auto* U:Units)
@@ -65,7 +66,13 @@ UOKRTSaveGame* AOKRTGameMode::CaptureSnapshot() const
 }
 bool AOKRTGameMode::ValidateSnapshot(const UOKRTSaveGame* S) const
 {
-    if (!S || (S->Version!=1 && S->Version!=2) || S->MissionId<0 || S->MissionId>=OKMissions::Count) return false;
+    if (!S || S->Version<1 || S->Version>3 || S->MissionId<0 || S->MissionId>=OKMissions::Count) return false;
+    if (S->Stones.Num()>16 || (S->Version<3 && !S->Stones.IsEmpty())) return false;
+    for (const auto& Stone:S->Stones)
+        if (!Finite(Stone.Origin) || !Finite(Stone.Destination) || !FMath::IsFinite(Stone.Elapsed) ||
+            !FMath::IsFinite(Stone.Duration) || Stone.Elapsed<0 || Stone.Elapsed>=Stone.Duration ||
+            Stone.Duration<.45f || Stone.Duration>1.15f || Stone.PartyMember<0 || Stone.PartyMember>=2 ||
+            FVector::Dist2D(Stone.Origin,Stone.Destination)>800 || FMath::Abs(Stone.Origin.Z-Stone.Destination.Z)>400) return false;
     const auto& M=OKMissions::Get(S->MissionId); const int32 Count=2+M.Guards.Num();
     if (S->Units.Num()!=Count || S->Guards.Num()!=M.Guards.Num() || S->ActiveMember<0 || S->ActiveMember>=2 ||
         !Finite(S->CameraTarget) || !FMath::IsFinite(S->CameraYaw) || !FMath::IsFinite(S->CameraTilt) ||
@@ -80,7 +87,7 @@ bool AOKRTGameMode::ValidateSnapshot(const UOKRTSaveGame* S) const
         (S->bCommandMode && (S->Drafts.Num()!=2 || !S->bPaused || S->ActiveBatch))) return false;
     auto ValidOrder=[Count,S](const FOKSavedOrder& O)
     {
-        return uint8(O.Kind)<=uint8(S->Version==1 ? EOKOrder::Heal : EOKOrder::Bind) && uint8(O.Stance)<=uint8(EOKStance::Prone) &&
+        return uint8(O.Kind)<=uint8(S->Version==1 ? EOKOrder::Heal : S->Version==2 ? EOKOrder::Bind : EOKOrder::Whistle) && uint8(O.Stance)<=uint8(EOKStance::Prone) &&
             uint8(O.Interaction)<=uint8(EOKInteraction::SabotageCommandPost) && Finite(O.Location) &&
             O.Target>=INDEX_NONE && O.Target<Count && (O.Batch==0 || O.Batch==S->ActiveBatch) &&
             ((O.Kind!=EOKOrder::Takedown && O.Kind!=EOKOrder::Knockout && O.Kind!=EOKOrder::Bind && O.Kind!=EOKOrder::Carry) || O.Target==INDEX_NONE || O.Target>=2) &&
@@ -146,6 +153,8 @@ bool AOKRTGameMode::ApplySnapshot(const UOKRTSaveGame* S)
 {
     if (!ValidateSnapshot(S) || S->MissionId!=MissionId || (bBridgeDestroyed && !S->bBridge)) return false;
     UGameplayStatics::SetGamePaused(GetWorld(),true);
+    for (auto& Stone:Stones) if (Stone.Visual) Stone.Visual->Destroy();
+    Stones=S->Stones; for (auto& Stone:Stones) { Stone.Visual=nullptr; CreateStoneVisual(Stone); }
     ActiveSyncBatch=0; bCommandMode=false; bWon=bLost=false; bMenu=bOptions=bFrontEnd=false;
     TArray<AOKRTUnit*> Units; for (AOKRTUnit* U:Party) Units.Add(U); for (AOKRTUnit* U:Enemies) Units.Add(U);
     for (int32 I=0;I<Units.Num();++I)

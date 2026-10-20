@@ -160,13 +160,16 @@ bool AOKRTUnit::ValidateOrder(const FOKRTOrder& Order,bool bExecuting,bool bKeep
         { Reason=TEXT("Osetrenie vyzaduje dostojnika, lekarnicku a zraneneho spojenca."); return false; }
         return true;
     }
+    if ((Order.Kind==EOKOrder::Distract || Order.Kind==EOKOrder::Whistle) && CarriedBody.IsValid())
+    { Reason=TEXT("Najprv poloz telo."); return false; }
+    if (Order.Kind==EOKOrder::Whistle && Specialist!=EOKSpecialist::Partisan)
+    { Reason=TEXT("Piskanie je schopnost partizana."); return false; }
     if (Order.Kind==EOKOrder::Distract && Distractions<=0)
     { Reason=TEXT("Ziadne predmety na odlakanie."); return false; }
     if (Order.Kind==EOKOrder::Distract && (!bKeepQueue || bExecuting))
     {
-        FHitResult Hit; FCollisionQueryParams Params(SCENE_QUERY_STAT(OKThrowPlan),false,this);
-        if (FVector::Dist2D(Feet(),Order.Location)>800 ||
-            GetWorld()->LineTraceSingleByChannel(Hit,Feet()+FVector(0,0,120),Order.Location+FVector(0,0,120),ECC_Visibility,Params))
+        const auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>(); TArray<FVector> Points;
+        if (!Game || !Game->StoneTrajectory(this,Feet(),Order.Location,Points))
         { Reason=TEXT("Miesto odlakania je za prekazkou alebo mimo dosahu."); return false; }
     }
     if (Order.Kind!=EOKOrder::Takedown && Order.Kind!=EOKOrder::Knockout && Order.Kind!=EOKOrder::Bind && Order.Kind!=EOKOrder::Carry) return true;
@@ -230,6 +233,14 @@ bool AOKRTUnit::CanNavigateOrder(const FOKRTOrder& Order,bool bFromQueue,FString
 bool AOKRTUnit::GetOrderPath(const FOKRTOrder& Order,bool bFromQueue,TArray<FVector>& Points,FString& Reason) const
 {
     Points.Reset(); Reason.Reset();
+    if (Order.Kind==EOKOrder::Distract)
+    {
+        FVector From=Feet();
+        if (bFromQueue) { TArray<FVector> Locations; GetQueuedLocations(Locations); if (!Locations.IsEmpty()) From=Locations.Last(); }
+        const auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
+        if (Game && Game->StoneTrajectory(this,From,Order.Location,Points)) return true;
+        Reason=TEXT("Hod nema volnu drahu, podklad alebo je mimo dosahu."); return false;
+    }
     const bool bTargetOrder=Order.Kind==EOKOrder::Takedown || Order.Kind==EOKOrder::Knockout || Order.Kind==EOKOrder::Bind || Order.Kind==EOKOrder::Heal || (Order.Kind==EOKOrder::Carry && Order.Target.IsValid());
     if (Order.Kind!=EOKOrder::Move && !(Order.Kind==EOKOrder::Interact && Order.bApproachInteraction) && !bTargetOrder) return true;
     if (Order.Location.ContainsNaN() || (bTargetOrder && !Order.Target.IsValid()))
@@ -312,6 +323,12 @@ void AOKRTUnit::UpdateOrders()
         if (Cooldown>0) return;
         if (AwaitSynchronization(Order)) return;
         if (Game->Distract(this,Order.Location)) { --Distractions; Cooldown=6; }
+        FinishOrder(); return;
+    }
+    if (Order.Kind==EOKOrder::Whistle)
+    {
+        if (Cooldown>0 || AwaitSynchronization(Order)) return;
+        if (Game->Whistle(this)) Cooldown=4;
         FinishOrder(); return;
     }
     if (Order.Kind==EOKOrder::Interact && !Order.bApproachInteraction)

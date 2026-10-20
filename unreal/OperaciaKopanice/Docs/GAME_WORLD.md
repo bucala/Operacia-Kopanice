@@ -1,5 +1,7 @@
 # Kopanice: Native Mission World Contract
 
+Native distraction extension: [flight, whistle and hearing rules](DISTRACTION_TACTICS.md).
+
 ## Scope and Reference Decisions
 
 This is the main Unreal real-time game, not the legacy grid demo or the Canvas

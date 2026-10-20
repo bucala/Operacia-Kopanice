@@ -33,6 +33,11 @@ je zobrazený v nasledujúcej časti.
 
 ## Unreal Real-Time Prototype
 
+Odlákanie má po novom let kameňa a zvuk až pri dopade (F). Partizán vie zapískať
+(Y), čím pritiahne blízku hliadku k svojej polohe. Múry tlmia hluk, pevná stráž
+neopúšťa stanovište a náhľad ukazuje oblúk hodu. Obe schopnosti fungujú v tímovom
+pláne; uložiť sa dá aj letiaci kameň. [Pravidlá a limity](unreal/OperaciaKopanice/Docs/DISTRACTION_TACTICS.md).
+
 Natívna verzia má aj nesmrteľný stealth postup podľa dodaných manuálov:
 K omráči hliadku zozadu, G ju zviaže a B umožní preniesť zviazaného alebo mŕtveho
 nepriateľa do úkrytu. Nezviazaný vojak sa po 45 sekundách herného času zotaví;

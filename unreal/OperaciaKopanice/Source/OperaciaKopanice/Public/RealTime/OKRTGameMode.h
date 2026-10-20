@@ -20,6 +20,8 @@ struct FOKNoisePulse
     FVector Location=FVector::ZeroVector;
     float Radius=0;
     float Age=0;
+    TWeakObjectPtr<AOKRTUnit> Source;
+    FName Tag;
 };
 
 struct FOKCommandFeedback
@@ -83,6 +85,10 @@ public:
     void Alarm(AOKRTUnit* Target,AOKRTUnit* Source);
     void Interact(AOKRTUnit* Unit,EOKInteraction Kind=EOKInteraction::Nearby);
     bool Distract(AOKRTUnit* Unit,FVector Destination);
+    bool Whistle(AOKRTUnit* Unit);
+    bool StoneTrajectory(const AOKRTUnit* Unit,FVector From,FVector Destination,TArray<FVector>& Points) const;
+    bool NoiseAudible(const AOKRTUnit* Listener,const AOKRTUnit* Source,FVector Location,float Range) const;
+    UPROPERTY() TArray<FOKRTStoneFlight> Stones;
     EOKInteraction FindInteractionAt(FVector PickedLocation,FVector& Destination) const;
     bool IsCover(FVector Location,float BodyHeight=95.f) const;
     void Preview(FVector Destination);
@@ -172,6 +178,10 @@ private:
     bool bModernSmoke=false;
     void NonlethalSmokeTick();
     bool bNonlethalSmoke=false;
+    void DistractionSmokeTick();
+    bool bDistractionSmoke=false;
+    void UpdateStones(float Delta);
+    void CreateStoneVisual(FOKRTStoneFlight& Stone);
     void LightingSmokeTick();
     bool bLightingSmoke=false;
     void SmokeNavigationTests();

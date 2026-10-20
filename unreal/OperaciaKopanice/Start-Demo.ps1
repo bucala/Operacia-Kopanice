@@ -8,6 +8,7 @@ param(
     [switch]$ModernSmokeTest,
     [switch]$LightingSmokeTest,
     [switch]$NonlethalSmokeTest,
+    [switch]$DistractionSmokeTest,
     [ValidateRange(0,2)][int]$Mission = 0,
     [switch]$CabinReview,
     [switch]$LegacyGridDemo,
@@ -15,6 +16,10 @@ param(
     [ValidateRange(480,2160)][int]$Height = 720
 )
 $ErrorActionPreference = 'Stop'
+if ($DistractionSmokeTest) {
+    if ($LegacyGridDemo -or $NonlethalSmokeTest -or $LightingSmokeTest -or $ModernSmokeTest -or $MissionSmokeTest -or $CampaignSmokeTest -or $RealtimeSmokeTest -or $Mission -ne 0) { throw 'DistractionSmokeTest requires its isolated native Mission 1 fixture.' }
+    $SmokeTest = $true
+}
 if ($NonlethalSmokeTest) {
     if ($LegacyGridDemo -or $LightingSmokeTest -or $ModernSmokeTest -or $MissionSmokeTest -or $CampaignSmokeTest -or $RealtimeSmokeTest -or $Mission -ne 0) { throw 'NonlethalSmokeTest requires its isolated native Mission 1 fixture.' }
     $SmokeTest = $true
@@ -61,7 +66,7 @@ $Map = if ($LegacyGridDemo) { '/Engine/Maps/Entry?game=/Script/OperaciaKopanice.
 $Arguments = @($Project, $Map, '-game', '-Windowed', "-ResX=$Width", "-ResY=$Height", '-NoSplash', "-OKMission=$Mission")
 if ($SmokeTest) {
     $SmokeLog = Join-Path $PSScriptRoot ('Saved/Logs/DemoSmoke-' + [guid]::NewGuid().ToString('N') + '.log')
-    $SmokeFlag = if ($NonlethalSmokeTest) { '-OKRTNonlethalSmoke' } elseif ($LightingSmokeTest) { '-OKRTLightingSmoke' } elseif ($ModernSmokeTest) { '-OKRTModernSmoke' } elseif ($RealtimeSmokeTest) { '-OKRTRealtimeSmoke' } elseif ($CampaignSmokeTest) { '-OKRTCampaignSmoke' } elseif ($MissionSmokeTest) { '-OKRTMissionSmoke' } elseif ($LegacyGridDemo) { '-OKDemoSmoke' } else { '-OKRTSmoke' }
+    $SmokeFlag = if ($DistractionSmokeTest) { '-OKRTDistractionSmoke' } elseif ($NonlethalSmokeTest) { '-OKRTNonlethalSmoke' } elseif ($LightingSmokeTest) { '-OKRTLightingSmoke' } elseif ($ModernSmokeTest) { '-OKRTModernSmoke' } elseif ($RealtimeSmokeTest) { '-OKRTRealtimeSmoke' } elseif ($CampaignSmokeTest) { '-OKRTCampaignSmoke' } elseif ($MissionSmokeTest) { '-OKRTMissionSmoke' } elseif ($LegacyGridDemo) { '-OKDemoSmoke' } else { '-OKRTSmoke' }
     $Arguments += @($SmokeFlag, '-RenderOffscreen', '-Unattended', '-NoSound', '-ForceRes', "-AbsLog=$SmokeLog")
 }
 if ($CabinReview) { $Arguments += '-OKCabinReview' }
@@ -76,7 +81,7 @@ if ($SmokeTest) {
 if ($Process.ExitCode -ne 0) { throw "Demo exited with code $($Process.ExitCode)" }
 if ($SmokeTest) {
     $LogText = Get-Content -LiteralPath $SmokeLog -Raw
-    $Pass = if ($NonlethalSmokeTest) { 'OK_RT_NONLETHAL: PASS' } elseif ($LightingSmokeTest) { 'OK_RT_LIGHTING: PASS' } elseif ($ModernSmokeTest) { 'OK_RT_MODERN: PASS' } elseif ($RealtimeSmokeTest) { 'OK_RT_REALTIME: PASS' } elseif ($CampaignSmokeTest) { 'OK_RT_CAMPAIGN: PASS mission=2' } elseif ($MissionSmokeTest) { 'OK_RT_MISSION: PASS' } elseif ($LegacyGridDemo) { 'OK_DEMO_SMOKE: PASS' } else { 'OK_RT_SMOKE: PASS' }
+    $Pass = if ($DistractionSmokeTest) { 'OK_RT_DISTRACTION: PASS' } elseif ($NonlethalSmokeTest) { 'OK_RT_NONLETHAL: PASS' } elseif ($LightingSmokeTest) { 'OK_RT_LIGHTING: PASS' } elseif ($ModernSmokeTest) { 'OK_RT_MODERN: PASS' } elseif ($RealtimeSmokeTest) { 'OK_RT_REALTIME: PASS' } elseif ($CampaignSmokeTest) { 'OK_RT_CAMPAIGN: PASS mission=2' } elseif ($MissionSmokeTest) { 'OK_RT_MISSION: PASS' } elseif ($LegacyGridDemo) { 'OK_DEMO_SMOKE: PASS' } else { 'OK_RT_SMOKE: PASS' }
     if ($LogText -notmatch $Pass -or $LogText -match 'Failed to compile Material|Default Material will be used in game') {
         throw "Rendered smoke test failed. See $SmokeLog"
     }

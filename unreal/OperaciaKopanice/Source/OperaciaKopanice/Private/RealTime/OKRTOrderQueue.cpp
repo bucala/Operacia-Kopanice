@@ -16,6 +16,7 @@ namespace
         case EOKOrder::Knockout: return {TEXT("hand_fist"),TEXT("Omracenie")};
         case EOKOrder::Bind: return {TEXT("link"),TEXT("Zviazanie")};
         case EOKOrder::Distract: return {TEXT("circle_dot"),TEXT("Odlakanie")};
+        case EOKOrder::Whistle: return {TEXT("volume_2"),TEXT("Piskanie")};
         case EOKOrder::Heal: return {TEXT("heart_pulse"),TEXT("Osetrenie")};
         case EOKOrder::Carry: return {TEXT("backpack"),Order.Target.IsExplicitlyNull() ? TEXT("Polozit telo") : TEXT("Preniest telo")};
         case EOKOrder::Stance:

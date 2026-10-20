@@ -86,7 +86,8 @@ void AOKRTGameMode::StartPlay()
     bModernSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTModernSmoke"));
     bLightingSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTLightingSmoke"));
     bNonlethalSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTNonlethalSmoke"));
-    bSmoke=bNonlethalSmoke || bLightingSmoke || bModernSmoke || bCampaignSmoke || bMissionSmoke || bRealtimeSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
+    bDistractionSmoke=FParse::Param(FCommandLine::Get(),TEXT("OKRTDistractionSmoke"));
+    bSmoke=bDistractionSmoke || bNonlethalSmoke || bLightingSmoke || bModernSmoke || bCampaignSmoke || bMissionSmoke || bRealtimeSmoke || FParse::Param(FCommandLine::Get(),TEXT("OKRTSmoke"));
     const FString Requested=UGameplayStatics::ParseOption(OptionsString,TEXT("Mission"));
     if (Requested.IsEmpty()) FParse::Value(FCommandLine::Get(),TEXT("OKMission="),MissionId);
     else MissionId=FCString::Atoi(*Requested);
@@ -111,6 +112,7 @@ void AOKRTGameMode::StartPlay()
         if (ValidateSnapshot(PendingLoad) && PendingLoad->bBridge) BreakBridge();
         if (bModernSmoke) SmokeStage=100;
         if (bNonlethalSmoke) SmokeStage=100;
+        if (bDistractionSmoke) SmokeStage=100;
     }
     if (bCampaignSmoke)
     {
@@ -430,7 +432,7 @@ void AOKRTGameMode::FocusObjective()
 void AOKRTGameMode::Noise(AOKRTUnit* Source,FVector Location,float Loudness,float Range,FName Tag)
 {
     UAISense_Hearing::ReportNoiseEvent(GetWorld(),Location,Loudness,Source,Range,Tag);
-    NoisePulses.Add({Location,Range,0});
+    NoisePulses.Add({Location,Range,0,Source,Tag});
 }
 void AOKRTGameMode::Alarm(AOKRTUnit* Target,AOKRTUnit* Source)
 {
@@ -438,15 +440,6 @@ void AOKRTGameMode::Alarm(AOKRTUnit* Target,AOKRTUnit* Source)
     for (AOKRTUnit* Guard:Enemies)
         if (Guard!=Source && FVector::Dist2D(Guard->Feet(),Source->Feet())<1400)
             CastChecked<AOKRTGuardController>(Guard->GetController())->Alert(Target,false);
-}
-bool AOKRTGameMode::Distract(AOKRTUnit* Unit,FVector Destination)
-{
-    if (FVector::Dist2D(Unit->Feet(),Destination)>800)
-    { Message=TEXT("Ciel je prilis daleko."); return false; }
-    FHitResult Hit; FCollisionQueryParams Params(SCENE_QUERY_STAT(OKRTThrow),false,Unit);
-    if (GetWorld()->LineTraceSingleByChannel(Hit,Unit->Feet()+FVector(0,0,120),Destination+FVector(0,0,120),ECC_Visibility,Params))
-    { Message=TEXT("Prekazka blokuje hod."); return false; }
-    Noise(Unit,Destination,1,1500,TEXT("Distraction")); Message=TEXT("Odputanie pozornosti."); return true;
 }
 EOKInteraction AOKRTGameMode::FindInteractionAt(FVector PickedLocation,FVector& Destination) const
 {
@@ -595,6 +588,7 @@ void AOKRTGameMode::Tick(float Delta)
     if (!bTacticalPause && !bMenu)
     {
         UpdateSynchronization();
+        if (!bWon && !bLost) UpdateStones(Delta);
         for (auto& Pulse:NoisePulses) Pulse.Age+=Delta;
         NoisePulses.RemoveAll([](const auto& P){ return P.Age>1.5f; });
         for (AOKRTUnit* Unit:Party)
@@ -607,7 +601,8 @@ void AOKRTGameMode::Tick(float Delta)
         if ((bWon || bLost) && !UGameplayStatics::IsGamePaused(GetWorld()))
         { UGameplayStatics::SetGamePaused(GetWorld(),true); }
     }
-    if (bNonlethalSmoke) NonlethalSmokeTick();
+    if (bDistractionSmoke) DistractionSmokeTick();
+    else if (bNonlethalSmoke) NonlethalSmokeTick();
     else if (bLightingSmoke) LightingSmokeTick();
     else if (bModernSmoke) ModernSmokeTick();
     else if (bRealtimeSmoke) RealtimeSmokeTick();

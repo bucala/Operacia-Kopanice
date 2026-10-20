@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### Native Distraction Tactics: 2026-10-18
+
+- Replace instant stone noise with a visible swept arc and delayed impact.
+  Share arc prediction with hover/queued validation; reject unsupported ground,
+  excessive range and walls while permitting throws over low cover.
+- Add partisan whistle (Y), active-specialist HUD control, cooldown and free-hand
+  validation. Integrate both lures into queues and synchronized team plans.
+- Match UE hearing callbacks to original event ranges and apply wall attenuation;
+  retain mobile investigation, fixed-sentry duty and combat priority. Show an
+  investigation link only for actually visible guards, plus impact-range preview.
+- Add save schema 3 airborne state with schema 1/2 reading and deterministic
+  mid-flight reload without duplicate resource spending or impact.
+- Add native rendered distraction/save/input regression and one small Lucide
+  sound icon. No web runtime or packaged Windows/Android release is changed.
+
 ### Native Manual-Based Nonlethal Stealth: 2026-10-14
 
 - Add explicit rear knockout (K) and binding (G), grounded unconscious/bound

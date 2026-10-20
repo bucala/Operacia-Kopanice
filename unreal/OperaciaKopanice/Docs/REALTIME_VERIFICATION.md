@@ -1,5 +1,57 @@
 # Real-Time Prototype Verification
 
+## Distraction Tactics: 2026-10-18
+
+Main native game only; [rules, controls and reference distinction](DISTRACTION_TACTICS.md).
+UE 5.8.2 Win64 Development Editor build and the HUD import commandlet succeed.
+The development DLL matches the short-path build SHA-256:
+`CD9E89DF17A9CA38099982CF4C8A87AECFB3F6DFE104684C7FD7D3A189B09CD6`.
+Existing engine/input deprecation, preferred compiler and optional SDK warnings
+remain. No packaged Windows/Android build or browser release is produced.
+
+| Rendered run | Result | Local log |
+| --- | --- | --- |
+| Distraction lifecycle, 1280 x 720 | 43/43 PASS | DemoSmoke-be4ef46971e34ffa833e10898dc668d0.log |
+| Distraction lifecycle, 480 x 800 | 43/43 PASS | DemoSmoke-0deb6216484b474f991d3976e22293b3.log |
+| Synchronized plans, medic and F9 reload | 41/41 PASS | DemoSmoke-b2066dfccecc42b6b761a9460fccbd70.log |
+| Nonlethal/carry/recovery regression | 59/59 PASS | DemoSmoke-8e85d63fb2f84d2e8086b62a58114e18.log |
+| Original navigation/input/world integration | 279/279 PASS | DemoSmoke-04e88987328246b5a024dab1918d9ad7.log |
+| Mission 1 with live AI | 15/15 PASS | DemoSmoke-35037e463b2841878764da5e7e2635a7.log |
+| Production real-time startup | 11/11 PASS | DemoSmoke-ff916366077c496ca5e9335b4f279050.log |
+
+These seven runs total 491 passing checks, zero failed checks and no material
+fallbacks. They cover actual Y/F9 input, low/high and dynamically introduced
+obstacles, unsupported/range rejection, queued-origin arc prediction, free hands,
+delayed impact, event-specific hearing/occlusion, true pause, nonzero elapsed flight
+save/reconstruction, single spending, mobile investigation, fixed posts, combat
+priority and a mixed whistle/throw synchronization barrier. Current saves use
+schema 3; schemas 1/2 remain readable with their older order/state limits.
+Mission 1 completes with both live guards and full party health. Captures for
+desktop/portrait were inspected; these are controlled rendered fixtures, not
+packaged-device certification or an unassisted human playthrough.
+
+The separate courier -> command-post campaign also passes on this build:
+364 checks, both live operations completed with full party health, in
+`DemoSmoke-0d2bd6d1526348daadacce8a99a5187b.log`. Repeated per-frame layout checks
+make this campaign count timing-dependent.
+
+The initial distraction fixture found a fixed sentry briefly following a retained
+patrol path before hearing its lure (`DemoSmoke-6e116d6424144fb58d0fc42c46836021.log`).
+HoldPost now stops retained paths and never navigates to route stops. The final
+fixture records zero sentinel displacement. The launcher additionally rejects
+explicit failed check lines even if a later PASS marker exists.
+
+One Mission 1 startup failed with the existing DX12 GPU page fault before any
+completed GPU frame (`DemoSmoke-2e2b8bb3ea5a4cf38cae616440d7744f.log`, frame 3,
+3,127.71 MiB local use / 7,189 MiB budget). The separate retry above passes.
+This is not claimed fixed or diagnosed as a specific driver/engine defect.
+
+The isolated native-branch upload matches 229 Source/Config/Content files,
+including 99 runtime packages checked against LFS hashes. One new icon is
+13,536 bytes; no original models, manuals, generated PNG sources, logs or binaries
+are added. All 33 generated-header include positions, launcher parsing and
+`git diff --check` pass. The independently updated main checkout is not changed.
+
 ## Manual-Based Nonlethal Stealth: 2026-10-18
 
 Only the main native game is changed. See [rules and reference pages](NONLETHAL_STEALTH.md).

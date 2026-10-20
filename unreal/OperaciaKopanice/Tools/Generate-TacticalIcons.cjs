@@ -8,7 +8,7 @@ const requireRuntime = createRequire(path.join(runtime, '__resolve.cjs'));
 const lucide = requireRuntime('lucide');
 const sharp = requireRuntime('sharp');
 const out = path.resolve(__dirname, '../ArtSource/Generated/TacticalHUD');
-const icons = { layers: 'Layers', check: 'Check', x: 'X', heart_pulse: 'HeartPulse', save: 'Save', folder_open: 'FolderOpen', map: 'Map', hand_fist: 'HandFist', link: 'Link' };
+const icons = { layers: 'Layers', check: 'Check', x: 'X', heart_pulse: 'HeartPulse', save: 'Save', folder_open: 'FolderOpen', map: 'Map', hand_fist: 'HandFist', link: 'Link', volume_2: 'Volume2' };
 const escape = value => String(value).replaceAll('&', '&amp;').replaceAll('"', '&quot;');
 async function main() {
   fs.mkdirSync(out, { recursive: true });

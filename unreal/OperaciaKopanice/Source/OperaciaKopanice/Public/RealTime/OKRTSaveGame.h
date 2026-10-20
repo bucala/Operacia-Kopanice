@@ -58,7 +58,7 @@ class OPERACIAKOPANICE_API UOKRTSaveGame : public USaveGame
 {
     GENERATED_BODY()
 public:
-    UPROPERTY(SaveGame) int32 Version=2;
+    UPROPERTY(SaveGame) int32 Version=3;
     UPROPERTY(SaveGame) int32 MissionId=0;
     UPROPERTY(SaveGame) FDateTime SavedAt;
     UPROPERTY(SaveGame) bool bTNT=false;
@@ -81,4 +81,5 @@ public:
     UPROPERTY(SaveGame) TArray<bool> DraftValid;
     UPROPERTY(SaveGame) TArray<FOKSavedUnit> Units;
     UPROPERTY(SaveGame) TArray<FOKSavedGuard> Guards;
+    UPROPERTY(SaveGame) TArray<FOKRTStoneFlight> Stones;
 };

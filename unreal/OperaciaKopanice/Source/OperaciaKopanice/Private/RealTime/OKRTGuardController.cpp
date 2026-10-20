@@ -45,12 +45,16 @@ void AOKRTGuardController::Perceived(AActor* Actor,FAIStimulus Stimulus)
     auto* Source=Cast<AOKRTUnit>(Actor);
     if (!bBrainEnabled || !Unit || !Unit->bEnemy || !Unit->IsOperational() || !Source || Source->bEnemy ||
         !Stimulus.WasSuccessfullySensed() || Stimulus.Type!=UAISense::GetSenseID<UAISense_Hearing>()) return;
-    // Hearing events carry an explicit max range. Walls further reduce audibility.
-    FHitResult Hit; FCollisionQueryParams Params(SCENE_QUERY_STAT(OKRTHearing),false,Unit);
-    Params.AddIgnoredActor(Source);
-    const bool Blocked=GetWorld()->LineTraceSingleByChannel(Hit,Unit->GetActorLocation(),Stimulus.StimulusLocation+FVector(0,0,90),ECC_Visibility,Params);
-    if (!Blocked || FVector::Dist2D(Unit->Feet(),Stimulus.StimulusLocation)<500)
-        Investigate(Stimulus.StimulusLocation);
+    const auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
+    if (!Game || Game->bTacticalPause || Game->bMenu || Game->bWon || Game->bLost) return;
+    // Match the original event's range, rather than a fixed through-wall radius.
+    for (int32 I=Game->NoisePulses.Num()-1;I>=0;--I)
+    {
+        const auto& Pulse=Game->NoisePulses[I];
+        if (Pulse.Source.Get()!=Source || Pulse.Tag!=Stimulus.Tag || !Pulse.Location.Equals(Stimulus.StimulusLocation,1)) continue;
+        if (Game->NoiseAudible(Unit,Source,Pulse.Location,Pulse.Radius)) Investigate(Pulse.Location);
+        break;
+    }
 }
 void AOKRTGuardController::Investigate(FVector Location)
 {
@@ -94,6 +98,7 @@ void AOKRTGuardController::Tick(float Delta)
     auto* Unit=Cast<AOKRTUnit>(GetPawn());
     auto* Game=GetWorld()->GetAuthGameMode<AOKRTGameMode>();
     if (!bBrainEnabled || !Unit || !Unit->bEnemy || !Unit->IsOperational() || !Game || Game->bWon || Game->bLost || Game->bTacticalPause || Game->bMenu) return;
+    if (Duty==EOKGuardDuty::HoldPost && GetMoveStatus()!=EPathFollowingStatus::Idle) StopMovement();
     auto RescuePath=[Unit](AOKRTUnit* Body)
     {
         FOKRTOrder Order; Order.Kind=EOKOrder::Bind; Order.Target=Body;
@@ -217,7 +222,7 @@ void AOKRTGuardController::Tick(float Delta)
     if (PatrolRoute.IsEmpty()) return;
     PatrolIndex%=PatrolRoute.Num();
     const FOKRTPatrolStop& Stop=PatrolRoute[PatrolIndex];
-    if (FVector::Dist2D(Unit->Feet(),Stop.Location)>35)
+    if (Duty!=EOKGuardDuty::HoldPost && FVector::Dist2D(Unit->Feet(),Stop.Location)>35)
     {
         bAtPatrolStop=false; Wait=0;
         // A failed/aborted path is retried, never counted as arrival at a watch post.

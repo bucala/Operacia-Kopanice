@@ -194,6 +194,19 @@ void AOKRTHUD::DrawHUD()
             PC->ProjectWorldLocationToScreen(G->PreviewSpline->GetLocationAtSplinePoint(I,ESplineCoordinateSpace::World),B))
             DrawLine(A.X,A.Y,B.X,B.Y,FLinearColor(.8f,.91f,.83f,.8f),1.4f);
     }
+    if (PC->bArmed && PC->ArmedOrder==EOKOrder::Distract && G->PreviewSpline->GetNumberOfSplinePoints()>0)
+        WorldRing(G->PreviewSpline->GetLocationAtSplinePoint(G->PreviewSpline->GetNumberOfSplinePoints()-1,ESplineCoordinateSpace::World),
+            1500,FLinearColor(.95f,.76f,.32f,.3f));
+    for (const auto& Guard:G->Enemies)
+    {
+        const auto* AI=Cast<AOKRTGuardController>(Guard->GetController());
+        if (!Guard->IsOperational() || !AI || AI->AlertState!=EOKAlert::Investigate || !G->TeamSees(Guard)) continue;
+        FVector2D From,To;
+        if (PC->ProjectWorldLocationToScreen(Guard->Feet()+FVector(0,0,15),From) &&
+            PC->ProjectWorldLocationToScreen(AI->LastKnown+FVector(0,0,15),To))
+            DrawLine(From.X,From.Y,To.X,To.Y,FLinearColor(.95f,.68f,.22f,.55f),1);
+        WorldRing(AI->LastKnown,22,FLinearColor(.95f,.68f,.22f,.65f));
+    }
     if (G->bPathPreview)
     {
         for (AOKRTUnit* Planned:G->Party)
@@ -245,9 +258,13 @@ void AOKRTHUD::DrawHUD()
     Buttons.Last().Id=TEXT("Knockout");
     Button(TEXT("link"),X+S+4,SkillsY,S,TEXT("Zviazat omracenu hliadku (G)"),[PC](){ PC->Arm(EOKOrder::Bind); },PC->bArmed && PC->ArmedOrder==EOKOrder::Bind,!Unit->CarriedBody.IsValid());
     Buttons.Last().Id=TEXT("Bind");
+    Button(TEXT("volume_2"),X+2*(S+4),SkillsY,S,TEXT("Piskanie / partizan (Y)"),[PC](){ PC->Whistle(); },false,
+        Unit->Specialist==EOKSpecialist::Partisan && !Unit->CarriedBody.IsValid());
+    Buttons.Last().Id=TEXT("Whistle");
     Button(G->bTacticalPause ? TEXT("play") : TEXT("pause"),X,Y,S,G->bTacticalPause ? TEXT("Pokracovat (Space)") : TEXT("Takticka pauza (Space)"),[G](){ G->TogglePause(); },G->bTacticalPause);
     Button(TEXT("swords"),X+(S+4),Y,S,TEXT("Smrtelny tichy utok (T)"),[PC](){ PC->Arm(EOKOrder::Takedown); },PC->bArmed && PC->ArmedOrder==EOKOrder::Takedown);
-    Button(TEXT("circle_dot"),X+2*(S+4),Y,S,TEXT("Odlakanie (F)"),[PC](){ PC->Arm(EOKOrder::Distract); },PC->bArmed && PC->ArmedOrder==EOKOrder::Distract);
+    Button(TEXT("circle_dot"),X+2*(S+4),Y,S,TEXT("Hodit kamen (F)"),[PC](){ PC->Arm(EOKOrder::Distract); },PC->bArmed && PC->ArmedOrder==EOKOrder::Distract,
+        Unit->Distractions>0 && !Unit->CarriedBody.IsValid());
     Button(TEXT("hand"),X+3*(S+4),Y,S,TEXT("Interakcia (E)"),[PC](){ PC->Arm(EOKOrder::Interact); },PC->bArmed && PC->ArmedOrder==EOKOrder::Interact);
     Button(TEXT("backpack"),X+4*(S+4),Y,S,TEXT("Preniest / polozit telo (B)"),[PC](){ PC->Arm(EOKOrder::Carry); });
     Button(TEXT("eye"),X+5*(S+4),Y,S,TEXT("Zorne kuzele"),[G](){ G->ToggleCones(); },G->bCones);

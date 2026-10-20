@@ -82,7 +82,8 @@ to nearby guards and deals real-time damage.
 | Silent takedown | T/swords then left-click guard; approach from behind; unarmed click cannot attack |
 | Nonlethal knockout | K/fist then left-click guard from behind; unbound guard recovers after 45 simulation seconds |
 | Bind unconscious guard | G/link then click, or left-click an unbound unconscious guard |
-| Distraction | F or circle icon, then click ground; 5 charges, 6 s cooldown |
+| Throw stone | F or circle icon, then click supported ground; visible arc, 5 items, 6 s cooldown; sound on impact |
+| Whistle (Partisan) | Y or sound icon; 7 m source-position lure, no item cost, 4 s shared cooldown |
 | Approach TNT / detonator / hide carried body | Left-click near its world marker; active member approaches and interacts |
 | Target an interaction | E or hand icon, then left-click an interactive object |
 | Carry body / drop carried body | Left-click dead/bound guard; B/backpack targets pickup or drops a carried body |

@@ -71,8 +71,9 @@ void AOKRTHUD::DrawDrafts(AOKRTGameMode* G)
     {
         FOKRTOrder O; if (!G->GetDraft(I,O)) continue;
         const FLinearColor Color=I==0 ? FLinearColor(.96f,.79f,.36f,.95f) : FLinearColor(.45f,.93f,.7f,.95f);
-        const FVector Target=O.Target.IsValid() ? O.Target->Feet() : O.Location;
+        const FVector Target=O.Kind==EOKOrder::Whistle ? G->Party[I]->Feet() : O.Target.IsValid() ? O.Target->Feet() : O.Location;
         WorldRing(Target,46,Color);
+        if (O.Kind==EOKOrder::Whistle) WorldRing(Target,700,Color.CopyWithNewOpacity(.3f));
         TArray<FVector> Points; FString Reason;
         if (!G->Party[I]->GetOrderPath(O,false,Points,Reason)) continue;
         for (int32 J=1;J<Points.Num();++J)

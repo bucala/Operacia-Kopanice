@@ -67,7 +67,7 @@ void AOKRTGameMode::NonlethalSmokeTick()
         P->Tick(0);
         Require(P->QueueSize()==3 && Body->IsOperational(),TEXT("already-scheduled paused unit tick cannot execute queued skills"));
         auto* S=CaptureSnapshot();
-        Require(S->Version==2 && ValidateSnapshot(S),TEXT("schema 2 stores nonlethal queued orders"));
+        Require(S->Version==3 && ValidateSnapshot(S),TEXT("current schema stores nonlethal queued orders"));
         S->Version=1; Require(!ValidateSnapshot(S),TEXT("schema 1 rejects newer order values"));
         S->Units[0].Orders.Reset(); Require(ValidateSnapshot(S),TEXT("legacy schema 1 remains readable with original states"));
         Next(); break;

@@ -3,19 +3,33 @@
 #include "OKRTTypes.generated.h"
 
 class AOKRTUnit;
+class AStaticMeshActor;
 
 UENUM(BlueprintType)
 enum class EOKStance : uint8 { Walk, Run, Crouch, Prone };
 UENUM(BlueprintType)
 enum class EOKAlert : uint8 { Patrol, Investigate, Combat };
 UENUM(BlueprintType)
-enum class EOKOrder : uint8 { Move, Interact, Takedown, Distract, Carry, Stance, Heal, Knockout, Bind };
+enum class EOKOrder : uint8 { Move, Interact, Takedown, Distract, Carry, Stance, Heal, Knockout, Bind, Whistle };
 UENUM(BlueprintType)
 enum class EOKSpecialist : uint8 { Partisan, Officer };
 UENUM(BlueprintType)
 enum class EOKInteraction : uint8 { Nearby, CollectTNT, DetonateBridge, HideBody, CollectDocuments, SabotageCommandPost };
 UENUM(BlueprintType)
 enum class EOKGuardDuty : uint8 { Patrol, HoldPost };
+
+USTRUCT()
+struct FOKRTStoneFlight
+{
+    GENERATED_BODY()
+    UPROPERTY(SaveGame) FVector Origin=FVector::ZeroVector;
+    UPROPERTY(SaveGame) FVector Destination=FVector::ZeroVector;
+    UPROPERTY(SaveGame) float Elapsed=0;
+    UPROPERTY(SaveGame) float Duration=1;
+    UPROPERTY(SaveGame) int32 PartyMember=0;
+    UPROPERTY(Transient) TObjectPtr<AStaticMeshActor> Visual;
+    FVector Position(float Time) const;
+};
 
 USTRUCT(BlueprintType)
 struct FOKRTPatrolStop
